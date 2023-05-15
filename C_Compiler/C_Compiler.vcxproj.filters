@@ -26,7 +26,16 @@
     <ClInclude Include="Lexer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="AST.h">
+    <ClInclude Include="AST_Statement.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AST_Expression.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Scope.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Variable.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

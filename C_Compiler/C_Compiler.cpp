@@ -6,7 +6,8 @@
 #include <vector>
 #include <algorithm>
 #include "Lexer.h"
-#include "AST.h"
+#include "AST_Statement.h"
+#include "Scope.h"
 
 using std::string;
 using std::vector;
@@ -15,8 +16,9 @@ using std::unique_ptr;
 using std::make_unique;
 
 using namespace Lexer;
-using namespace AST_Definitions;
-
+using namespace AST_Expression;
+using namespace AST_Statement;
+using namespace ScopeNamespace;
 void assert(bool condition, string message, size_t lineNum)
 {
 	if (!condition)
@@ -124,32 +126,29 @@ public:
 		}
 		else if (token.type == TokenType::INT_LITERAL || token.type == TokenType::FLOAT_LITERAL)
 		{
+			AST_Literal_Expression litExpr;
+			litExpr.value = token.value;
+			litExpr.type = TokenTypeToLValueTypeMapping.at(token.type);
+
 			Token& nextToken = tokens.at(currentIndex + 1);
+
 			if (nextToken.type == TokenType::CLOSE_PAR)
 			{
-				AST_Literal_Expression litExpr;
-				//litExpr.type = 
-				litExpr.value = token.value;
-
 				currentIndex += 2;
 				return make_unique<AST_Literal_Expression>(std::move(litExpr));
 			}
 			else if (IsBinOp(nextToken.type))
 			{
-
-				unique_ptr<AST_BinOp> binOpExpr = make_unique<AST_BinOp>(AST_BinOp());
+				unique_ptr<AST_BinOp> binOpExpr = make_unique<AST_BinOp>();
 				binOpExpr->op = BinOpDict.at(nextToken.type);
 
-				AST_Literal_Expression left;
-				left.type = TokenTypeToLValueTypeMapping.at(token.type);
-				left.value = token.value;
-				binOpExpr->left = make_unique<AST_Literal_Expression>(std::move(left));
+				//binOpExpr->left = make_unique<AST_Literal_Expression>(std::move(litExpr));
 
-				currentIndex += 2;
-				//TODO: Figure out how to handle operator precedence!!!
-				//binOpExpr->right = make_unique<AST_Literal_Expression>(std::move(ParseExpression()));
+				//currentIndex += 2;
+				////TODO: Figure out how to handle operator precedence!!!
+				////binOpExpr->right = make_unique<AST_Literal_Expression>(std::move(ParseExpression()));
 
-				assert(binOpExpr->left->type == binOpExpr->right->type, "Binary operands' types do not match up", token.lineNumber);
+				//assert(binOpExpr->left->type == binOpExpr->right->type, "Binary operands' types do not match up", token.lineNumber);
 
 				return binOpExpr;
 			}
@@ -224,7 +223,7 @@ public:
 		else {
 			assert(false, "Improper variable assignment", nextToken.lineNumber);
 		}
-		assignment.lvalue = make_unique<Variable>(std::move(v));
+		assignment.lvalue = make_unique<Variable>(v);
 
 		//TODO: ADD VARIABLE TO SCOPE
 		//TODO: FIGURE OUT HOW TO PARSE ARRAY
@@ -309,8 +308,22 @@ public:
 		Parse: while, open par, Expression (assert type is bool), close par, open brace
 		->repeat same process as if
 
+----
+	General Expression Parsing Algorithm:
+	
+	name: check if variable or function
+		if function: parse function expression (shouldn't be too hard)
+		if variable: create expression from variable, then keep going to see if I should put it in bin op expression
+			check if next token is period / -> operator to see whether to access struct variable
+	literal:
+		either return it directly or put in in bin op
+	parentheses:
+		handle it separately
+	star:
+		dereference pointer
 
 
+----
 	Parsing Expressions Examples:
 	[DON'T ALLOW C STYLE CASTS -> have predefined cast function]
 

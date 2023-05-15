@@ -131,8 +131,11 @@
     <ClCompile Include="Utils.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="AST.h" />
+    <ClInclude Include="AST_Statement.h" />
+    <ClInclude Include="AST_Expression.h" />
     <ClInclude Include="Lexer.h" />
+    <ClInclude Include="Scope.h" />
+    <ClInclude Include="Variable.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
