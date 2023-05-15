@@ -19,6 +19,8 @@ using namespace Lexer;
 using namespace AST_Expression;
 using namespace AST_Statement;
 using namespace ScopeNamespace;
+
+
 void assert(bool condition, string message, size_t lineNum)
 {
 	if (!condition)
@@ -26,6 +28,11 @@ void assert(bool condition, string message, size_t lineNum)
 		std::cout << "ERROR: " << message << "; at line: " << lineNum;
 		throw 0;
 	}
+}
+
+void throwError(string message, size_t lineNum)
+{
+	assert(false, message, lineNum);
 }
 
 
@@ -158,6 +165,7 @@ public:
 	{
 		unique_ptr<Expression> expr;
 		Token& token = tokens.at(currentIndex);
+		Token& nextToken = tokens.at(currentIndex + 1);
 
 		if (token.type == TokenType::OPEN_PAR)
 		{
@@ -169,14 +177,46 @@ public:
 			//FIND IF FUNCTION
 			// 
 			//FIND IF VARIABLE
+			if (nextToken.type == OPEN_PAR) //function
+			{
+				Function f;
+				bool foundFunction = scopeStack.TryFindFunction(token.value, f);
+				assert(foundFunction, "Function: " + token.value + " doesn't exist in scope", token.lineNumber);
+
+			}
+			else //variable
+			{ 
+				Variable v;
+				bool foundVariable = scopeStack.TryFindVariable(token.value, v);
+				assert(foundVariable, "Variable: " + token.value + " doesn't exist in scope", token.lineNumber);
+
+				if (nextToken.type == TokenType::PERIOD)  //struct variable access
+				{
+
+				}
+				else if (IsBinOp(nextToken.type)) //binary operation
+				{
+
+				}
+				else if (IsUnaryOp(nextToken.type)) //unary operation
+				{
+
+				}
+				else if (nextToken.type == TokenType::ARROW) //dereference struct pointer
+				{
+
+				}
+				else {
+					assert(false, "Invalid syntax for expression", nextToken.lineNumber);
+				}
+			}
 		}
 		else if (token.type == TokenType::INT_LITERAL || token.type == TokenType::FLOAT_LITERAL)
 		{
-			Token& nextToken = tokens.at(currentIndex + 1);
 
-			if (nextToken.type == TokenType::SEMICOLON)
+			if (nextToken.type == TokenType::SEMICOLON || nextToken.type == TokenType::COMMA || nextToken.type == TokenType::CLOSE_PAR)
 			{
-				++currentIndex;
+				currentIndex += (nextToken.type == TokenType::SEMICOLON ? 2 : 1); //if semicolon, continue to next statement. Otherwise, let comma/close_par be parsed after return
 				AST_Literal_Expression expr;
 
 				//expand this line to fit other literal types??
@@ -191,8 +231,12 @@ public:
 
 			}
 			else {
-				assert(false, "Invalid syntax", token.lineNumber);
+				throwError("Invalid syntax", token.lineNumber);
 			}
+		}
+		else if (token.type == TokenType::STAR) //pointer dereferencing
+		{
+
 		}
 
 		return expr; //CHANGE THIS!!!!
@@ -221,7 +265,7 @@ public:
 			currentIndex += 3;
 		}
 		else {
-			assert(false, "Improper variable assignment", nextToken.lineNumber);
+			throwError("Improper variable assignment", nextToken.lineNumber);
 		}
 		assignment.lvalue = make_unique<Variable>(v);
 
@@ -312,7 +356,7 @@ public:
 	General Expression Parsing Algorithm:
 	
 	name: check if variable or function
-		if function: parse function expression (shouldn't be too hard)
+		if function: parse function expression (shouldn't be too hard... hopefully), then continue
 		if variable: create expression from variable, then keep going to see if I should put it in bin op expression
 			check if next token is period / -> operator to see whether to access struct variable
 	literal:

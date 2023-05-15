@@ -49,7 +49,9 @@ namespace Lexer {
 		WHILE,
 		ADDRESS_OF,
 		AND,
-		OR
+		OR,
+		COMMA,
+		ARROW
 	};
 
 	struct Token {
@@ -89,7 +91,9 @@ namespace Lexer {
 		{"&&", TokenType::AND}, //To make things easier for now, don't allow "bitwise and"
 		{"||", TokenType::OR},
 		{"/", TokenType::SLASH},
-		{"%", TokenType::PERCENT}
+		{"%", TokenType::PERCENT},
+		{",", TokenType::COMMA},
+		{"->", TokenType::ARROW} //TODO: Properly catch this in the lexer
 	};
 
 
