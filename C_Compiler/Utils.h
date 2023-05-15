@@ -29,4 +29,9 @@ namespace Utils {
 		return periodCount == 1;
 	}
 
+	inline bool isWhitespace(const char& c)
+	{
+		return c == ' ' || c == '\t';
+	}
+
 }
