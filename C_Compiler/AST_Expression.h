@@ -6,12 +6,14 @@
 #include <unordered_map>
 
 #include "Lexer.h"
+#include "Variable.h"
 
 using std::string;
 using std::unique_ptr;
 using std::unordered_map;
 
 using namespace Lexer;
+using namespace VariableNamespace;
 
 namespace AST_Expression
 {
@@ -20,33 +22,53 @@ namespace AST_Expression
 		LITERAL,
 		BINARY_OPERATION,
 		UNARY_OPERATION,
-		FUNCTION_CALL
+		FUNCTION_CALL,
+		VARIABLE
 	};
+
 
 	enum BinOpType {
 		ADD,
 		SUBTRACT,
 		MULTIPLY,
 		DIVIDE,
-		MODULO
+		MODULO,
+		GREATER,
+		GREATER_EQUAL,
+		LESS,
+		LESS_EQUAL,
+		EQUALS,
+		AND,
+		OR
 	};
 
-	enum LValueType {
-		INT,
-		FLOAT,
-		STRUCT
+	struct BinOp {
+		BinOpType type;
+		int precedence;
+
+		BinOp(BinOpType type, int precedence) : type(type), precedence(precedence) {}
+	};
+
+	unordered_map<TokenType, BinOp> BinOpTokenDictionary = {
+		{TokenType::PLUS, BinOp(BinOpType::ADD, 3)},
+		{TokenType::MINUS, BinOp(BinOpType::SUBTRACT, 3)},
+		{TokenType::STAR, BinOp(BinOpType::MULTIPLY, 4)},
+		{TokenType::SLASH, BinOp(BinOpType::DIVIDE, 4)},
+		{TokenType::PERCENT, BinOp(BinOpType::MODULO, 4)}
+		//TODO: Continue this for comparison and boolean
 	};
 
 
 	struct Expression {
 		LValueType type;
 		string structName;
-		bool isPointer;
+		bool isReference;
 		ExpressionType expressionType;
 
 		Expression()
 		{
 			expressionType = ExpressionType::NONE;
+			isReference = false;
 		}
 
 		virtual void PrintExpressionAST(int indentLevel = 0) = 0;
@@ -102,13 +124,27 @@ namespace AST_Expression
 		{TokenType::FLOAT_LITERAL, LValueType::FLOAT}
 	};
 
+	struct AST_Variable_Expression : Expression 
+	{
+		Variable v;
+		virtual void PrintExpressionAST(int indentLevel = 0) override;
+
+		AST_Variable_Expression(Variable&& v) : v(v) {}
+	};
+
+	void AST_Variable_Expression::PrintExpressionAST(int indentLevel)
+	{
+		//std::cout << string(indentLevel, '\t') << "Literal: " << value << "\n";
+	}
+
+
 	struct AST_Literal_Expression : Expression {
 
 		string value;
 
 		AST_Literal_Expression() {
 			expressionType = ExpressionType::LITERAL;
-			isPointer = false;
+			isReference = false;
 		}
 
 		virtual void PrintExpressionAST(int indentLevel = 0) override;

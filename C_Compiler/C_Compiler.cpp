@@ -120,57 +120,116 @@ public:
 
 		return binOpExpr;
 	}*/
-	unique_ptr<Expression> ParseParentheticalExpression()
+	//unique_ptr<Expression> ParseParentheticalExpression()
+	//{
+	//	Token& token = tokens.at(currentIndex);
+	//	unique_ptr<Expression> parExpr;
+
+	//	if (token.type == TokenType::CLOSE_PAR)
+	//	{
+	//		assert(parExpr->expressionType != ExpressionType::NONE, "Invalid parenthetical expression", token.lineNumber);
+	//		++currentIndex;
+	//		return parExpr;
+	//	}
+	//	else if (token.type == TokenType::INT_LITERAL || token.type == TokenType::FLOAT_LITERAL)
+	//	{
+	//		AST_Literal_Expression litExpr;
+	//		litExpr.value = token.value;
+	//		litExpr.type = TokenTypeToLValueTypeMapping.at(token.type);
+
+	//		Token& nextToken = tokens.at(currentIndex + 1);
+
+	//		if (nextToken.type == TokenType::CLOSE_PAR)
+	//		{
+	//			currentIndex += 2;
+	//			return make_unique<AST_Literal_Expression>(std::move(litExpr));
+	//		}
+	//		else if (IsBinOp(nextToken.type))
+	//		{
+	//			unique_ptr<AST_BinOp> binOpExpr = make_unique<AST_BinOp>();
+	//			binOpExpr->op = BinOpDict.at(nextToken.type);
+
+	//			//binOpExpr->left = make_unique<AST_Literal_Expression>(std::move(litExpr));
+
+	//			//currentIndex += 2;
+	//			////TODO: Figure out how to handle operator precedence!!!
+	//			////binOpExpr->right = make_unique<AST_Literal_Expression>(std::move(ParseExpression()));
+
+	//			//assert(binOpExpr->left->type == binOpExpr->right->type, "Binary operands' types do not match up", token.lineNumber);
+
+	//			return binOpExpr;
+	//		}
+	//	}
+	//}
+
+	/*
+		Parsing Expressions:
+
+		ParseExpr -> first parse non binary expressions (variables, unary operations, function calls, referencing, etc...)
+		If the next token is bin op, pass in ptr to non-binary expression as argument to ParseBinaryExpression
+
+
+		firstExpr [op] secondExpr [secondOp]
+	*/
+
+	unique_ptr<AST_BinOp> ParseBinaryExpression(unique_ptr<Expression> firstExpr)
 	{
-		Token& token = tokens.at(currentIndex);
-		unique_ptr<Expression> parExpr;
+		const BinOp& op = BinOpTokenDictionary.at(tokens.at(currentIndex).type);
+		++currentIndex;
 
-		if (token.type == TokenType::CLOSE_PAR)
+		unique_ptr<Expression> secondExpr = ParseNonBinaryExpression();
+
+		//TODO: Check to make sure types of first and second expression match (unless first type is pointer and second is int)
+		Token& currentToken = tokens.at(currentIndex);
+
+		unique_ptr<AST_BinOp> binOpExpr = make_unique<AST_BinOp>();
+		binOpExpr->left = std::move(firstExpr);
+		binOpExpr->op = op.type;
+
+		binOpExpr->type = binOpExpr->left->type;
+
+		if (IsBinOp(currentToken.type))
 		{
-			assert(parExpr->expressionType != ExpressionType::NONE, "Invalid parenthetical expression", token.lineNumber);
-			++currentIndex;
-			return parExpr;
-		}
-		else if (token.type == TokenType::INT_LITERAL || token.type == TokenType::FLOAT_LITERAL)
-		{
-			AST_Literal_Expression litExpr;
-			litExpr.value = token.value;
-			litExpr.type = TokenTypeToLValueTypeMapping.at(token.type);
-
-			Token& nextToken = tokens.at(currentIndex + 1);
-
-			if (nextToken.type == TokenType::CLOSE_PAR)
+			const BinOp& secondOp = BinOpTokenDictionary.at(currentToken.type);
+			if (op.precedence >= secondOp.precedence)
 			{
-				currentIndex += 2;
-				return make_unique<AST_Literal_Expression>(std::move(litExpr));
+				binOpExpr->right = std::move(secondExpr);
+
+				assert(binOpExpr->left->type == binOpExpr->right->type
+					|| (binOpExpr->left->isReference && binOpExpr->right->type == LValueType::INT && !binOpExpr->right->isReference),
+					"Type mismatch in binary operation", currentToken.lineNumber);
+
+				return ParseBinaryExpression(std::move(binOpExpr));
 			}
-			else if (IsBinOp(nextToken.type))
+			else
 			{
-				unique_ptr<AST_BinOp> binOpExpr = make_unique<AST_BinOp>();
-				binOpExpr->op = BinOpDict.at(nextToken.type);
-
-				//binOpExpr->left = make_unique<AST_Literal_Expression>(std::move(litExpr));
-
-				//currentIndex += 2;
-				////TODO: Figure out how to handle operator precedence!!!
-				////binOpExpr->right = make_unique<AST_Literal_Expression>(std::move(ParseExpression()));
-
-				//assert(binOpExpr->left->type == binOpExpr->right->type, "Binary operands' types do not match up", token.lineNumber);
-
-				return binOpExpr;
+				binOpExpr->right = ParseBinaryExpression(std::move(secondExpr));
 			}
 		}
+		else
+		{
+			binOpExpr->right = std::move(secondExpr);
+		}
+
+		assert(binOpExpr->left->type == binOpExpr->right->type
+			|| (binOpExpr->left->isReference && binOpExpr->right->type == LValueType::INT && !binOpExpr->right->isReference),
+			"Type mismatch in binary operation", currentToken.lineNumber);
+
+		return binOpExpr;
 	}
-	unique_ptr<Expression> ParseExpression()
+
+	unique_ptr<Expression> ParseNonBinaryExpression()
 	{
 		unique_ptr<Expression> expr;
 		Token& token = tokens.at(currentIndex);
 		Token& nextToken = tokens.at(currentIndex + 1);
 
+
+		//TODO: FIGURE OUT PARENTHESES!!!!
 		if (token.type == TokenType::OPEN_PAR)
 		{
 			++currentIndex;
-			expr = ParseParentheticalExpression();
+			//expr = ParseParentheticalExpression();
 		}
 		else if (token.type == TokenType::NAME)
 		{
@@ -194,15 +253,20 @@ public:
 				{
 
 				}
-				else if (IsBinOp(nextToken.type)) //binary operation
-				{
-
+				else if (IsBinOp(nextToken.type) || nextToken.type == TokenType::SEMICOLON || nextToken.type == TokenType::COMMA) //end of non-binary expression
+				{			
+					++currentIndex;					
+					return make_unique<AST_Variable_Expression>(std::move(v));
 				}
 				else if (IsUnaryOp(nextToken.type)) //unary operation
 				{
 
 				}
 				else if (nextToken.type == TokenType::ARROW) //dereference struct pointer
+				{
+
+				}
+				else if (nextToken.type == TokenType::OPEN_BRACKET) //accessing array element
 				{
 
 				}
@@ -214,22 +278,22 @@ public:
 		else if (token.type == TokenType::INT_LITERAL || token.type == TokenType::FLOAT_LITERAL)
 		{
 
-			if (nextToken.type == TokenType::SEMICOLON || nextToken.type == TokenType::COMMA || nextToken.type == TokenType::CLOSE_PAR)
+			if (nextToken.type == TokenType::SEMICOLON || nextToken.type == TokenType::COMMA || nextToken.type == TokenType::CLOSE_PAR || IsBinOp(nextToken.type))
 			{
-				currentIndex += (nextToken.type == TokenType::SEMICOLON ? 2 : 1); //if semicolon, continue to next statement. Otherwise, let comma/close_par be parsed after return
+				currentIndex += 1; //(nextToken.type == TokenType::SEMICOLON ? 2 : 1); //if semicolon, continue to next statement. Otherwise, let comma/close_par be parsed after return
 				AST_Literal_Expression expr;
 
 				//expand this line to fit other literal types??
 				expr.type = token.type == TokenType::INT_LITERAL ? LValueType::INT : LValueType::FLOAT;
 				expr.value = token.value;
-				expr.isPointer = false;
+				expr.isReference = false;
 
 				return make_unique<AST_Literal_Expression>(std::move(expr));;
 			}
-			else if (IsBinOp(nextToken.type))
+			/*else if (IsBinOp(nextToken.type))
 			{
 
-			}
+			}*/
 			else {
 				throwError("Invalid syntax", token.lineNumber);
 			}
@@ -242,25 +306,47 @@ public:
 		return expr; //CHANGE THIS!!!!
 	}
 
+	unique_ptr<Expression> ParseExpression()
+	{
+		unique_ptr<Expression> firstExpr = ParseNonBinaryExpression();
+		Token& token = tokens.at(currentIndex);
+
+		if (IsBinOp(token.type))
+		{
+			assert(firstExpr->type != LValueType::STRUCT || firstExpr->isReference, "Cannot perform binary operation on non-pointer struct type", token.lineNumber);
+			
+			return ParseBinaryExpression(std::move(firstExpr));
+		}
+		else
+		{
+			return firstExpr;
+		}
+	}
+
+
 	AST_Assignment ParseInitAssignment()
 	{
 		//TODO: Include function assignment [REMOVE ABILITY TO DECLARE VARIABLES LIKE int x(2);]
 		// Don't create variable yet until you know it's a variable assignment and not a function one
 		//int x = EXPR
 		AST_Assignment assignment;
+		assignment.isInitialization = true;
+
 		Variable v;
 		v.type = GetTypeFromName(std::move(tokens.at(currentIndex).value));
+		v.structName = v.type == LValueType::STRUCT ? tokens.at(currentIndex).value : "";
+
 		Token& nextToken = tokens.at(currentIndex + 1);
 		if (nextToken.type == TokenType::NAME) {
 			v.name = tokens.at(currentIndex + 1).value;
-			v.isPointer = false;
-
+			v.isReference = false;
+			
 			currentIndex += 2;
 		}
 		else if (nextToken.type == TokenType::STAR)
 		{
 			v.name = tokens.at(currentIndex + 2).value;
-			v.isPointer = true;
+			v.isReference = true;
 
 			currentIndex += 3;
 		}
@@ -276,7 +362,7 @@ public:
 		{
 			++currentIndex;
 			unique_ptr<Expression> expr = ParseExpression();
-			assert(expr->type == v.type && expr->structName == v.structName && v.isPointer == expr->isPointer, "Variable is assigned to the wrong type", tokens.at(currentIndex).lineNumber);
+			assert(expr->type == v.type && expr->structName == v.structName && v.isReference == expr->isReference, "Variable is assigned to the wrong type", tokens.at(currentIndex).lineNumber);
 			assignment.rvalue = std::move(expr);
 		}
 
@@ -284,6 +370,29 @@ public:
 		++currentIndex;
 		
 		return assignment;
+	}
+
+	//TODO: Figure out if assignment and initialization should be different in AST
+	AST_Assignment ParseAssignment()
+	{
+		Token& token = tokens.at(currentIndex);
+		Variable var;
+		bool foundVariable = scopeStack.TryFindVariable(token.value, var);
+		if (!foundVariable) {
+			throwError("Variable doesn't exist in scope", token.lineNumber);
+		}
+
+		currentIndex += 2;
+
+		AST_Assignment assignment;
+		assignment.isInitialization = false;
+		assignment.lvalue = make_unique<Variable>(std::move(var));
+		assignment.rvalue = ParseExpression();
+		
+		assert(assignment.lvalue->type == assignment.rvalue->type && assignment.lvalue->structName == assignment.rvalue->structName, "Type mismatch in variable assignment", token.lineNumber);
+
+		return assignment;
+
 	}
 
 	AST_Struct_Definition ParseStructDefinition()
@@ -306,6 +415,8 @@ public:
 		Token& currentToken = tokens.at(currentIndex);
 		switch (currentToken.type)
 		{
+			//TODO: figure out how to handle weird statements that don't mean anything but have side effects
+			//			such as 5 + (++x); or 5 + f(x) [where f() has side effects]
 		case TokenType::NEW_LINE:
 			++currentIndex;
 			return;
@@ -317,14 +428,25 @@ public:
 			{
 				group->statements.push_back(make_unique<AST_Struct_Definition>(std::move(ParseStructDefinition())));
 			}
-			else {
-				group->statements.push_back(make_unique<AST_Struct_Definition>(std::move(ParseStructDefinition())));
+			else{
+				if (tokens.at(currentIndex + 1).type == TokenType::NAME && tokens.at(currentIndex).type == TokenType::NAME)
+				{
+					++currentIndex;
+					group->statements.push_back(make_unique<AST_Assignment>(std::move(ParseInitAssignment())));
+				}
+				else {
+					throwError("Invalid syntax", currentToken.lineNumber);
+				}
 			}
 
 			break;
 
 		case TokenType::NAME:
-
+			Token& nextToken = tokens.at(currentIndex + 1);
+			if (nextToken.type == TokenType::SINGLE_EQUAL) //could extend to +=, -=, *=, /=, etc...
+			{
+				ParseAssignment();
+			}
 			break;
 		}
 		//else if (currentToken.type == TokenType::IF) {
@@ -368,6 +490,8 @@ public:
 
 
 ----
+
+x + y
 	Parsing Expressions Examples:
 	[DON'T ALLOW C STYLE CASTS -> have predefined cast function]
 
@@ -435,7 +559,7 @@ public:
 */
 int main()
 {
-	const string input = "int x = 5;";
+	const string input = "int x = 5 + 4;";
 	auto tokens = SplitStringByToken(input);
 	std::cout << input << "\n\n";
 	for (auto& s : tokens) {

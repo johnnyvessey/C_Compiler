@@ -61,6 +61,7 @@ namespace AST_Statement {
 	struct AST_Assignment : Statement {
 		unique_ptr<Variable> lvalue;
 		unique_ptr<Expression> rvalue;
+		bool isInitialization;
 
 		virtual void PrintStatementAST(int indentLevel = 0) override;
 	};

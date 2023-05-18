@@ -1,0 +1,21 @@
+TODO:
+
+PARSER TODO:
+	
+	- Add printing AST for binary operations
+- IMPORTANT: HANDLING POINTERS DIFFERENTLY
+ -> don't just use bool isPointer, need a parent class / nesting to allow pointers to pointers
+- Properly add scope functionality -> every time variable, function, struct defined
+	- properly push and pop scope stack when there are function calls, loops, if statements, braces, etc...
+- Properly parse binary expressions with correct order of operations
+- Add function calls and definitions
+- Add support for arrays
+- if, while, for statements
+- Handle boolean logic and operators
+- Don't allow redefinition of variables within scope
+- Properly parse string literals and char literals
+
+
+AST:
+
+- Figure out how to recursively traverse the AST in the proper order to generate the assembly / IR code

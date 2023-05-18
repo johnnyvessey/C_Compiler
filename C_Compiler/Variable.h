@@ -1,14 +1,39 @@
 #pragma once
-#include "AST_Expression.h"
 
-using namespace AST_Expression;
+#include <string>
+using std::unique_ptr;
+using std::string;
 
 namespace VariableNamespace {
-	struct Variable {
+
+	enum LValueType {
+		INT,
+		FLOAT,
+		STRUCT
+	};
+
+	struct Value {
 		string name;
 		LValueType type;
 		string structName;
-		bool isPointer;
+		bool isReference;
+
+	};
+	struct Variable : Value {
+		Variable() 
+		{
+			isReference = false;
+		}
+	};
+
+	struct Pointer : Value
+	{
+		unique_ptr<Value> value;
+
+		Pointer()
+		{
+			isReference = true;
+		}
 	};
 
 	struct Struct_Variable {
