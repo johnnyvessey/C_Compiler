@@ -1,5 +1,8 @@
 #pragma once
 #include <string>
+#include <fstream>
+#include <sstream>
+
 using std::string;
 
 namespace Utils {
@@ -32,6 +35,15 @@ namespace Utils {
 	inline bool isWhitespace(const char& c)
 	{
 		return c == ' ' || c == '\t';
+	}
+
+	inline string ReadFile(const string&& fileName)
+	{
+		std::ifstream test_code(fileName);
+		std::stringstream buffer;
+		buffer << test_code.rdbuf();
+
+		return buffer.str();
 	}
 
 }

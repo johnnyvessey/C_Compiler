@@ -87,7 +87,9 @@ namespace AST_Expression
 	};
 
 	void AST_BinOp::PrintExpressionAST(int indentLevel) {
-
+		std::cout << string(indentLevel, '\t') << "Binary Operation: " << op << "\n";
+		left->PrintExpressionAST(indentLevel + 1);
+		right->PrintExpressionAST(indentLevel + 1);
 	}
 
 	struct AST_Function_Expression : Expression
@@ -129,12 +131,14 @@ namespace AST_Expression
 		Variable v;
 		virtual void PrintExpressionAST(int indentLevel = 0) override;
 
-		AST_Variable_Expression(Variable&& v) : v(v) {}
+		AST_Variable_Expression(Variable&& v) : v(v) {
+			type = v.type;
+		}
 	};
 
 	void AST_Variable_Expression::PrintExpressionAST(int indentLevel)
 	{
-		//std::cout << string(indentLevel, '\t') << "Literal: " << value << "\n";
+		std::cout << string(indentLevel, '\t') << "Variable: " << v.name << " (" << v.type << ") " << v.structName << "\n";
 	}
 
 

@@ -253,10 +253,11 @@ public:
 				{
 
 				}
-				else if (IsBinOp(nextToken.type) || nextToken.type == TokenType::SEMICOLON || nextToken.type == TokenType::COMMA) //end of non-binary expression
+				else if (IsBinOp(nextToken.type) || nextToken.type == TokenType::SEMICOLON || nextToken.type == TokenType::COMMA || nextToken.type == TokenType::CLOSE_PAR) //end of non-binary expression
 				{			
 					++currentIndex;					
-					return make_unique<AST_Variable_Expression>(std::move(v));
+					AST_Variable_Expression expr = AST_Variable_Expression(std::move(v));
+					return make_unique<AST_Variable_Expression>(std::move(expr));
 				}
 				else if (IsUnaryOp(nextToken.type)) //unary operation
 				{
@@ -306,8 +307,28 @@ public:
 		return expr; //CHANGE THIS!!!!
 	}
 
-	unique_ptr<Expression> ParseExpression()
+	/*
+		Parsing parentheses:
+
+		int x = (5 + 6) * 7;
+
+		((5 + 6) * 6) - 2;
+	
+	*/
+	unique_ptr<Expression> ParseExpression(int parLevel = 0)
 	{
+		if (tokens.at(currentIndex).type == TokenType::OPEN_PAR)
+		{
+			++currentIndex;
+			return ParseExpression(parLevel + 1);
+		}
+		//if (tokens.at(currentIndex).type == TokenType::CLOSE_PAR)
+		//{
+		//	--parLevel;
+		//	assert(parLevel >= 0 && tokens.at(currentIndex - 1).type != TokenType::OPEN_PAR, "Invalid syntax for parentheses", tokens.at(currentIndex).lineNumber);
+		//	++currentIndex;
+		//	return ParseExpression(parLevel);
+		//}
 		unique_ptr<Expression> firstExpr = ParseNonBinaryExpression();
 		Token& token = tokens.at(currentIndex);
 
@@ -316,6 +337,15 @@ public:
 			assert(firstExpr->type != LValueType::STRUCT || firstExpr->isReference, "Cannot perform binary operation on non-pointer struct type", token.lineNumber);
 			
 			return ParseBinaryExpression(std::move(firstExpr));
+		}
+		else if (token.type == CLOSE_PAR)
+		{
+			--parLevel;
+			assert(parLevel >= 0 && tokens.at(currentIndex - 1).type != TokenType::OPEN_PAR, "Invalid syntax for parentheses", tokens.at(currentIndex).lineNumber);
+			++currentIndex;
+
+			if ()
+
 		}
 		else
 		{
@@ -345,6 +375,7 @@ public:
 		}
 		else if (nextToken.type == TokenType::STAR)
 		{
+			//handle pointers to pointers to pointers... etc... (while([getNextToken] == star) ...)
 			v.name = tokens.at(currentIndex + 2).value;
 			v.isReference = true;
 
@@ -355,9 +386,11 @@ public:
 		}
 		assignment.lvalue = make_unique<Variable>(v);
 
-		//TODO: ADD VARIABLE TO SCOPE
 		//TODO: FIGURE OUT HOW TO PARSE ARRAY
-
+		ScopeLevel& top = scopeStack.scope.back();
+		assert(top.variables.find(v.name) == top.variables.end(), "Variable is already defined in this scope", nextToken.lineNumber);
+		top.variables[v.name] = v;
+		
 		if (tokens.at(currentIndex).type == TokenType::SINGLE_EQUAL)
 		{
 			++currentIndex;
@@ -557,14 +590,18 @@ x + y
 		
 
 */
+
+
 int main()
 {
-	const string input = "int x = 5 + 4;";
+
+	const string input = Utils::ReadFile("test_code.txt");
+
 	auto tokens = SplitStringByToken(input);
 	std::cout << input << "\n\n";
-	for (auto& s : tokens) {
+	/*for (auto& s : tokens) {
 		std::cout << s.type << ": " << Lexer::GetNameFromEnum(s.type) << ": " << s.value << " - line: " << s.lineNumber << " - token: " << s.tokenNumber << "\n";
-	}
+	}*/
 
 	AST ast(tokens);
 	ast.ParseProgram();
