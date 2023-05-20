@@ -54,11 +54,29 @@ public:
 	unique_ptr<StatementGroup> group;
 
 	size_t currentIndex = 0;
-	Scope scopeStack;	
+	Scope scopeStack;
 
 	AST(vector<Token>& tokens) : tokens(tokens)
 	{
 		group = make_unique<StatementGroup>();
+	}
+
+	size_t GetCurrentLineNum()
+	{
+		return tokens.at(currentIndex).lineNumber;
+	}
+
+	Token& GetCurrentToken()
+	{
+		return tokens.at(currentIndex);
+	}
+
+	void SkipNewLines()
+	{
+		while (tokens.at(currentIndex).type == TokenType::NEW_LINE)
+		{
+			++currentIndex;
+		}
 	}
 
 	//Expression ParseCondition()
@@ -186,7 +204,7 @@ public:
 		binOpExpr->left = std::move(firstExpr);
 		binOpExpr->op = op.type;
 
-		binOpExpr->type = binOpExpr->left->type;
+		binOpExpr->type = IsBooleanOperation(op.type) ? LValueType::BOOL : binOpExpr->left->type;
 
 		if (IsBinOp(currentToken.type))
 		{
@@ -195,7 +213,8 @@ public:
 			{
 				binOpExpr->right = std::move(secondExpr);
 
-				assert(binOpExpr->left->type == binOpExpr->right->type
+				//TODO: Add casting from int to float if one value is int and the other is float; ALSO, do BOOL conversions to INT/FLOAT, etc...
+				assert((IsNumericType(binOpExpr->left->type) && IsNumericType(binOpExpr->right->type))
 					|| (binOpExpr->left->isReference && binOpExpr->right->type == LValueType::INT && !binOpExpr->right->isReference),
 					"Type mismatch in binary operation", currentToken.lineNumber);
 
@@ -224,12 +243,10 @@ public:
 		Token& token = tokens.at(currentIndex);
 		Token& nextToken = tokens.at(currentIndex + 1);
 
-
-		//TODO: FIGURE OUT PARENTHESES!!!!
 		if (token.type == TokenType::OPEN_PAR)
 		{
 			++currentIndex;
-			//expr = ParseParentheticalExpression();
+			expr = ParseParentheticalExpression();
 		}
 		else if (token.type == TokenType::NAME)
 		{
@@ -315,21 +332,29 @@ public:
 		((5 + 6) * 6) - 2;
 	
 	*/
-	unique_ptr<Expression> ParseExpression(int parLevel = 0)
+
+	unique_ptr<Expression> ParseParentheticalExpression()
 	{
+		unique_ptr<Expression> expr = ParseExpression();
+		Token& token = tokens.at(currentIndex);
+		assert(token.type == TokenType::CLOSE_PAR, "Invalid parentheses", token.lineNumber);
+		++currentIndex;
+
+		return expr;
+	}
+
+	unique_ptr<Expression> ParseExpression()
+	{
+		unique_ptr<Expression> firstExpr; 
 		if (tokens.at(currentIndex).type == TokenType::OPEN_PAR)
 		{
 			++currentIndex;
-			return ParseExpression(parLevel + 1);
+			firstExpr = ParseParentheticalExpression();
 		}
-		//if (tokens.at(currentIndex).type == TokenType::CLOSE_PAR)
-		//{
-		//	--parLevel;
-		//	assert(parLevel >= 0 && tokens.at(currentIndex - 1).type != TokenType::OPEN_PAR, "Invalid syntax for parentheses", tokens.at(currentIndex).lineNumber);
-		//	++currentIndex;
-		//	return ParseExpression(parLevel);
-		//}
-		unique_ptr<Expression> firstExpr = ParseNonBinaryExpression();
+		else
+		{
+			firstExpr = ParseNonBinaryExpression();
+		}
 		Token& token = tokens.at(currentIndex);
 
 		if (IsBinOp(token.type))
@@ -337,15 +362,6 @@ public:
 			assert(firstExpr->type != LValueType::STRUCT || firstExpr->isReference, "Cannot perform binary operation on non-pointer struct type", token.lineNumber);
 			
 			return ParseBinaryExpression(std::move(firstExpr));
-		}
-		else if (token.type == CLOSE_PAR)
-		{
-			--parLevel;
-			assert(parLevel >= 0 && tokens.at(currentIndex - 1).type != TokenType::OPEN_PAR, "Invalid syntax for parentheses", tokens.at(currentIndex).lineNumber);
-			++currentIndex;
-
-			if ()
-
 		}
 		else
 		{
@@ -443,55 +459,114 @@ public:
 
 	//}
 
-	void ParseStatement()
+	void ParseConditionalSubstatements(unique_ptr<StatementGroup>& group)
+	{
+		assert(GetCurrentToken().type == TokenType::OPEN_BRACE, "Open brace required for if statement", GetCurrentLineNum());
+		++currentIndex;
+
+		scopeStack.scope.push_back(std::move(ScopeLevel()));
+		//TODO: figure out if this could ever be infinite loop
+		while (GetCurrentToken().type != TokenType::CLOSE_BRACE)
+		{
+			group->statements.push_back(std::move(ParseStatement()));
+		}
+		scopeStack.scope.pop_back();
+		++currentIndex;
+	}
+
+	void ParseIfStatement(unique_ptr<AST_If_Then>& ifThenExpr, unique_ptr<Expression> &condition, unique_ptr<StatementGroup>& group)
+	{
+		assert(tokens.at(currentIndex + 1).type == TokenType::OPEN_PAR, "If statement requires parentheses", tokens.at(currentIndex + 1).lineNumber);
+		currentIndex += 2;
+		condition = std::move(ParseParentheticalExpression());
+		assert(IsNumericType(condition->type), "Condition must be scalar type", tokens.at(currentIndex).lineNumber);
+
+		ParseConditionalSubstatements(group);	
+	}
+
+	void ParseElseStatement(unique_ptr<StatementGroup>& group)
+	{
+		++currentIndex;
+		ParseConditionalSubstatements(group);
+	}
+
+	
+
+	unique_ptr<Statement> ParseStatement()
 	{
 		Token& currentToken = tokens.at(currentIndex);
 		switch (currentToken.type)
 		{
 			//TODO: figure out how to handle weird statements that don't mean anything but have side effects
 			//			such as 5 + (++x); or 5 + f(x) [where f() has side effects]
-		case TokenType::NEW_LINE:
-			++currentIndex;
-			return;
-		case TokenType::TYPE:
-			group->statements.push_back(make_unique<AST_Assignment>(ParseInitAssignment()));
-			break;
-		case TokenType::STRUCT:
-			if (tokens.at(currentIndex + 1).type == TokenType::NAME && tokens.at(currentIndex + 2).type == TokenType::OPEN_BRACE)
+			case TokenType::NEW_LINE:
 			{
-				group->statements.push_back(make_unique<AST_Struct_Definition>(std::move(ParseStructDefinition())));
+				++currentIndex;
+				return nullptr;
 			}
-			else{
-				if (tokens.at(currentIndex + 1).type == TokenType::NAME && tokens.at(currentIndex).type == TokenType::NAME)
+			case TokenType::TYPE:
+			{
+				return make_unique<AST_Assignment>(std::move(ParseInitAssignment()));
+			}
+			case TokenType::STRUCT:
+			{
+				if (tokens.at(currentIndex + 1).type == TokenType::NAME && tokens.at(currentIndex + 2).type == TokenType::OPEN_BRACE)
 				{
-					++currentIndex;
-					group->statements.push_back(make_unique<AST_Assignment>(std::move(ParseInitAssignment())));
+					return make_unique<AST_Struct_Definition>(std::move(ParseStructDefinition()));
 				}
 				else {
-					throwError("Invalid syntax", currentToken.lineNumber);
+					if (tokens.at(currentIndex + 1).type == TokenType::NAME && tokens.at(currentIndex).type == TokenType::NAME)
+					{
+						++currentIndex;
+						return make_unique<AST_Assignment>(std::move(ParseInitAssignment()));
+					}
+					else {
+						throwError("Invalid syntax", currentToken.lineNumber);
+					}
 				}
 			}
-
-			break;
-
-		case TokenType::NAME:
-			Token& nextToken = tokens.at(currentIndex + 1);
-			if (nextToken.type == TokenType::SINGLE_EQUAL) //could extend to +=, -=, *=, /=, etc...
+			case TokenType::NAME:
 			{
-				ParseAssignment();
+				Token& nextToken = tokens.at(currentIndex + 1);
+				if (nextToken.type == TokenType::SINGLE_EQUAL) //could extend to +=, -=, *=, /=, etc...
+				{
+					return make_unique<AST_Assignment>(std::move(ParseAssignment()));
+				}
 			}
-			break;
+			case TokenType::IF:
+			{
+				unique_ptr<AST_If_Then> ifThenExpr = make_unique<AST_If_Then>(std::move(AST_If_Then()));
+				ParseIfStatement(ifThenExpr, ifThenExpr->Condition, ifThenExpr->ifStatement);
+
+				//parse chain of else ifs
+
+				while (tokens.at(currentIndex).type == TokenType::ELSE && tokens.at(currentIndex + 1).type == TokenType::IF)
+				{
+					++currentIndex;
+					unique_ptr<AST_Else_If> elseIf = make_unique<AST_Else_If>();
+					ParseIfStatement(ifThenExpr, elseIf->condition, elseIf->statements);
+					ifThenExpr->elseIfStatements.push_back(std::move(elseIf));
+				}
+				
+				if (GetCurrentToken().type == TokenType::ELSE)
+				{
+					ParseElseStatement(ifThenExpr->elseStatement);
+				}
+
+				return ifThenExpr;
+			}
 		}
-		//else if (currentToken.type == TokenType::IF) {
-		//	group.statements->push_back(ParseIfThen());
-		//}
 	}
 
 	void ParseProgram()
 	{
 		while (tokens.at(currentIndex).type != TokenType::END_OF_FILE)
 		{
-			ParseStatement();
+			unique_ptr<Statement> statement = ParseStatement();
+			if (statement)
+			{
+				group->statements.push_back(std::move(statement));
+			}
 		}
 	}
 

@@ -38,9 +38,18 @@ namespace AST_Expression
 		LESS,
 		LESS_EQUAL,
 		EQUALS,
+		NOT_EQUALS,
 		AND,
-		OR
+		OR,
+		POINTER_OFFSET, //e.g.: int *ptr; ptr = ptr + 1;
+		BIT_SHIFT_LEFT, //TODO: ADD THESE
+		BIT_SHIFT_RIGHT
 	};
+
+	bool IsBooleanOperation(BinOpType type)
+	{
+		return type == EQUALS || type == NOT_EQUALS || type == LESS || type == LESS_EQUAL || type == GREATER || type == GREATER_EQUAL || type == AND || type == OR;
+	}
 
 	struct BinOp {
 		BinOpType type;
@@ -50,11 +59,20 @@ namespace AST_Expression
 	};
 
 	unordered_map<TokenType, BinOp> BinOpTokenDictionary = {
-		{TokenType::PLUS, BinOp(BinOpType::ADD, 3)},
-		{TokenType::MINUS, BinOp(BinOpType::SUBTRACT, 3)},
-		{TokenType::STAR, BinOp(BinOpType::MULTIPLY, 4)},
-		{TokenType::SLASH, BinOp(BinOpType::DIVIDE, 4)},
-		{TokenType::PERCENT, BinOp(BinOpType::MODULO, 4)}
+		{TokenType::PLUS, BinOp(BinOpType::ADD, 300)},
+		{TokenType::MINUS, BinOp(BinOpType::SUBTRACT, 300)},
+		{TokenType::STAR, BinOp(BinOpType::MULTIPLY, 400)},
+		{TokenType::SLASH, BinOp(BinOpType::DIVIDE, 400)},
+		{TokenType::PERCENT, BinOp(BinOpType::MODULO, 400)},
+		{TokenType::AND, BinOp(BinOpType::AND, 200)},
+		{TokenType::OR, BinOp(BinOpType::OR, 150)},
+		{TokenType::DOUBLE_EQUAL, BinOp(BinOpType::EQUALS, 180)},
+		{TokenType::NOT_EQUALS, BinOp(BinOpType::NOT_EQUALS, 180)},
+		{TokenType::LESS_THAN, BinOp(BinOpType::LESS, 190)},
+		{TokenType::GREATER_THAN, BinOp(BinOpType::GREATER, 190)},
+		{TokenType::LESS_THAN_EQUALS, BinOp(BinOpType::LESS_EQUAL, 190)},
+		{TokenType::GREATER_THAN_EQUALS, BinOp(BinOpType::GREATER_EQUAL, 190)}
+
 		//TODO: Continue this for comparison and boolean
 	};
 
@@ -92,6 +110,19 @@ namespace AST_Expression
 		right->PrintExpressionAST(indentLevel + 1);
 	}
 
+	struct AST_Type_Cast_Expression : Expression
+	{
+		//figure out pointer casting!! and how to represent pointers. Maybe have int count of number of pointers (i.e: value of 3 for int*** x;)
+		LValueType from;
+		LValueType to;
+		virtual void PrintExpressionAST(int indentLevel = 0) override;
+	};
+
+	void AST_Type_Cast_Expression::PrintExpressionAST(int indentLevel) {
+
+	}
+
+
 	struct AST_Function_Expression : Expression
 	{
 
@@ -106,13 +137,13 @@ namespace AST_Expression
 
 	}
 
-	static unordered_map<TokenType, BinOpType> BinOpDict = {
-	{TokenType::PLUS, BinOpType::ADD},
-	{TokenType::MINUS, BinOpType::SUBTRACT},
-	{TokenType::STAR, BinOpType::MULTIPLY},
-	{TokenType::SLASH, BinOpType::DIVIDE},
-	{TokenType::PERCENT, BinOpType::MODULO}
-	};
+	//static unordered_map<TokenType, BinOpType> BinOpDict = {
+	//{TokenType::PLUS, BinOpType::ADD},
+	//{TokenType::MINUS, BinOpType::SUBTRACT},
+	//{TokenType::STAR, BinOpType::MULTIPLY},
+	//{TokenType::SLASH, BinOpType::DIVIDE},
+	//{TokenType::PERCENT, BinOpType::MODULO},
+	//};
 
 	struct BinOperator {
 		BinOpType type;

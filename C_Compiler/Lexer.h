@@ -51,7 +51,12 @@ namespace Lexer {
 		AND,
 		OR,
 		COMMA,
-		ARROW
+		ARROW,
+		LESS_THAN,
+		LESS_THAN_EQUALS,
+		GREATER_THAN,
+		GREATER_THAN_EQUALS,
+		NOT_EQUALS
 	};
 
 	struct Token {
@@ -65,6 +70,7 @@ namespace Lexer {
 
 	const static unordered_map<string, TokenType> tokenMap = {
 		{"if", TokenType::IF},
+		{"else", TokenType::ELSE},
 		{"int", TokenType::TYPE},
 		{"float", TokenType::TYPE},
 		{"char", TokenType::TYPE},
@@ -93,7 +99,12 @@ namespace Lexer {
 		{"/", TokenType::SLASH},
 		{"%", TokenType::PERCENT},
 		{",", TokenType::COMMA},
-		{"->", TokenType::ARROW} //TODO: Properly catch this in the lexer
+		{"->", TokenType::ARROW}, //TODO: Properly catch this in the lexer
+		{"<", TokenType::LESS_THAN},
+		{"<=", TokenType::LESS_THAN_EQUALS},
+		{">", TokenType::GREATER_THAN},
+		{">=", TokenType::GREATER_THAN_EQUALS},
+		{"!=", TokenType::NOT_EQUALS}
 	};
 
 
@@ -132,8 +143,8 @@ namespace Lexer {
 	//KNOWN BUG: WILL PARSE WRONG WHEN THERE IS A STRING WITH SPACES/OTHER SPECIAL CHARACTERS
 	vector<Token> SplitStringByToken(const string& input)
 	{
-		const string doubleOps = "+-&|="; //TODO: move '/' here and figure out what to do about comments
-		const string singleOps = "*/%^(){}; \n\t";
+		const string doubleOps = "+-&|=<>"; //TODO: move '/' here and figure out what to do about comments
+		const string singleOps = "*/%^(){}; \t\n"; //[remove \n for now] //TODO: handle *=, -=, +=, /=, and %= 
 		vector<Token> output;
 		size_t start = 0;
 		size_t lineNum = 1;
@@ -147,10 +158,17 @@ namespace Lexer {
 				if (start != i) {
 					output.push_back(ParseToken(input.substr(start, i - start), lineNum, tokenNum));
 				}
-				if (i + 1 < input.size() && input.at(i + 1) == c)
+				if (i + 1 < input.size())
 				{
-					output.push_back(ParseToken(input.substr(i, 2), lineNum, tokenNum));
-					++i;
+					string doubleOpStr = input.substr(i, 2);
+					if (tokenMap.find(doubleOpStr) != tokenMap.end())
+					{
+						output.push_back(ParseToken(std::move(doubleOpStr), lineNum, tokenNum));
+						++i;
+					}
+					else {
+						output.push_back(ParseToken(input.substr(i, 1), lineNum, tokenNum));
+					}
 				}
 				else {
 					output.push_back(ParseToken(input.substr(i, 1), lineNum, tokenNum));
@@ -212,7 +230,9 @@ namespace Lexer {
 
 	 bool IsBinOp(TokenType type)
 	{
-		return type == TokenType::PLUS || type == TokenType::MINUS || type == TokenType::STAR || type == TokenType::SLASH || type == TokenType::PERCENT;
+		return type == TokenType::PLUS || type == TokenType::MINUS || type == TokenType::STAR || type == TokenType::SLASH || type == TokenType::PERCENT || 
+			type == TokenType::DOUBLE_EQUAL || type == TokenType::NOT_EQUALS || type == TokenType::LESS_THAN || type == TokenType::LESS_THAN_EQUALS || 
+			type == TokenType::GREATER_THAN || type == TokenType::GREATER_THAN_EQUALS;
 	}
 
 	 bool IsUnaryOp(TokenType type)

@@ -34,7 +34,7 @@ namespace Utils {
 
 	inline bool isWhitespace(const char& c)
 	{
-		return c == ' ' || c == '\t';
+		return c == ' ' || c == '\t' || c == '\n';
 	}
 
 	inline string ReadFile(const string&& fileName)

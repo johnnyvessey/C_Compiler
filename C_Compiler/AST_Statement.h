@@ -72,12 +72,54 @@ namespace AST_Statement {
 		rvalue->PrintExpressionAST(indentLevel + 1);
 	}
 
-	//struct AST_If_Then : Statement {
-	//	Expression* Condition;
-	//	StatementGroup* ifStatement;
-	//	//vector<Statement> elseIfStatments;
-	//	StatementGroup* elseStatement;
-	//};
+	struct AST_Else_If : Statement {
+		unique_ptr<Expression> condition;
+		unique_ptr<StatementGroup> statements;
+
+		AST_Else_If()
+		{
+			statements = make_unique<StatementGroup>();
+		}
+		virtual void PrintStatementAST(int indentLevel = 0) override;
+	};
+
+	void AST_Else_If::PrintStatementAST(int indentLevel)
+	{
+		std::cout << string(indentLevel, '\t') << "else if: \n";
+		condition->PrintExpressionAST(indentLevel);
+		statements->PrintStatementAST(indentLevel + 2);
+	}
+
+
+	struct AST_If_Then : Statement {
+		unique_ptr<Expression> Condition;
+		unique_ptr<StatementGroup> ifStatement;
+		vector<unique_ptr<AST_Else_If>> elseIfStatements;
+		unique_ptr<StatementGroup> elseStatement;
+
+		AST_If_Then()
+		{
+			ifStatement = make_unique<StatementGroup>();
+			elseStatement = make_unique<StatementGroup>();
+		}
+		virtual void PrintStatementAST(int indentLevel = 0) override;
+	};
+
+	void AST_If_Then::PrintStatementAST(int indentLevel)
+	{
+		std::cout << string(indentLevel, '\t') << "if statement:\n";
+		Condition->PrintExpressionAST(indentLevel);
+		std::cout << string(indentLevel + 1, '\t') << "then:\n";
+		ifStatement->PrintStatementAST(indentLevel + 2);
+
+		for (const auto& elseIfStatement : elseIfStatements)
+		{
+			elseIfStatement->PrintStatementAST(indentLevel + 1);
+		}
+		std::cout << string(indentLevel + 1, '\t') << "else:\n";
+		elseStatement->PrintStatementAST(indentLevel + 2);
+	}
+
 
 
 	struct AST_Struct_Definition : Statement {

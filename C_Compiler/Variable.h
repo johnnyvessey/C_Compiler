@@ -9,8 +9,14 @@ namespace VariableNamespace {
 	enum LValueType {
 		INT,
 		FLOAT,
-		STRUCT
+		STRUCT,
+		BOOL
 	};
+
+	bool IsNumericType(LValueType type)
+	{
+		return type == INT || type == FLOAT || type == BOOL;
+	}
 
 	struct Value {
 		string name;
