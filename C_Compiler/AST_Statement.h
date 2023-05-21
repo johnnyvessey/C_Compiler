@@ -14,28 +14,15 @@ using std::unordered_map;
 using std::vector;
 using std::string;
 using std::unique_ptr;
+using std::shared_ptr;
 using std::make_unique;
 
 
-using namespace Lexer;
 using namespace AST_Expression;
 using namespace VariableNamespace;
 
-namespace AST_Statement {
-
-	//PROBABLY JUST USE LVALUE TYPE (BUT ASSUME IT CAN'T BE STRUCT TYPE FOR LITERALS)
-	//enum LiteralType {
-	//	INT_LITERAL_TYPE,
-	//	FLOAT_LITERAL_TYPE
-	//};
-
-
-	struct Function {
-		string name;
-		vector<LValueType> argumentTypes;
-		LValueType returnType;
-	};
-
+namespace AST_Statement 
+{
 
 	struct Statement {
 		 virtual void PrintStatementAST(int indentLevel = 0) = 0;
@@ -48,15 +35,6 @@ namespace AST_Statement {
 		virtual void PrintStatementAST(int indentLevel = 0) override;
 	};
 
-	void StatementGroup::PrintStatementAST(int indentLevel)
-	{
-		for (const unique_ptr<Statement>& statement : statements)
-		{
-			statement->PrintStatementAST(indentLevel);
-			std::cout << "\n-----------------------\n";
-		}
-	}
-
 
 	struct AST_Assignment : Statement {
 		unique_ptr<Variable> lvalue;
@@ -65,30 +43,16 @@ namespace AST_Statement {
 
 		virtual void PrintStatementAST(int indentLevel = 0) override;
 	};
-
-	void AST_Assignment::PrintStatementAST(int indentLevel)
-	{
-		std::cout << string(indentLevel, '\t') << "Assign: " << lvalue->name << "; type: " << lvalue->type << " " << lvalue->structName << "\n";
-		rvalue->PrintExpressionAST(indentLevel + 1);
-	}
+	
 
 	struct AST_Else_If : Statement {
 		unique_ptr<Expression> condition;
 		unique_ptr<StatementGroup> statements;
 
-		AST_Else_If()
-		{
-			statements = make_unique<StatementGroup>();
-		}
+		AST_Else_If();
+
 		virtual void PrintStatementAST(int indentLevel = 0) override;
 	};
-
-	void AST_Else_If::PrintStatementAST(int indentLevel)
-	{
-		std::cout << string(indentLevel, '\t') << "else if: \n";
-		condition->PrintExpressionAST(indentLevel);
-		statements->PrintStatementAST(indentLevel + 2);
-	}
 
 
 	struct AST_If_Then : Statement {
@@ -97,29 +61,35 @@ namespace AST_Statement {
 		vector<unique_ptr<AST_Else_If>> elseIfStatements;
 		unique_ptr<StatementGroup> elseStatement;
 
-		AST_If_Then()
-		{
-			ifStatement = make_unique<StatementGroup>();
-			elseStatement = make_unique<StatementGroup>();
-		}
+		AST_If_Then();
 		virtual void PrintStatementAST(int indentLevel = 0) override;
 	};
 
-	void AST_If_Then::PrintStatementAST(int indentLevel)
+
+
+	struct AST_Expression_Statement : Statement
 	{
-		std::cout << string(indentLevel, '\t') << "if statement:\n";
-		Condition->PrintExpressionAST(indentLevel);
-		std::cout << string(indentLevel + 1, '\t') << "then:\n";
-		ifStatement->PrintStatementAST(indentLevel + 2);
+		unique_ptr<Expression> expr;
 
-		for (const auto& elseIfStatement : elseIfStatements)
-		{
-			elseIfStatement->PrintStatementAST(indentLevel + 1);
-		}
-		std::cout << string(indentLevel + 1, '\t') << "else:\n";
-		elseStatement->PrintStatementAST(indentLevel + 2);
-	}
+		virtual void PrintStatementAST(int indentLevel = 0) override;
+	};
 
+
+
+	struct Function {
+		string name;
+		vector<Variable> arguments;
+		shared_ptr<StatementGroup> statements;
+		LValueType returnType;
+		string returnTypeStructName;
+	};
+
+	struct AST_Function_Definition : Statement
+	{
+		unique_ptr<Function> func;
+
+		virtual void PrintStatementAST(int indentLevel = 0) override;
+	};
 
 
 	struct AST_Struct_Definition : Statement {
@@ -127,33 +97,15 @@ namespace AST_Statement {
 		unordered_map<string, Struct_Variable> variableMapping;
 		size_t memorySize;
 
-		AST_Struct_Definition(string name, vector<Struct_Variable>&& variables) : name(name)
-		{
-			size_t currentOffset = 0;
-			for (auto&& var : variables)
-			{
-				var.memoryOffset = currentOffset;
-				variableMapping[var.v.name] = var;
-
-				currentOffset += GetMemoryFromType(var.v.type, var.v.structName);
-			}
-
-			memorySize = currentOffset; //figure out if I need to align struct (to 4 bytes, for example)
-		}
+		AST_Struct_Definition(string name, vector<Struct_Variable>&& variables);
 
 		virtual void PrintStatementAST(int indentLevel = 0) override;
 	};
 
-	void AST_Struct_Definition::PrintStatementAST(int indentLevel)
-	{
-
-	}
 
 	//struct AST_While_Loop : Statement {
 	//	//Expression condition;
 	//	unique_ptr<StatementGroup> statements;
 	//};
 	//	
-
-
 }

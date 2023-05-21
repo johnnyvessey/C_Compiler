@@ -10,36 +10,20 @@ namespace VariableNamespace {
 		INT,
 		FLOAT,
 		STRUCT,
-		BOOL
+		BOOL,
+		VOID
 	};
 
-	bool IsNumericType(LValueType type)
+	inline bool IsNumericType(LValueType type)
 	{
 		return type == INT || type == FLOAT || type == BOOL;
 	}
 
-	struct Value {
+	struct Variable {
 		string name;
 		LValueType type;
 		string structName;
-		bool isReference;
-
-	};
-	struct Variable : Value {
-		Variable() 
-		{
-			isReference = false;
-		}
-	};
-
-	struct Pointer : Value
-	{
-		unique_ptr<Value> value;
-
-		Pointer()
-		{
-			isReference = true;
-		}
+		int pointerLevel; //0 for value types, 1 for int* x, 2 for int** x, etc...
 	};
 
 	struct Struct_Variable {
@@ -47,7 +31,7 @@ namespace VariableNamespace {
 		size_t memoryOffset;
 	};
 
-	size_t GetMemoryFromType(LValueType type, string structName = "")
+	inline size_t GetMemoryFromType(LValueType type, string structName = "")
 	{
 		if (type == LValueType::INT || type == LValueType::FLOAT)
 		{

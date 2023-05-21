@@ -127,13 +127,25 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="C_Compiler.cpp" />
+    <ClCompile Include="AssignmentParser.cpp" />
+    <ClCompile Include="AST_Expression.cpp" />
+    <ClCompile Include="AST_Statement.cpp" />
+    <ClCompile Include="ConditionalParser.cpp" />
+    <ClCompile Include="ExpressionParser.cpp" />
+    <ClCompile Include="FunctionParsing.cpp" />
+    <ClCompile Include="Lexer.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="Parser.cpp" />
+    <ClCompile Include="ParserUtils.cpp" />
+    <ClCompile Include="Scope.cpp" />
+    <ClCompile Include="StructParser.cpp" />
     <ClCompile Include="Utils.h" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AST_Statement.h" />
     <ClInclude Include="AST_Expression.h" />
     <ClInclude Include="Lexer.h" />
+    <ClInclude Include="Parser.h" />
     <ClInclude Include="Scope.h" />
     <ClInclude Include="Variable.h" />
   </ItemGroup>
