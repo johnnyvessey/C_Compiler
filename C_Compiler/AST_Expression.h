@@ -66,9 +66,8 @@ namespace AST_Expression {
 
 
 	struct Expression {
-		LValueType type;
-		string structName;
-		int pointerLevel;
+		VariableType type;
+
 		ExpressionType expressionType;
 
 		Expression();
@@ -138,6 +137,7 @@ namespace AST_Expression {
 
 	struct AST_Pointer_Dereference : Expression
 	{
+
 		virtual void PrintExpressionAST(int indentLevel = 0) override;
 	};
 

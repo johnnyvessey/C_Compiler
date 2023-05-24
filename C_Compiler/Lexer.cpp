@@ -29,7 +29,7 @@ Token Lexer::ParseToken(const string&& s, size_t& lineNum, size_t& tokenNum)
 vector<Token> Lexer::SplitStringByToken(const string& input)
 {
 	const string doubleOps = "+-&|=<>*/%"; //TODO: move '/' here and figure out what to do about comments
-	const string singleOps = "^(){}; \t\n"; //[remove \n for now] //TODO: handle *=, -=, +=, /=, and %= 
+	const string singleOps = "^(){}; \t\n,"; //[remove \n for now] //TODO: handle *=, -=, +=, /=, and %= 
 	vector<Token> output;
 	size_t start = 0;
 	size_t lineNum = 1;
@@ -177,5 +177,6 @@ unordered_map<string, TokenType> Lexer::tokenMap = {
 	{"*=", TokenType::STAR_EQUAL},
 	{"/=", TokenType::SLASH_EQUAL},
 	{"%=", TokenType::PERCENT_EQUAL},
-	{"void", TokenType::VOID}
+	{"void", TokenType::VOID},
+	{"return", TokenType::RETURN}
 };

@@ -80,7 +80,7 @@ namespace AST_Statement
 		string name;
 		vector<Variable> arguments;
 		shared_ptr<StatementGroup> statements;
-		LValueType returnType;
+		VariableType returnType;
 		string returnTypeStructName;
 	};
 
@@ -89,6 +89,7 @@ namespace AST_Statement
 		unique_ptr<Function> func;
 
 		virtual void PrintStatementAST(int indentLevel = 0) override;
+
 	};
 
 
@@ -98,10 +99,16 @@ namespace AST_Statement
 		size_t memorySize;
 
 		AST_Struct_Definition(string name, vector<Struct_Variable>&& variables);
+		AST_Struct_Definition();
 
 		virtual void PrintStatementAST(int indentLevel = 0) override;
 	};
 
+	struct AST_Return_Statement : Statement {
+		unique_ptr<Expression> returnExpression;
+
+		virtual void PrintStatementAST(int indentLevel = 0) override;
+	};
 
 	//struct AST_While_Loop : Statement {
 	//	//Expression condition;

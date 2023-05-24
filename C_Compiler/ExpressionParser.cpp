@@ -17,7 +17,7 @@ unique_ptr<Expression> AST::ParseExpression()
 
 	if (Lexer::IsBinOp(token.type))
 	{
-		assert(firstExpr->type != LValueType::STRUCT || firstExpr->pointerLevel > 0, "Cannot perform binary operation on non-pointer struct type", token.lineNumber);
+		assert(firstExpr->type.lValueType != LValueType::STRUCT || firstExpr->type.pointerLevel > 0, "Cannot perform binary operation on non-pointer struct type", token.lineNumber);
 
 		return ParseBinaryExpression(std::move(firstExpr));
 	}
@@ -37,7 +37,7 @@ unique_ptr<Expression> AST::ParseNonBinaryExpression()
 	if (token.type == TokenType::OPEN_PAR)
 	{
 		++currentIndex;
-		expr = ParseParentheticalExpression();
+		return ParseParentheticalExpression();
 	}
 	else if (Lexer::IsUnaryOp(token.type)) //prefix unary op
 	{
@@ -45,7 +45,8 @@ unique_ptr<Expression> AST::ParseNonBinaryExpression()
 	}
 	else if (token.type == TokenType::STAR) //dereferencing pointer
 	{
-
+		++currentIndex;
+		return ParsePointerDereferenceExpression();
 	}
 	else if (token.type == TokenType::NAME)
 	{
@@ -101,9 +102,9 @@ unique_ptr<Expression> AST::ParseNonBinaryExpression()
 			AST_Literal_Expression expr;
 
 			//expand this line to fit other literal types??
-			expr.type = token.type == TokenType::INT_LITERAL ? LValueType::INT : LValueType::FLOAT;
+			expr.type.lValueType = token.type == TokenType::INT_LITERAL ? LValueType::INT : LValueType::FLOAT;
 			expr.value = token.value;
-			expr.pointerLevel = 0;
+			expr.type.pointerLevel = 0;
 
 			return make_unique<AST_Literal_Expression>(std::move(expr));;
 		}
@@ -137,7 +138,7 @@ unique_ptr<AST_BinOp> AST::ParseBinaryExpression(unique_ptr<Expression> firstExp
 	binOpExpr->left = std::move(firstExpr);
 	binOpExpr->op = op.type;
 
-	binOpExpr->type = IsBooleanOperation(op.type) ? LValueType::BOOL : binOpExpr->left->type;
+	binOpExpr->type.lValueType = IsBooleanOperation(op.type) ? LValueType::BOOL : binOpExpr->left->type.lValueType;
 
 	if (Lexer::IsBinOp(currentToken.type))
 	{
@@ -147,8 +148,8 @@ unique_ptr<AST_BinOp> AST::ParseBinaryExpression(unique_ptr<Expression> firstExp
 			binOpExpr->right = std::move(secondExpr);
 
 			//TODO: Add casting from int to float if one value is int and the other is float; ALSO, do BOOL conversions to INT/FLOAT, etc...
-			assert((IsNumericType(binOpExpr->left->type) && IsNumericType(binOpExpr->right->type))
-				|| (binOpExpr->left->pointerLevel > 0 && binOpExpr->right->type == LValueType::INT && binOpExpr->right->pointerLevel == 0),
+			assert((IsNumericType(binOpExpr->left->type.lValueType) && IsNumericType(binOpExpr->right->type.lValueType))
+				|| (binOpExpr->left->type.pointerLevel > 0 && binOpExpr->right->type.lValueType == LValueType::INT && binOpExpr->right->type.pointerLevel == 0),
 				"Type mismatch in binary operation", currentToken.lineNumber);
 
 			return ParseBinaryExpression(std::move(binOpExpr));
@@ -164,7 +165,7 @@ unique_ptr<AST_BinOp> AST::ParseBinaryExpression(unique_ptr<Expression> firstExp
 	}
 
 	assert(binOpExpr->left->type == binOpExpr->right->type
-		|| (binOpExpr->left->pointerLevel > 0 && binOpExpr->right->type == LValueType::INT && binOpExpr->right->pointerLevel == 0),
+		|| (binOpExpr->left->type.pointerLevel > 0 && binOpExpr->right->type.lValueType == LValueType::INT && binOpExpr->right->type.pointerLevel == 0),
 		"Type mismatch in binary operation", currentToken.lineNumber);
 
 	return binOpExpr;
@@ -181,4 +182,12 @@ unique_ptr<Expression> AST::ParseParentheticalExpression()
 	return expr;
 }
 
+unique_ptr<Expression> AST::ParsePointerDereferenceExpression()
+{
+	unique_ptr<Expression> expr = ParseExpression();
+	assert(expr->type.pointerLevel > 0, "Can't dereference a non-pointer type", GetCurrentLineNum());
+	--expr->type.pointerLevel;
+
+	return std::move(expr);
+}
 

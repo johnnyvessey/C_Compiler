@@ -140,6 +140,7 @@
     <ClCompile Include="Scope.cpp" />
     <ClCompile Include="StructParser.cpp" />
     <ClCompile Include="Utils.h" />
+    <ClCompile Include="Variable.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AST_Statement.h" />

@@ -1,17 +1,29 @@
 #pragma once
 
 #include <string>
+#include <memory>
+
 using std::unique_ptr;
 using std::string;
 
 namespace VariableNamespace {
 
 	enum LValueType {
+		VOID,
 		INT,
 		FLOAT,
 		STRUCT,
-		BOOL,
-		VOID
+		BOOL	
+	};
+
+	struct VariableType
+	{
+		LValueType lValueType;
+		string structName;
+		int pointerLevel;
+
+		bool operator==(const VariableType& rhs);
+		VariableType();
 	};
 
 	inline bool IsNumericType(LValueType type)
@@ -21,9 +33,10 @@ namespace VariableNamespace {
 
 	struct Variable {
 		string name;
-		LValueType type;
-		string structName;
-		int pointerLevel; //0 for value types, 1 for int* x, 2 for int** x, etc...
+		//LValueType type;
+		//string structName;
+		//int pointerLevel; //0 for value types, 1 for int* x, 2 for int** x, etc...
+		VariableType type;
 	};
 
 	struct Struct_Variable {

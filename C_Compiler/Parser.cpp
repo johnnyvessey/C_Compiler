@@ -6,7 +6,7 @@ AST::AST(vector<Token>& tokens) : tokens(tokens)
 	group = make_unique<StatementGroup>();
 }
 
-	
+
 
 unique_ptr<Statement> AST::ParseStatement()
 {
@@ -15,31 +15,53 @@ unique_ptr<Statement> AST::ParseStatement()
 	{
 		//TODO: figure out how to handle weird statements that don't mean anything but have side effects
 		//			such as 5 + (++x); or 5 + f(x) [where f() has side effects]
-		case TokenType::NEW_LINE:
+	case TokenType::NEW_LINE:
+	{
+		++currentIndex;
+		return nullptr;
+	}
+	case TokenType::RETURN:
+	{
+		AST_Return_Statement retStatement;
+		++currentIndex;
+		retStatement.returnExpression = ParseExpression();
+		assert(GetCurrentToken().type == TokenType::SEMICOLON, "Statement must end with semicolon", GetCurrentLineNum());
+		++currentIndex;
+		return make_unique<AST_Return_Statement>(std::move(retStatement));
+	}
+	case TokenType::TYPE:
+	{
+		if (tokens.at(currentIndex + 1).type == TokenType::NAME && tokens.at(currentIndex + 2).type == TokenType::OPEN_PAR)
 		{
-			++currentIndex;
-			return nullptr;
+			return std::move(ParseFunctionDefinition());
 		}
-		case TokenType::TYPE:
+		else 
 		{
 			return make_unique<AST_Assignment>(std::move(ParseInitAssignment()));
 		}
-		case TokenType::STRUCT:
+	}
+	case TokenType::STRUCT:
+	{
+		if (tokens.at(currentIndex + 1).type == TokenType::NAME && tokens.at(currentIndex + 2).type == TokenType::OPEN_BRACE)
 		{
-			if (tokens.at(currentIndex + 1).type == TokenType::NAME && tokens.at(currentIndex + 2).type == TokenType::OPEN_BRACE)
+			return make_unique<AST_Struct_Definition>(std::move(ParseStructDefinition()));
+		}
+		else if (tokens.at(currentIndex + 1).type == TokenType::NAME && tokens.at(currentIndex + 2).type == TokenType::NAME)
+		{
+			++currentIndex;
+			if (tokens.at(currentIndex + 2).type == TokenType::OPEN_PAR)
 			{
-				return make_unique<AST_Struct_Definition>(std::move(ParseStructDefinition()));
+				return std::move(ParseFunctionDefinition());
 			}
-			else {
-				if (tokens.at(currentIndex + 1).type == TokenType::NAME && tokens.at(currentIndex).type == TokenType::NAME)
-				{
-					++currentIndex;
-					return make_unique<AST_Assignment>(std::move(ParseInitAssignment()));
-				}
-				else {
-					throwError("Invalid syntax", currentToken.lineNumber);
-				}
+			else 
+			{
+				return make_unique<AST_Assignment>(std::move(ParseInitAssignment()));
 			}
+		}
+		else {
+			throwError("Invalid syntax", currentToken.lineNumber);
+		}
+			
 		}
 		case TokenType::NAME:
 		{

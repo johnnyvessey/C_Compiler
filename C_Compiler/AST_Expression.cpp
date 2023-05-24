@@ -2,7 +2,7 @@
 
 using namespace AST_Expression;
 
-Expression::Expression() : expressionType(ExpressionType::NONE), pointerLevel(0) {}
+Expression::Expression() : expressionType(ExpressionType::NONE) {}
 
 
 
@@ -38,18 +38,18 @@ void AST_Function_Expression::PrintExpressionAST(int indentLevel) {
 
 AST_Variable_Expression::AST_Variable_Expression(Variable v) : v(v)
 {
-	type = v.type;
+	type.lValueType = v.type.lValueType;
 }
 
 void AST_Variable_Expression::PrintExpressionAST(int indentLevel)
 {
-	std::cout << string(indentLevel, '\t') << "Variable: " << v.name << " (" << v.type << ") " << v.structName << "\n";
+	std::cout << string(indentLevel, '\t') << "Variable: " << v.name << " (" << v.type.lValueType << ") " << v.type.structName << "\n";
 }
 
 
 AST_Literal_Expression::AST_Literal_Expression() {
 	expressionType = ExpressionType::LITERAL;
-	pointerLevel = 0;
+	type.pointerLevel = 0;
 }
 
 void AST_Literal_Expression::PrintExpressionAST(int indentLevel)
@@ -66,11 +66,11 @@ void AST_Struct_Variable_Access::PrintExpressionAST(int indentLevel)
 }
 
 
-
 void AST_Pointer_Dereference::PrintExpressionAST(int indentLevel)
 {
 
 }
+
 
 
 

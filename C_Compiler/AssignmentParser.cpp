@@ -10,13 +10,13 @@ AST_Assignment AST::ParseInitAssignment()
 	assignment.isInitialization = true;
 
 	Variable v;
-	v.type = GetTypeFromName(std::move(tokens.at(currentIndex).value));
-	v.structName = v.type == LValueType::STRUCT ? tokens.at(currentIndex).value : "";
+	v.type.lValueType = GetTypeFromName(std::move(tokens.at(currentIndex).value));
+	v.type.structName = v.type.lValueType == LValueType::STRUCT ? tokens.at(currentIndex).value : "";
 
 	Token& nextToken = tokens.at(currentIndex + 1);
 	if (nextToken.type == TokenType::NAME) {
 		v.name = tokens.at(currentIndex + 1).value;
-		v.pointerLevel = 0;
+		v.type.pointerLevel = 0;
 
 		currentIndex += 2;
 	}
@@ -26,7 +26,7 @@ AST_Assignment AST::ParseInitAssignment()
 		//handle pointers to pointers to pointers... etc... (while([getNextToken] == star) ...)
 		int pointerLevel = GetConsecutiveTokenNumber(TokenType::STAR);
 		v.name = tokens.at(currentIndex).value;
-		v.pointerLevel = pointerLevel;
+		v.type.pointerLevel = pointerLevel;
 
 		++currentIndex;
 	}
@@ -44,7 +44,7 @@ AST_Assignment AST::ParseInitAssignment()
 	{
 		++currentIndex;
 		unique_ptr<Expression> expr = ParseExpression();
-		assert(expr->type == v.type && expr->structName == v.structName && v.pointerLevel == expr->pointerLevel, "Variable is assigned to the wrong type", tokens.at(currentIndex).lineNumber);
+		assert(expr->type == v.type, "Variable is assigned to the wrong type", tokens.at(currentIndex).lineNumber);
 		assignment.rvalue = std::move(expr);
 	}
 
@@ -89,7 +89,7 @@ AST_Assignment AST::ParseAssignment()
 	}
 
 
-	assert(assignment.lvalue->type == assignment.rvalue->type && assignment.lvalue->structName == assignment.rvalue->structName, "Type mismatch in variable assignment", token.lineNumber);
+	assert(assignment.lvalue->type == assignment.rvalue->type, "Type mismatch in variable assignment", token.lineNumber);
 
 	assert(GetCurrentToken().type == TokenType::SEMICOLON, "Missing semicolon", GetCurrentLineNum());
 	++currentIndex;

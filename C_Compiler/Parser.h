@@ -69,7 +69,7 @@ public:
 
 	AST_Struct_Definition ParseStructDefinition();
 
-	void ParseConditionalSubstatements(unique_ptr<StatementGroup>& group);
+	void ParseScopeStatements(unique_ptr<StatementGroup>& group);
 
 	void ParseIfStatement(unique_ptr<AST_If_Then>& ifThenExpr, unique_ptr<Expression>& condition, unique_ptr<StatementGroup>& group);
 
@@ -80,6 +80,12 @@ public:
 	void ParseProgram();
 
 	unique_ptr<AST_If_Then> ParseIfStatement();
+
+	void GetFunctionReturnType(VariableType& varType);
+
+	unique_ptr<StatementGroup> ParseFunctionStatements(VariableType& returnType);
+
+	unique_ptr<Expression> ParsePointerDereferenceExpression();
 };
 
 

@@ -5,18 +5,18 @@ void AST::ParseIfStatement(unique_ptr<AST_If_Then>& ifThenExpr, unique_ptr<Expre
 	assert(tokens.at(currentIndex + 1).type == TokenType::OPEN_PAR, "If statement requires parentheses", tokens.at(currentIndex + 1).lineNumber);
 	currentIndex += 2;
 	condition = std::move(ParseParentheticalExpression());
-	assert(IsNumericType(condition->type), "Condition must be scalar type", tokens.at(currentIndex).lineNumber);
+	assert(IsNumericType(condition->type.lValueType), "Condition must be scalar type", tokens.at(currentIndex).lineNumber);
 
-	ParseConditionalSubstatements(group);
+	ParseScopeStatements(group);
 }
 
 void AST::ParseElseStatement(unique_ptr<StatementGroup>& group)
 {
 	++currentIndex;
-	ParseConditionalSubstatements(group);
+	ParseScopeStatements(group);
 }
 
-void AST::ParseConditionalSubstatements(unique_ptr<StatementGroup>& group)
+void AST::ParseScopeStatements(unique_ptr<StatementGroup>& group)
 {
 	assert(GetCurrentToken().type == TokenType::OPEN_BRACE, "Open brace required for if statement", GetCurrentLineNum());
 	++currentIndex;
