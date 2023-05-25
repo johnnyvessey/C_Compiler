@@ -31,19 +31,23 @@ AST_Function_Expression::AST_Function_Expression() {
 }
 
 void AST_Function_Expression::PrintExpressionAST(int indentLevel) {
-
+	std::cout << string(indentLevel, '\t') << "Function call: " << functionName << "\n";
+	for (const unique_ptr<Expression>& param : argumentInstances)
+	{
+		param->PrintExpressionAST(indentLevel + 1);
+	}
 }
 
 
 
 AST_Variable_Expression::AST_Variable_Expression(Variable v) : v(v)
 {
-	type.lValueType = v.type.lValueType;
+	type = v.type;
 }
 
 void AST_Variable_Expression::PrintExpressionAST(int indentLevel)
 {
-	std::cout << string(indentLevel, '\t') << "Variable: " << v.name << " (" << v.type.lValueType << ") " << v.type.structName << "\n";
+	std::cout << string(indentLevel, '\t') << "Variable: " << v.name << " (" << v.type.lValueType << ") " << v.type.structName << string(v.type.pointerLevel, '*') << "\n";
 }
 
 
@@ -68,7 +72,8 @@ void AST_Struct_Variable_Access::PrintExpressionAST(int indentLevel)
 
 void AST_Pointer_Dereference::PrintExpressionAST(int indentLevel)
 {
-
+	std::cout << string(indentLevel, '\t') << "Dereference:" << "\n";
+	baseExpr->PrintExpressionAST(indentLevel + 1);
 }
 
 

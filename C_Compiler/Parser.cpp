@@ -24,8 +24,14 @@ unique_ptr<Statement> AST::ParseStatement()
 	{
 		AST_Return_Statement retStatement;
 		++currentIndex;
-		retStatement.returnExpression = ParseExpression();
-		assert(GetCurrentToken().type == TokenType::SEMICOLON, "Statement must end with semicolon", GetCurrentLineNum());
+		if (GetCurrentToken().type == TokenType::SEMICOLON)
+		{
+			retStatement.returnExpression = nullptr;
+		}
+		else {
+			retStatement.returnExpression = ParseExpression();
+			assert(GetCurrentToken().type == TokenType::SEMICOLON, "Statement must end with semicolon", GetCurrentLineNum());
+		}
 		++currentIndex;
 		return make_unique<AST_Return_Statement>(std::move(retStatement));
 	}
@@ -76,6 +82,8 @@ unique_ptr<Statement> AST::ParseStatement()
 				unique_ptr<Expression> expr = ParseExpression();
 				AST_Expression_Statement statement;
 				statement.expr = std::move(expr);
+				assert(GetCurrentToken().type == TokenType::SEMICOLON, "Statement must end with semicolon", GetCurrentLineNum());
+				++currentIndex;
 				return make_unique<AST_Expression_Statement>(std::move(statement));
 			}
 		}
@@ -83,7 +91,14 @@ unique_ptr<Statement> AST::ParseStatement()
 		{
 			return ParseIfStatement();
 		}
+		default:
+			AST_Expression_Statement statement;
+			statement.expr = ParseExpression();
+			assert(GetCurrentToken().type == TokenType::SEMICOLON, "Statement must end with semicolon", GetCurrentLineNum());
+			++currentIndex;
+			return make_unique<AST_Expression_Statement>(std::move(statement));
 	}
+		
 }
 
 void AST::ParseProgram()

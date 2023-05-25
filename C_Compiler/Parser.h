@@ -85,7 +85,11 @@ public:
 
 	unique_ptr<StatementGroup> ParseFunctionStatements(VariableType& returnType);
 
-	unique_ptr<Expression> ParsePointerDereferenceExpression();
+	unique_ptr<AST_Pointer_Dereference> ParsePointerDereferenceExpression();
+
+	unique_ptr<AST_Function_Expression> ParseFunctionCall(Function& f);
+
+	void AssertMatchingReturnType(VariableType& returnType, unique_ptr<Statement>& statement);
 };
 
 

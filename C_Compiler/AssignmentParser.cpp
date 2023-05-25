@@ -13,31 +13,20 @@ AST_Assignment AST::ParseInitAssignment()
 	v.type.lValueType = GetTypeFromName(std::move(tokens.at(currentIndex).value));
 	v.type.structName = v.type.lValueType == LValueType::STRUCT ? tokens.at(currentIndex).value : "";
 
-	Token& nextToken = tokens.at(currentIndex + 1);
-	if (nextToken.type == TokenType::NAME) {
-		v.name = tokens.at(currentIndex + 1).value;
-		v.type.pointerLevel = 0;
+	++currentIndex;
+	v.type.pointerLevel = GetConsecutiveTokenNumber(TokenType::STAR);
 
-		currentIndex += 2;
-	}
-	else if (nextToken.type == TokenType::STAR)
-	{
-		++currentIndex;
-		//handle pointers to pointers to pointers... etc... (while([getNextToken] == star) ...)
-		int pointerLevel = GetConsecutiveTokenNumber(TokenType::STAR);
-		v.name = tokens.at(currentIndex).value;
-		v.type.pointerLevel = pointerLevel;
+	Token& token = GetCurrentToken();
+	assert(token.type == TokenType::NAME, "Improper variable assignment", token.lineNumber);
 
-		++currentIndex;
-	}
-	else {
-		throwError("Improper variable assignment", nextToken.lineNumber);
-	}
+	v.name = token.value;
+	++currentIndex;
+	
 	assignment.lvalue = make_unique<Variable>(v);
 
 	//TODO: FIGURE OUT HOW TO PARSE ARRAY
 	ScopeLevel& top = scopeStack.scope.back();
-	assert(top.variables.find(v.name) == top.variables.end(), "Variable is already defined in this scope", nextToken.lineNumber);
+	assert(top.variables.find(v.name) == top.variables.end(), "Variable is already defined in this scope", GetCurrentLineNum());
 	top.variables[v.name] = v;
 
 	if (tokens.at(currentIndex).type == TokenType::SINGLE_EQUAL)

@@ -59,6 +59,8 @@ unique_ptr<Expression> AST::ParseNonBinaryExpression()
 			bool foundFunction = scopeStack.TryFindFunction(token.value, f);
 			assert(foundFunction, "Function: " + token.value + " doesn't exist in scope", token.lineNumber);
 
+			return ParseFunctionCall(f);
+
 		}
 		else //variable
 		{
@@ -182,12 +184,14 @@ unique_ptr<Expression> AST::ParseParentheticalExpression()
 	return expr;
 }
 
-unique_ptr<Expression> AST::ParsePointerDereferenceExpression()
+unique_ptr<AST_Pointer_Dereference> AST::ParsePointerDereferenceExpression()
 {
 	unique_ptr<Expression> expr = ParseExpression();
 	assert(expr->type.pointerLevel > 0, "Can't dereference a non-pointer type", GetCurrentLineNum());
-	--expr->type.pointerLevel;
 
-	return std::move(expr);
+	unique_ptr<AST_Pointer_Dereference> derefExpr = make_unique<AST_Pointer_Dereference>();
+	derefExpr->type.pointerLevel = expr->type.pointerLevel - 1;
+	derefExpr->baseExpr = std::move(expr);
+	return std::move(derefExpr);
 }
 

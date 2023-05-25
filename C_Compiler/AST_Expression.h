@@ -97,6 +97,8 @@ namespace AST_Expression {
 
 	struct AST_Function_Expression : Expression
 	{
+		vector<unique_ptr<Expression>> argumentInstances;
+		string functionName;
 
 		AST_Function_Expression();
 
@@ -137,6 +139,7 @@ namespace AST_Expression {
 
 	struct AST_Pointer_Dereference : Expression
 	{
+		unique_ptr<Expression> baseExpr;
 
 		virtual void PrintExpressionAST(int indentLevel = 0) override;
 	};

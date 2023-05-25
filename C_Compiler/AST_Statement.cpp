@@ -108,11 +108,14 @@ void AST_Struct_Definition::PrintStatementAST(int indentLevel)
 
 void AST_Expression_Statement::PrintStatementAST(int indentLevel)
 {
-
+	expr->PrintExpressionAST(indentLevel);
 }
 
 void AST_Return_Statement::PrintStatementAST(int indentLevel)
 {
 	std::cout << string(indentLevel, '\t') << "return: \n";
-	returnExpression->PrintExpressionAST(indentLevel + 1);
+	if (returnExpression)
+	{
+		returnExpression->PrintExpressionAST(indentLevel + 1);
+	}
  }

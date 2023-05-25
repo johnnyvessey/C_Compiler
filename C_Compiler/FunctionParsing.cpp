@@ -121,20 +121,64 @@ unique_ptr<StatementGroup> AST::ParseFunctionStatements(VariableType& returnType
 	while (GetCurrentToken().type != TokenType::CLOSE_BRACE)
 	{
 		unique_ptr<Statement> statement = ParseStatement();
+
+		AssertMatchingReturnType(returnType, statement);
+
 		statementGroupPtr->statements.push_back(std::move(statement));
-
-		/*AST_Return_Statement* retStatement = dynamic_cast<AST_Return_Statement*>(statement.get());
-
-		if (retStatement)
-		{
-			assert(retStatement->returnExpression->type == returnType, "Return type does not match function type", GetCurrentLineNum());
-		}*/
-
-		
 
 	}
 	scopeStack.scope.pop_back();
 	++currentIndex;
 
 	return std::move(statementGroupPtr);
+}
+
+unique_ptr<AST_Function_Expression> AST::ParseFunctionCall(Function& f)
+{
+	currentIndex += 2;
+
+	AST_Function_Expression funcExpr;
+	funcExpr.type = f.returnType;
+	funcExpr.argumentInstances.reserve(f.arguments.size());
+	funcExpr.functionName = f.name;
+
+	size_t argIndex = 0;
+	while (GetCurrentToken().type != TokenType::CLOSE_PAR)
+	{
+		unique_ptr<Expression> arg = ParseExpression();
+		assert(arg->type == f.arguments.at(argIndex).type, "Type mismatch on " + std::to_string(argIndex) + " argument of function", GetCurrentLineNum());
+		funcExpr.argumentInstances.push_back(std::move(arg));
+		++argIndex;
+
+		Token& token = GetCurrentToken();
+		if (token.type == TokenType::COMMA)
+		{
+			++currentIndex;
+		} 
+		else if (token.type != TokenType::CLOSE_PAR)
+		{
+			throwError("Invalid syntax in function arguments", GetCurrentLineNum());
+		}
+	}
+
+	assert(GetCurrentToken().type == TokenType::CLOSE_PAR, "Function call must have closing parentheses", GetCurrentLineNum());
+	++currentIndex;
+
+
+	return make_unique<AST_Function_Expression>(std::move(funcExpr));
+}
+
+void AST::AssertMatchingReturnType(VariableType& returnType, unique_ptr<Statement>& statement)
+{
+	AST_Return_Statement* retStatement = dynamic_cast<AST_Return_Statement*>(statement.get());
+
+	if (retStatement)
+	{
+		if (retStatement->returnExpression) {
+			assert(retStatement->returnExpression->type == returnType, "Return type does not match function type", GetCurrentLineNum());
+		}
+		else {
+			assert(returnType.lValueType == LValueType::VOID, "Must return value in non-void function", GetCurrentLineNum());
+		}
+	}
 }
