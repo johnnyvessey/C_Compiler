@@ -10,6 +10,7 @@ BinOp::BinOp(BinOpType type, int precedence) : type(type), precedence(precedence
 
 AST_BinOp::AST_BinOp() {
 	expressionType = ExpressionType::BINARY_OPERATION;
+	isLValue = false;
 }
 
 void AST_BinOp::PrintExpressionAST(int indentLevel) {
@@ -28,6 +29,7 @@ void AST_Type_Cast_Expression::PrintExpressionAST(int indentLevel) {
 
 AST_Function_Expression::AST_Function_Expression() {
 	expressionType = ExpressionType::FUNCTION_CALL;
+	isLValue = false;
 }
 
 void AST_Function_Expression::PrintExpressionAST(int indentLevel) {
@@ -43,6 +45,7 @@ void AST_Function_Expression::PrintExpressionAST(int indentLevel) {
 AST_Variable_Expression::AST_Variable_Expression(Variable v) : v(v)
 {
 	type = v.type;
+	isLValue = true;
 }
 
 void AST_Variable_Expression::PrintExpressionAST(int indentLevel)
@@ -54,6 +57,7 @@ void AST_Variable_Expression::PrintExpressionAST(int indentLevel)
 AST_Literal_Expression::AST_Literal_Expression() {
 	expressionType = ExpressionType::LITERAL;
 	type.pointerLevel = 0;
+	isLValue = false;
 }
 
 void AST_Literal_Expression::PrintExpressionAST(int indentLevel)
@@ -62,13 +66,20 @@ void AST_Literal_Expression::PrintExpressionAST(int indentLevel)
 }
 
 
-
+AST_Struct_Variable_Access::AST_Struct_Variable_Access()
+{
+	isLValue = true;
+}
 
 void AST_Struct_Variable_Access::PrintExpressionAST(int indentLevel)
 {
 
 }
 
+AST_Pointer_Dereference::AST_Pointer_Dereference()
+{
+	isLValue = true;
+}
 
 void AST_Pointer_Dereference::PrintExpressionAST(int indentLevel)
 {
@@ -77,6 +88,10 @@ void AST_Pointer_Dereference::PrintExpressionAST(int indentLevel)
 }
 
 
+void AST_Unary_Assignment_Expression::PrintExpressionAST(int indentLevel)
+{
+
+}
 
 
 unordered_map<TokenType, BinOp> ExpressionUtils::BinOpTokenDictionary = {

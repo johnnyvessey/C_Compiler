@@ -6,6 +6,14 @@ AST::AST(vector<Token>& tokens) : tokens(tokens)
 	group = make_unique<StatementGroup>();
 }
 
+unique_ptr<AST_Expression_Statement> AST::ParseExpressionStatement(unique_ptr<Expression>&& expr)
+{
+	AST_Expression_Statement statement;
+	statement.expr = std::move(expr);
+	assert(GetCurrentToken().type == TokenType::SEMICOLON, "Statement must end with semicolon", GetCurrentLineNum());
+	++currentIndex;
+	return make_unique<AST_Expression_Statement>(std::move(statement));
+}
 
 
 unique_ptr<Statement> AST::ParseStatement()
@@ -13,8 +21,6 @@ unique_ptr<Statement> AST::ParseStatement()
 	Token& currentToken = tokens.at(currentIndex);
 	switch (currentToken.type)
 	{
-		//TODO: figure out how to handle weird statements that don't mean anything but have side effects
-		//			such as 5 + (++x); or 5 + f(x) [where f() has side effects]
 	case TokenType::NEW_LINE:
 	{
 		++currentIndex;
@@ -35,6 +41,12 @@ unique_ptr<Statement> AST::ParseStatement()
 		++currentIndex;
 		return make_unique<AST_Return_Statement>(std::move(retStatement));
 	}
+	case TokenType::OPEN_BRACE:
+	{
+		unique_ptr<StatementGroup> group = make_unique<StatementGroup>();
+		ParseScopeStatements(group);
+		return group;
+	}
 	case TokenType::TYPE:
 	{
 		if (tokens.at(currentIndex + 1).type == TokenType::NAME && tokens.at(currentIndex + 2).type == TokenType::OPEN_PAR)
@@ -43,7 +55,7 @@ unique_ptr<Statement> AST::ParseStatement()
 		}
 		else 
 		{
-			return make_unique<AST_Assignment>(std::move(ParseInitAssignment()));
+			return ParseInitAssignment();
 		}
 	}
 	case TokenType::STRUCT:
@@ -61,7 +73,7 @@ unique_ptr<Statement> AST::ParseStatement()
 			}
 			else 
 			{
-				return make_unique<AST_Assignment>(std::move(ParseInitAssignment()));
+				return ParseInitAssignment();
 			}
 		}
 		else {
@@ -71,32 +83,41 @@ unique_ptr<Statement> AST::ParseStatement()
 		}
 		case TokenType::NAME:
 		{
-			Token& nextToken = tokens.at(currentIndex + 1);
-			if (Lexer::IsAssignmentOp(nextToken.type)) // =, +=, -=, *=, /=, %=
+			//if (Lexer::IsAssignmentOp(nextToken.type)) // =, +=, -=, *=, /=, %=
+			//{
+			//	return make_unique<AST_Assignment>(std::move(ParseAssignment()));
+			//}
+			//else
+			//{
+			//	//also includes function calls
+			//	unique_ptr<Expression> expr = ParseExpression();
+			//	AST_Expression_Statement statement;
+			//	statement.expr = std::move(expr);
+			//	assert(GetCurrentToken().type == TokenType::SEMICOLON, "Statement must end with semicolon", GetCurrentLineNum());
+			//	++currentIndex;
+			//	return make_unique<AST_Expression_Statement>(std::move(statement));
+			//}
+
+			unique_ptr<Expression> expr = ParseExpression();
+			Token& token = GetCurrentToken();
+
+			if (Lexer::IsAssignmentOp(token.type)) // =, +=, -=, *=, /=, %=
 			{
-				return make_unique<AST_Assignment>(std::move(ParseAssignment()));
+				unique_ptr<LValueExpression> lValue = ConvertExpressionToLValue(std::move(expr));
+				return ParseAssignment(std::move(lValue));
 			}
 			else
 			{
-				//also includes function calls
-				unique_ptr<Expression> expr = ParseExpression();
-				AST_Expression_Statement statement;
-				statement.expr = std::move(expr);
-				assert(GetCurrentToken().type == TokenType::SEMICOLON, "Statement must end with semicolon", GetCurrentLineNum());
-				++currentIndex;
-				return make_unique<AST_Expression_Statement>(std::move(statement));
+				return ParseExpressionStatement(std::move(expr));
 			}
+
 		}
 		case TokenType::IF:
 		{
 			return ParseIfStatement();
 		}
 		default:
-			AST_Expression_Statement statement;
-			statement.expr = ParseExpression();
-			assert(GetCurrentToken().type == TokenType::SEMICOLON, "Statement must end with semicolon", GetCurrentLineNum());
-			++currentIndex;
-			return make_unique<AST_Expression_Statement>(std::move(statement));
+			return ParseExpressionStatement(ParseExpression());
 	}
 		
 }

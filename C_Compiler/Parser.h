@@ -56,16 +56,16 @@ public:
 
 	unique_ptr<AST_Function_Definition> ParseFunctionDefinition();
 
-	unique_ptr<Expression> ParseNonBinaryExpression();
+	unique_ptr<Expression> ParseNonBinaryExpression(unique_ptr<Expression> prev = nullptr);
 
 	unique_ptr<Expression> ParseParentheticalExpression();
 
 	unique_ptr<Expression> ParseExpression();
 
-	AST_Assignment ParseInitAssignment();
+	unique_ptr<AST_Initialization> ParseInitAssignment();
 
 	//TODO: Figure out if assignment and initialization should be different in AST
-	AST_Assignment ParseAssignment();
+	unique_ptr<AST_Assignment> ParseAssignment(unique_ptr<LValueExpression>&& lValueExpr);
 
 	AST_Struct_Definition ParseStructDefinition();
 
@@ -90,6 +90,17 @@ public:
 	unique_ptr<AST_Function_Expression> ParseFunctionCall(Function& f);
 
 	void AssertMatchingReturnType(VariableType& returnType, unique_ptr<Statement>& statement);
+
+	size_t GetMemorySize(VariableType type);
+
+	unique_ptr<AST_Struct_Variable_Access> ParseStructVariableAccess(unique_ptr<Expression>&& expr);
+
+	unique_ptr<LValueExpression> ParseLValueExpression();
+
+	unique_ptr<LValueExpression> ConvertExpressionToLValue(unique_ptr<Expression>&& expr);
+
+	unique_ptr<AST_Expression_Statement> ParseExpressionStatement(unique_ptr<Expression>&& expr);
+
 };
 
 

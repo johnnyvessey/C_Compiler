@@ -2,14 +2,15 @@ TODO:
 
 PARSER TODO:
 	
-	- Work on pointer dereference printAST function
-	- Finish work on struct definition and struct variable usage
 
-
-- IMPORTANT: HANDLING POINTERS DIFFERENTLY
-- Add support for arrays
-- while, for statements
-- Handle boolean logic and operators
+	Important next steps;
+	- struct variable access (period)
+	- unary expressions
+	- unit tests
+	- assignment for pointer dereferences and struct variable accesses (as well as chained versions of them)
+	- & symbol to get reference (probably just need to add 1 to pointer level ???)
+	- Add support for arrays
+	- while, for statements
 - Properly parse string literals and char literals
 
 

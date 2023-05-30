@@ -44,15 +44,17 @@ namespace VariableNamespace {
 		size_t memoryOffset;
 	};
 
-	inline size_t GetMemoryFromType(LValueType type, string structName = "")
-	{
-		if (type == LValueType::INT || type == LValueType::FLOAT)
-		{
-			return 4;
-		}
-		else if (type == LValueType::STRUCT)
-		{
-			return 0; //TODO: FIGURE OUT HOW TO GET REFERENCE TO SPECIFIC STRUCT
-		}
-	}
+	//needs to have access to scopeStack
+	// 
+	//inline size_t GetMemoryFromType(LValueType type, string structName = "")
+	//{
+	//	if (type == LValueType::INT || type == LValueType::FLOAT)
+	//	{
+	//		return 4;
+	//	}
+	//	else if (type == LValueType::STRUCT)
+	//	{
+	//		return 0; //TODO: FIGURE OUT HOW TO GET REFERENCE TO SPECIFIC STRUCT
+	//	}
+	//}
 }

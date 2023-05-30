@@ -49,10 +49,15 @@ unique_ptr<AST_Function_Definition> AST::ParseFunctionDefinition()
 	}
 	scopeStack.scope.push_back(std::move(level));
 
+	//add to function scope before parsing statements to allow for recursion
+	scopeStack.functionScope[func.name] = func;
+
 	func.statements = ParseFunctionStatements(func.returnType);
 
+	//update function in scope dictionary to include statements
+	scopeStack.functionScope[func.name].statements = func.statements;
+
 	scopeStack.scope.pop_back();
-	scopeStack.functionScope[func.name] = func;
 
 	AST_Function_Definition funcDef;
 	funcDef.func = make_unique<Function>(std::move(func));

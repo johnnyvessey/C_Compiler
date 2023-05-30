@@ -1,8 +1,1 @@
-int f(int a, int b)
-{
-	int c = a + b;
-	return c;
-}
-
-int d = f(1, 2);
-f(2,3 + d);
+int x = 4;

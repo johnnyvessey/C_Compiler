@@ -75,13 +75,13 @@ enum TokenType {
 
 struct Lexer {
 	static bool IsBinOp(TokenType type);
-	static bool IsUnaryOp(TokenType type);
+	static bool IsUnaryAssignmentOp(TokenType type);
 	static Token ParseToken(const string&& s, size_t& lineNumber, size_t& tokenNum);
 	static vector<Token> SplitStringByToken(const string& input);
 	static string GetNameFromEnum(TokenType& type);
 	static bool IsBinaryAssignmentOp(TokenType type);
 	static bool IsAssignmentOp(TokenType type);
 
-
+	static bool IsNonBinaryExpressionTerminalToken(TokenType type);
 	static unordered_map<string, TokenType> tokenMap;
 };

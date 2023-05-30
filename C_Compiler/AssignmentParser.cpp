@@ -1,13 +1,10 @@
 #include "Parser.h"
 
 
-AST_Assignment AST::ParseInitAssignment()
+unique_ptr<AST_Initialization> AST::ParseInitAssignment()
 {
 	//TODO: Include function assignment [REMOVE ABILITY TO DECLARE VARIABLES LIKE int x(2);]
-	// Don't create variable yet until you know it's a variable assignment and not a function one
-	//int x = EXPR
-	AST_Assignment assignment;
-	assignment.isInitialization = true;
+	AST_Initialization assignment;
 
 	Variable v;
 	v.type.lValueType = GetTypeFromName(std::move(tokens.at(currentIndex).value));
@@ -40,48 +37,51 @@ AST_Assignment AST::ParseInitAssignment()
 	assert(tokens.at(currentIndex).type == TokenType::SEMICOLON, "Semicolon required at the end of this line", tokens.at(currentIndex).lineNumber);
 	++currentIndex;
 
-	return assignment;
+	return make_unique<AST_Initialization>(std::move(assignment));
 }
 
 //TODO: Figure out if assignment and initialization should be different in AST
-AST_Assignment AST::ParseAssignment()
+unique_ptr<AST_Assignment> AST::ParseAssignment(unique_ptr<LValueExpression>&& lValueExpr)
 {
-	Token& token = tokens.at(currentIndex);
-	Variable var;
+	//Token& token = tokens.at(currentIndex);
+	/*Variable var;
 	bool foundVariable = scopeStack.TryFindVariable(token.value, var);
 	if (!foundVariable) {
 		throwError("Variable doesn't exist in scope", token.lineNumber);
-	}
+	}*/
 
 
 	AST_Assignment assignment;
-	assignment.isInitialization = false;
-	assignment.lvalue = make_unique<Variable>(var);
-	Token& opToken = tokens.at(currentIndex + 1);
 
-	currentIndex += 2;
-	if (Lexer::IsBinaryAssignmentOp(opToken.type)) // +=, -=. *=, /=, %=
-	{
-		AST_Variable_Expression varExpr(var);
-		AST_BinOp binOp;
-		binOp.op = ExpressionUtils::BinOpAssignmentTypeDictionary.at(opToken.type);
-		binOp.left = make_unique<AST_Variable_Expression>(std::move(varExpr));
-		binOp.right = ParseExpression();
+	assignment.lvalue = std::move(lValueExpr);
+	Token& opToken = tokens.at(currentIndex);
 
-		//do type check!!!
+	++currentIndex;
+	//if (Lexer::IsBinaryAssignmentOp(opToken.type)) // +=, -=. *=, /=, %=
+	//{
+	//	//AST_Variable_Expression varExpr(var);
+	//	AST_BinOp binOp;
+	//	binOp.op = ExpressionUtils::BinOpAssignmentTypeDictionary.at(opToken.type);
+	//	binOp.left = make_unique<AST_Variable_Expression>(std::move());
+	//	binOp.right = ParseExpression();
 
-		assignment.rvalue = make_unique<AST_BinOp>(std::move(binOp));
-	}
-	else
-	{
-		assignment.rvalue = ParseExpression();
-	}
+	//	//do type check!!!
+
+	//	assignment.rvalue = make_unique<AST_BinOp>(std::move(binOp));
+	//}
+	//else
+	//{
+	//	assignment.rvalue = ParseExpression();
+	//}
+
+	assignment.assignmentOperator = opToken.type;
+	assignment.rvalue = ParseExpression();
 
 
-	assert(assignment.lvalue->type == assignment.rvalue->type, "Type mismatch in variable assignment", token.lineNumber);
+	assert(assignment.lvalue->type == assignment.rvalue->type, "Type mismatch in variable assignment", opToken.lineNumber);
 
 	assert(GetCurrentToken().type == TokenType::SEMICOLON, "Missing semicolon", GetCurrentLineNum());
 	++currentIndex;
-	return assignment;
+	return make_unique<AST_Assignment>(std::move(assignment));
 
 }

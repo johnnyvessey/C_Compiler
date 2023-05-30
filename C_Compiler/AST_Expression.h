@@ -70,9 +70,16 @@ namespace AST_Expression {
 
 		ExpressionType expressionType;
 
+		bool isLValue = false;
+
 		Expression();
 
 		virtual void PrintExpressionAST(int indentLevel = 0) = 0;
+	};
+
+	struct LValueExpression : Expression
+	{
+
 	};
 
 	struct AST_BinOp : Expression {
@@ -111,7 +118,7 @@ namespace AST_Expression {
 	};
 
 
-	struct AST_Variable_Expression : Expression
+	struct AST_Variable_Expression : LValueExpression
 	{
 		Variable v;
 		virtual void PrintExpressionAST(int indentLevel = 0) override;
@@ -131,15 +138,30 @@ namespace AST_Expression {
 	};
 
 
-	struct AST_Struct_Variable_Access : Expression {
+	struct AST_Struct_Variable_Access : LValueExpression {
 
+		unique_ptr<Expression> expr;
+		string varName;
+
+		AST_Struct_Variable_Access();
 		virtual void PrintExpressionAST(int indentLevel = 0) override;
 	};
 
 
-	struct AST_Pointer_Dereference : Expression
+	struct AST_Pointer_Dereference : LValueExpression
 	{
 		unique_ptr<Expression> baseExpr;
+
+		AST_Pointer_Dereference();
+
+		virtual void PrintExpressionAST(int indentLevel = 0) override;
+	};
+
+	struct AST_Unary_Assignment_Expression : Expression
+	{
+		unique_ptr<LValueExpression> expr;
+		//unary op type type
+		TokenType opType;
 
 		virtual void PrintExpressionAST(int indentLevel = 0) override;
 	};

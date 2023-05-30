@@ -23,7 +23,7 @@ using namespace VariableNamespace;
 
 namespace AST_Statement 
 {
-
+	
 	struct Statement {
 		 virtual void PrintStatementAST(int indentLevel = 0) = 0;
 	};
@@ -35,11 +35,18 @@ namespace AST_Statement
 		virtual void PrintStatementAST(int indentLevel = 0) override;
 	};
 
-
-	struct AST_Assignment : Statement {
+	struct AST_Initialization : Statement {
 		unique_ptr<Variable> lvalue;
 		unique_ptr<Expression> rvalue;
-		bool isInitialization;
+
+		virtual void PrintStatementAST(int indentLevel = 0) override;
+	};
+
+
+	struct AST_Assignment : Statement {
+		unique_ptr<LValueExpression> lvalue;
+		unique_ptr<Expression> rvalue;
+		TokenType assignmentOperator;
 
 		virtual void PrintStatementAST(int indentLevel = 0) override;
 	};
@@ -98,7 +105,7 @@ namespace AST_Statement
 		unordered_map<string, Struct_Variable> variableMapping;
 		size_t memorySize;
 
-		AST_Struct_Definition(string name, vector<Struct_Variable>&& variables);
+		AST_Struct_Definition(string name, vector<Struct_Variable>&& variables, size_t memorySize);
 		AST_Struct_Definition();
 
 		virtual void PrintStatementAST(int indentLevel = 0) override;

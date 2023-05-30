@@ -120,7 +120,7 @@ bool Lexer::IsBinOp(TokenType type)
 		type == TokenType::GREATER_THAN || type == TokenType::GREATER_THAN_EQUALS;
 }
 
-bool Lexer::IsUnaryOp(TokenType type)
+bool Lexer::IsUnaryAssignmentOp(TokenType type)
 {
 	return type == TokenType::PLUS_PLUS || type == TokenType::MINUS_MINUS;
 }
@@ -166,7 +166,7 @@ unordered_map<string, TokenType> Lexer::tokenMap = {
 	{"/", TokenType::SLASH},
 	{"%", TokenType::PERCENT},
 	{",", TokenType::COMMA},
-	{"->", TokenType::ARROW}, //TODO: Properly catch this in the lexer
+	{"->", TokenType::ARROW}, 
 	{"<", TokenType::LESS_THAN},
 	{"<=", TokenType::LESS_THAN_EQUALS},
 	{">", TokenType::GREATER_THAN},
@@ -180,3 +180,8 @@ unordered_map<string, TokenType> Lexer::tokenMap = {
 	{"void", TokenType::VOID},
 	{"return", TokenType::RETURN}
 };
+
+bool Lexer::IsNonBinaryExpressionTerminalToken(TokenType type)
+{
+	return (type != PERIOD && type != ARROW && type != NAME && type != OPEN_BRACE) || IsBinOp(type);
+ }
