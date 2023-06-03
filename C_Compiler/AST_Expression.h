@@ -157,10 +157,26 @@ namespace AST_Expression {
 		virtual void PrintExpressionAST(int indentLevel = 0) override;
 	};
 
+	struct AST_Variable_Reference : Expression
+	{
+		unique_ptr<LValueExpression> expr;
+
+		virtual void PrintExpressionAST(int indentLevel = 0) override;
+	};
+
 	struct AST_Unary_Assignment_Expression : Expression
 	{
 		unique_ptr<LValueExpression> expr;
 		//unary op type type
+		TokenType opType;
+
+		virtual void PrintExpressionAST(int indentLevel = 0) override;
+	};
+
+	struct AST_Unary_Expression : Expression //negative, not
+	{
+		unique_ptr<Expression> expression;
+
 		TokenType opType;
 
 		virtual void PrintExpressionAST(int indentLevel = 0) override;

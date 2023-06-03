@@ -13,17 +13,22 @@ void StatementGroup::PrintStatementAST(int indentLevel)
 
 void AST_Initialization::PrintStatementAST(int indentLevel)
 {
+	std::cout << string(indentLevel, '\t') << "Initialize: \n";// << lvalue->name << "; type: " << lvalue->type.lValueType << " ;ptr: " << lvalue->type.pointerLevel << " " << lvalue->type.structName << "\n";
+	std::cout << string(indentLevel + 1, '\t') << "Name: " << lvalue->name << "; type: " << lvalue->type.lValueType << " " 
+		<< lvalue->type.structName << " " << string(lvalue->type.pointerLevel, '*') << "\n";
+	if (rvalue) {
+		rvalue->PrintExpressionAST(indentLevel + 1);
+	}
 
 }
 
 
 void AST_Assignment::PrintStatementAST(int indentLevel)
 {
-	std::cout << string(indentLevel, '\t') << "Assign: ";// << lvalue->name << "; type: " << lvalue->type.lValueType << " ;ptr: " << lvalue->type.pointerLevel << " " << lvalue->type.structName << "\n";
+	std::cout << string(indentLevel, '\t') << "Assign: \n";// << lvalue->name << "; type: " << lvalue->type.lValueType << " ;ptr: " << lvalue->type.pointerLevel << " " << lvalue->type.structName << "\n";
 	lvalue->PrintExpressionAST(indentLevel + 1);
-	if (rvalue) {
-		rvalue->PrintExpressionAST(indentLevel + 1);
-	}
+	rvalue->PrintExpressionAST(indentLevel + 1);
+	
 }
 
 
@@ -89,12 +94,8 @@ void AST_Function_Definition::PrintStatementAST(int indentLevel)
 
 
 
-AST_Struct_Definition::AST_Struct_Definition(string name, vector<Struct_Variable>&& variables, size_t memorySize) : name(name), memorySize(memorySize)
+AST_Struct_Definition::AST_Struct_Definition(string name, unordered_map<string, Struct_Variable>&& variables, size_t memorySize) : name(name), memorySize(memorySize), variableMapping(variables)
 {
-	for (auto&& var : variables)
-	{
-		variableMapping[var.v.name] = var;
-	}
 	//figure out if I need to align struct (to 4 bytes, for example)
 }
 
@@ -103,7 +104,12 @@ AST_Struct_Definition::AST_Struct_Definition() {}
 
 void AST_Struct_Definition::PrintStatementAST(int indentLevel)
 {
-
+	std::cout << string(indentLevel, '\t') << "Struct definition: " << name << " (size: " << memorySize << ")" << ":\n";
+	for (const auto& structVar : variableMapping) //may be out of order
+	{
+		std::cout << string(indentLevel + 1, '\t') << structVar.second.v.name << ": " << structVar.second.v.type.lValueType << " " << structVar.second.v.type.structName
+			<< string(structVar.second.v.type.pointerLevel, '*') << " (offset: " << structVar.second.memoryOffset << ")\n";
+	}
 }
 
 

@@ -73,7 +73,9 @@ AST_Struct_Variable_Access::AST_Struct_Variable_Access()
 
 void AST_Struct_Variable_Access::PrintExpressionAST(int indentLevel)
 {
-
+	std::cout << string(indentLevel, '\t') << "Struct var access:\n";
+	expr->PrintExpressionAST(indentLevel + 1);
+	std::cout << string(indentLevel + 1, '\t') << "Access name: " << varName << "\n";
 }
 
 AST_Pointer_Dereference::AST_Pointer_Dereference()

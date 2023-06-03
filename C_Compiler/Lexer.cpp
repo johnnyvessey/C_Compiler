@@ -183,5 +183,5 @@ unordered_map<string, TokenType> Lexer::tokenMap = {
 
 bool Lexer::IsNonBinaryExpressionTerminalToken(TokenType type)
 {
-	return (type != PERIOD && type != ARROW && type != NAME && type != OPEN_BRACE) || IsBinOp(type);
+	return (type != PERIOD && type != ARROW && type != NAME && type != OPEN_BRACKET && type != INT_LITERAL && type != FLOAT_LITERAL); //maybe star??
  }

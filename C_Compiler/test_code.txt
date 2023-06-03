@@ -1,1 +1,11 @@
-int x = 4;
+struct structExample
+{
+	int x;
+	int** z;
+};
+
+struct structExample2
+{
+	struct structExample s;
+	int z;
+};

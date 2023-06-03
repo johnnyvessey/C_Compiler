@@ -4,16 +4,24 @@ PARSER TODO:
 	
 
 	Important next steps;
+
+	- Parse struct variable initialization (i.e. struct structVar v = {1, 2}; struct structVar2 v2 = {1, {1,2}, {3,4}};)
+		-> figure out what type that rvalue should be? (struct literal??, but what if it references other struct variable) -> (i.e. struct structVar1 v = {1, testVar}; )
+
+	- add ControlFlowBlock class that has statementgroup as member
+		- if statements, loops create new ControlFlowBlocks
+
 	- struct variable access (period)
 	- unary expressions
 	- unit tests
 	- assignment for pointer dereferences and struct variable accesses (as well as chained versions of them)
 	- & symbol to get reference (probably just need to add 1 to pointer level ???)
 	- Add support for arrays
-	- while, for statements
+	- while, for statements (as well as break and continue)
 - Properly parse string literals and char literals
 
 
 AST:
 
 - Figure out how to recursively traverse the AST in the proper order to generate the assembly / IR code
+- when doing assignment and function parameters, make copy of variable / store value in pointer (LLVM)
