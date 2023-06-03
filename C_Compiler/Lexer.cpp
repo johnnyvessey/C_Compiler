@@ -135,6 +135,11 @@ bool Lexer::IsAssignmentOp(TokenType type)
 	return Lexer::IsBinaryAssignmentOp(type) || type == SINGLE_EQUAL;
 }
 
+bool Lexer::IsUnaryOp(TokenType type)
+{
+	return type == MINUS || type == NOT || type == ADDRESS_OF;
+}
+
 unordered_map<string, TokenType> Lexer::tokenMap = {
 	{"if", TokenType::IF},
 	{"else", TokenType::ELSE},
@@ -166,7 +171,7 @@ unordered_map<string, TokenType> Lexer::tokenMap = {
 	{"/", TokenType::SLASH},
 	{"%", TokenType::PERCENT},
 	{",", TokenType::COMMA},
-	{"->", TokenType::ARROW}, 
+	{"->", TokenType::ARROW},
 	{"<", TokenType::LESS_THAN},
 	{"<=", TokenType::LESS_THAN_EQUALS},
 	{">", TokenType::GREATER_THAN},
@@ -178,10 +183,14 @@ unordered_map<string, TokenType> Lexer::tokenMap = {
 	{"/=", TokenType::SLASH_EQUAL},
 	{"%=", TokenType::PERCENT_EQUAL},
 	{"void", TokenType::VOID},
-	{"return", TokenType::RETURN}
+	{"return", TokenType::RETURN},
+	{"!", TokenType::NOT},
+	{"break", TokenType::BREAK},
+	{"continue", TokenType::CONTINUE}
 };
 
 bool Lexer::IsNonBinaryExpressionTerminalToken(TokenType type)
 {
-	return (type != PERIOD && type != ARROW && type != NAME && type != OPEN_BRACKET && type != INT_LITERAL && type != FLOAT_LITERAL); //maybe star??
+	return (type != PERIOD && type != ARROW && type != NAME && type != OPEN_BRACKET && type != INT_LITERAL 
+		&& type != FLOAT_LITERAL && type != ADDRESS_OF && type != MINUS && type != PLUS_PLUS && type != MINUS_MINUS && type != NOT); //maybe star??
  }

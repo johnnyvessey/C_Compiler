@@ -59,23 +59,27 @@ enum TokenType {
 	STAR_EQUAL,
 	SLASH_EQUAL,
 	PERCENT_EQUAL,
-	VOID
+	VOID,
+	NOT,
+	BREAK,
+	CONTINUE
 };
 
-	struct Token {
-		TokenType type;
-		string value;
-		size_t lineNumber;
-		size_t tokenNumber;
-		Token(TokenType type, string value, size_t lineNumber, size_t tokenNumber) : type(type), value(value), lineNumber(lineNumber), tokenNumber(tokenNumber) {}
-		Token(TokenType type): type(type) {}
-	};
+struct Token {
+	TokenType type;
+	string value;
+	size_t lineNumber;
+	size_t tokenNumber;
+	Token(TokenType type, string value, size_t lineNumber, size_t tokenNumber) : type(type), value(value), lineNumber(lineNumber), tokenNumber(tokenNumber) {}
+	Token(TokenType type): type(type) {}
+};
 
 
 
 struct Lexer {
 	static bool IsBinOp(TokenType type);
 	static bool IsUnaryAssignmentOp(TokenType type);
+	static bool IsUnaryOp(TokenType type);
 	static Token ParseToken(const string&& s, size_t& lineNumber, size_t& tokenNum);
 	static vector<Token> SplitStringByToken(const string& input);
 	static string GetNameFromEnum(TokenType& type);

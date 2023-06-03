@@ -53,6 +53,48 @@ unique_ptr<LValueExpression> AST::ParseLValueExpression()
 	return ConvertExpressionToLValue(std::move(expr));
 }
 
+unique_ptr<Expression> AST::ParseUnaryExpression()
+{
+	Token& token = GetCurrentToken();
+
+	++currentIndex;
+
+	if (token.type == TokenType::NOT)
+	{
+		unique_ptr<AST_Not_Expression> notExpr = make_unique<AST_Not_Expression>();
+		notExpr->expr = ParseNonBinaryExpression();
+
+		assert(notExpr->expr->type.lValueType == LValueType::INT || notExpr->expr->type.pointerLevel > 0, "Invalid use of ! operator", token.lineNumber);
+		notExpr->type = VariableType(LValueType::INT, "", 0);
+
+		return notExpr;
+	}
+	else if (token.type == TokenType::MINUS) {
+		unique_ptr<AST_Negative_Expression> negativeExpr = make_unique<AST_Negative_Expression>();
+		negativeExpr->expr = ParseNonBinaryExpression();
+
+		assert((negativeExpr->expr->type.lValueType == LValueType::INT || negativeExpr->expr->type.lValueType == LValueType::FLOAT) 
+			&& negativeExpr->expr->type.pointerLevel == 0,
+			"Can't take negative of struct or pointer value", token.lineNumber);
+		negativeExpr->type = negativeExpr->expr->type;
+
+		return negativeExpr;
+
+	}
+	else //TokenType::ADDRESSS_OF
+	{
+		unique_ptr<AST_Address_Expression> addrExpr = make_unique<AST_Address_Expression>();
+		addrExpr->expr = ParseNonBinaryExpression();
+
+		assert(addrExpr->expr->isLValue, "Can only get reference to LValue type", token.lineNumber);
+		addrExpr->type = VariableType(addrExpr->expr->type.lValueType, addrExpr->expr->type.structName, addrExpr->expr->type.pointerLevel + 1);
+
+		return addrExpr;
+	}
+
+
+}
+
 unique_ptr<Expression> AST::ParseNonBinaryExpression(unique_ptr<Expression> prev)
 {
 	unique_ptr<Expression> expr;
@@ -60,15 +102,16 @@ unique_ptr<Expression> AST::ParseNonBinaryExpression(unique_ptr<Expression> prev
 	Token& nextToken = tokens.at(currentIndex + 1);
 
 	//end of non-binary expression
-	if (Lexer::IsNonBinaryExpressionTerminalToken(token.type))
-	{
-		assert(prev != nullptr, "Expression is empty", token.lineNumber);
-		return prev;
-	}
-	else if (token.type == TokenType::OPEN_PAR)
+	
+	if (token.type == TokenType::OPEN_PAR)
 	{
 		++currentIndex;
 		return ParseNonBinaryExpression(ParseParentheticalExpression());
+	}
+	else if (Lexer::IsUnaryOp(token.type)) // !, -, &
+	{
+		assert(!prev, "Invalid unary op syntax", token.lineNumber);
+		return ParseUnaryExpression();
 	}
 	else if (Lexer::IsUnaryAssignmentOp(token.type)) //prefix unary op
 	{
@@ -78,10 +121,12 @@ unique_ptr<Expression> AST::ParseNonBinaryExpression(unique_ptr<Expression> prev
 		if (!prev)
 		{
 			++currentIndex;
+			unaryExpr->isPrefix = true;
 			unaryExpr->expr = ParseLValueExpression();
 		}
 		else
 		{
+			unaryExpr->isPrefix = false;
 			unaryExpr->expr = ConvertExpressionToLValue(std::move(prev));
 			assert(Lexer::IsNonBinaryExpressionTerminalToken(nextToken.type), "Postfix unary operator must be the end of the expression", nextToken.lineNumber);
 		}
@@ -157,6 +202,11 @@ unique_ptr<Expression> AST::ParseNonBinaryExpression(unique_ptr<Expression> prev
 			throwError("Invalid syntax", token.lineNumber);
 		}
 	}
+	else if (Lexer::IsNonBinaryExpressionTerminalToken(token.type))
+	{
+		assert(prev != nullptr, "Expression is empty", token.lineNumber);
+		return prev;
+	}
 	else
 	{
 		throwError("Invalid sytnax", GetCurrentLineNum());
@@ -178,7 +228,7 @@ unique_ptr<AST_BinOp> AST::ParseBinaryExpression(unique_ptr<Expression> firstExp
 	binOpExpr->left = std::move(firstExpr);
 	binOpExpr->op = op.type;
 
-	binOpExpr->type.lValueType = IsBooleanOperation(op.type) ? LValueType::BOOL : binOpExpr->left->type.lValueType;
+	binOpExpr->type.lValueType = IsBooleanOperation(op.type) ? LValueType::INT : binOpExpr->left->type.lValueType; //figure out whether to treat INT and BOOL separately
 
 	if (Lexer::IsBinOp(currentToken.type))
 	{
@@ -228,7 +278,7 @@ unique_ptr<AST_Pointer_Dereference> AST::ParsePointerDereferenceExpression()
 	assert(expr->type.pointerLevel > 0, "Can't dereference a non-pointer type", GetCurrentLineNum());
 
 	unique_ptr<AST_Pointer_Dereference> derefExpr = make_unique<AST_Pointer_Dereference>();
-	derefExpr->type.pointerLevel = expr->type.pointerLevel - 1;
+	derefExpr->type = VariableType(expr->type.lValueType, expr->type.structName, expr->type.pointerLevel - 1);
 	derefExpr->baseExpr = std::move(expr);
 	return std::move(derefExpr);
 }

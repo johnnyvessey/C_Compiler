@@ -95,6 +95,24 @@ void AST_Unary_Assignment_Expression::PrintExpressionAST(int indentLevel)
 
 }
 
+void AST_Negative_Expression::PrintExpressionAST(int indentLevel)
+{
+	std::cout << string(indentLevel, '\t') << "Negative: "  << "\n";
+	expr->PrintExpressionAST(indentLevel + 1);
+}
+
+void AST_Address_Expression::PrintExpressionAST(int indentLevel)
+{
+	std::cout << string(indentLevel, '\t') << "Address of: " << "\n";
+	expr->PrintExpressionAST(indentLevel + 1);
+}
+
+void AST_Not_Expression::PrintExpressionAST(int indentLevel)
+{
+	std::cout << string(indentLevel, '\t') << "Not: " << "\n";
+	expr->PrintExpressionAST(indentLevel + 1);
+}
+
 
 unordered_map<TokenType, BinOp> ExpressionUtils::BinOpTokenDictionary = {
 	{TokenType::PLUS, BinOp(BinOpType::ADD, 300)},

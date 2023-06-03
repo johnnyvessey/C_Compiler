@@ -101,6 +101,7 @@ public:
 
 	unique_ptr<AST_Expression_Statement> ParseExpressionStatement(unique_ptr<Expression>&& expr);
 
+	unique_ptr<Expression> ParseUnaryExpression();
 };
 
 

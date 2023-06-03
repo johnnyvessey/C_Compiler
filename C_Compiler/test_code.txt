@@ -1,11 +1,7 @@
-struct structExample
-{
-	int x;
-	int** z;
-};
+int* x;
+int y = 5;
 
-struct structExample2
-{
-	struct structExample s;
-	int z;
-};
+x = &y;
+
+int z = -y;
+int w = !(*x);

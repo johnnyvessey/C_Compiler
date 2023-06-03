@@ -24,6 +24,7 @@ namespace VariableNamespace {
 
 		bool operator==(const VariableType& rhs);
 		VariableType();
+		VariableType(LValueType type, string structName, int pointerLevel);
 	};
 
 	inline bool IsNumericType(LValueType type)
