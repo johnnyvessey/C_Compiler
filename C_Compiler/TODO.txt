@@ -5,20 +5,22 @@ PARSER TODO:
 
 	Important next steps;
 
+	- FIX BUG ON STRUCT POINTER INITIALIZATION
+
 	- Parse struct variable initialization (i.e. struct structVar v = {1, 2}; struct structVar2 v2 = {1, {1,2}, {3,4}};)
 		-> figure out what type that rvalue should be? (struct literal??, but what if it references other struct variable) -> (i.e. struct structVar1 v = {1, testVar}; )
 
 	- add ControlFlowBlock class that has statementgroup as member
 		- if statements, loops create new ControlFlowBlocks
 
-	- struct variable access (period)
-	- unary expressions
+	- figure out Lexing/Parsing for negative int/float literals
+
 	- unit tests
-	- assignment for pointer dereferences and struct variable accesses (as well as chained versions of them)
-	- & symbol to get reference (probably just need to add 1 to pointer level ???)
-	- Add support for arrays
 	- while, for statements (as well as break and continue)
-- Properly parse string literals and char literals
+	- Properly parse string literals and char literals
+	- figure out calling external functions (malloc??)
+	- add const variables
+	
 
 
 AST:

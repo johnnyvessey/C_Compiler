@@ -1,7 +1,5 @@
-int* x;
-int y = 5;
+struct var{
+	int x;
+};
 
-x = &y;
-
-int z = -y;
-int w = !(*x);
+struct var* v;

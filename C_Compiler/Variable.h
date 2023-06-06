@@ -34,11 +34,10 @@ namespace VariableNamespace {
 
 	struct Variable {
 		string name;
-		//LValueType type;
-		//string structName;
-		//int pointerLevel; //0 for value types, 1 for int* x, 2 for int** x, etc...
 		VariableType type;
+		size_t arraySize = 0;
 	};
+
 
 	struct Struct_Variable {
 		Variable v;

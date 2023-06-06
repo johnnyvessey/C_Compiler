@@ -15,14 +15,23 @@ using std::unordered_map;
 using namespace VariableNamespace;
 
 namespace AST_Expression {
+
 	enum ExpressionType {
-		NONE,
-		LITERAL,
-		BINARY_OPERATION,
-		UNARY_OPERATION,
-		FUNCTION_CALL,
-		VARIABLE
+		_BinOp,
+		_Type_Cast_Expression,
+		_Function_Expression,
+		_Variable_Expression,
+		_Literal_Expression,
+		_Struct_Variable_Access,
+		_Pointer_Dereference,
+		_Pointer_Offset,
+		_Variable_Reference,
+		_Unary_Assignment_Expression,
+		_Negative_Expression,
+		_Address_Expression,
+		_Not_Expression
 	};
+	
 
 
 	enum BinOpType {
@@ -68,18 +77,18 @@ namespace AST_Expression {
 	struct Expression {
 		VariableType type;
 
-		ExpressionType expressionType;
-
 		bool isLValue = false;
 
 		Expression();
 
 		virtual void PrintExpressionAST(int indentLevel = 0) = 0;
+
+		virtual ExpressionType GetExpressionType() = 0;
 	};
 
 	struct LValueExpression : Expression
 	{
-
+		LValueExpression();
 	};
 
 	struct AST_BinOp : Expression {
@@ -90,15 +99,23 @@ namespace AST_Expression {
 		AST_BinOp();
 
 		virtual void PrintExpressionAST(int indentLevel = 0) override;
+
+		virtual ExpressionType GetExpressionType() override;
 	};
 
 
 	struct AST_Type_Cast_Expression : Expression
 	{
 		//figure out pointer casting!! and how to represent pointers. Maybe have int count of number of pointers (i.e: value of 3 for int*** x;)
-		LValueType from;
-		LValueType to;
+		unique_ptr<Expression> expr;
+		VariableType from;
+		VariableType to;
 		virtual void PrintExpressionAST(int indentLevel = 0) override;
+		virtual ExpressionType GetExpressionType() override;
+
+		AST_Type_Cast_Expression();
+		AST_Type_Cast_Expression(unique_ptr<Expression>&& expr, VariableType from, VariableType to);
+		bool IsValidTypeCast();
 	};
 
 
@@ -110,6 +127,8 @@ namespace AST_Expression {
 		AST_Function_Expression();
 
 		virtual void PrintExpressionAST(int indentLevel = 0) override;
+		virtual ExpressionType GetExpressionType() override;
+
 	};
 
 
@@ -122,6 +141,7 @@ namespace AST_Expression {
 	{
 		Variable v;
 		virtual void PrintExpressionAST(int indentLevel = 0) override;
+		virtual ExpressionType GetExpressionType() override;
 
 
 		AST_Variable_Expression(Variable v);
@@ -135,6 +155,8 @@ namespace AST_Expression {
 		AST_Literal_Expression();
 
 		virtual void PrintExpressionAST(int indentLevel = 0) override;
+		virtual ExpressionType GetExpressionType() override;
+
 	};
 
 
@@ -145,6 +167,8 @@ namespace AST_Expression {
 
 		AST_Struct_Variable_Access();
 		virtual void PrintExpressionAST(int indentLevel = 0) override;
+		virtual ExpressionType GetExpressionType() override;
+
 	};
 
 
@@ -155,6 +179,30 @@ namespace AST_Expression {
 		AST_Pointer_Dereference();
 
 		virtual void PrintExpressionAST(int indentLevel = 0) override;
+		virtual ExpressionType GetExpressionType() override;
+
+		AST_Pointer_Dereference(unique_ptr<Expression>&& expr);
+	};
+
+	//struct AST_Array_Index : LValueExpression
+	//{
+	//	unique_ptr<Expression> expr;
+	//	unique_ptr<Expression> index;
+
+	//	//AST_Array_Index(unique_ptr<Expression>&& expr);
+	//	virtual void PrintExpressionAST(int indentLevel = 0) override;
+	//	virtual ExpressionType GetExpressionType() override;
+
+	//};
+
+	struct AST_Pointer_Offset : LValueExpression
+	{
+		unique_ptr<Expression> expr;
+		unique_ptr<Expression> index;
+
+		virtual void PrintExpressionAST(int indentLevel = 0) override;
+		virtual ExpressionType GetExpressionType() override;
+
 	};
 
 	struct AST_Variable_Reference : Expression
@@ -162,6 +210,8 @@ namespace AST_Expression {
 		unique_ptr<LValueExpression> expr;
 
 		virtual void PrintExpressionAST(int indentLevel = 0) override;
+		virtual ExpressionType GetExpressionType() override;
+
 	};
 
 	struct AST_Unary_Assignment_Expression : Expression
@@ -172,6 +222,8 @@ namespace AST_Expression {
 		TokenType opType;
 
 		virtual void PrintExpressionAST(int indentLevel = 0) override;
+		virtual ExpressionType GetExpressionType() override;
+
 	};
 
 	struct AST_Negative_Expression : Expression //negative, not, reference
@@ -179,6 +231,11 @@ namespace AST_Expression {
 		unique_ptr<Expression> expr;
 
 		virtual void PrintExpressionAST(int indentLevel = 0) override;
+		virtual ExpressionType GetExpressionType() override;
+
+		AST_Negative_Expression();
+		AST_Negative_Expression(unique_ptr<Expression>&& expr);
+
 	};
 
 	struct AST_Address_Expression : Expression
@@ -186,6 +243,8 @@ namespace AST_Expression {
 		unique_ptr<Expression> expr;
 
 		virtual void PrintExpressionAST(int indentLevel = 0) override;
+		virtual ExpressionType GetExpressionType() override;
+
 	};
 
 	struct AST_Not_Expression : Expression
@@ -193,6 +252,8 @@ namespace AST_Expression {
 		unique_ptr<Expression> expr;
 
 		virtual void PrintExpressionAST(int indentLevel = 0) override;
+		virtual ExpressionType GetExpressionType() override;
+
 	};
 
 }

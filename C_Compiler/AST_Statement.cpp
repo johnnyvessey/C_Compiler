@@ -94,7 +94,8 @@ void AST_Function_Definition::PrintStatementAST(int indentLevel)
 
 
 
-AST_Struct_Definition::AST_Struct_Definition(string name, unordered_map<string, Struct_Variable>&& variables, size_t memorySize) : name(name), memorySize(memorySize), variableMapping(variables)
+AST_Struct_Definition::AST_Struct_Definition(string name, unordered_map<string, Struct_Variable>&& variables, vector<Struct_Variable>&& structVariables, size_t memorySize)
+	: name(name), memorySize(memorySize), variableMapping(variables), variableVector(structVariables)
 {
 	//figure out if I need to align struct (to 4 bytes, for example)
 }
@@ -105,10 +106,10 @@ AST_Struct_Definition::AST_Struct_Definition() {}
 void AST_Struct_Definition::PrintStatementAST(int indentLevel)
 {
 	std::cout << string(indentLevel, '\t') << "Struct definition: " << name << " (size: " << memorySize << ")" << ":\n";
-	for (const auto& structVar : variableMapping) //may be out of order
+	for (const Struct_Variable& structVar : variableVector) //may be out of order
 	{
-		std::cout << string(indentLevel + 1, '\t') << structVar.second.v.name << ": " << structVar.second.v.type.lValueType << " " << structVar.second.v.type.structName
-			<< string(structVar.second.v.type.pointerLevel, '*') << " (offset: " << structVar.second.memoryOffset << ")\n";
+		std::cout << string(indentLevel + 1, '\t') << structVar.v.name << ": " << structVar.v.type.lValueType << " " << structVar.v.type.structName
+			<< string(structVar.v.type.pointerLevel, '*') << " (offset: " << structVar.memoryOffset << ")\n";
 	}
 }
 

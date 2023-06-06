@@ -2,14 +2,17 @@
 
 using namespace AST_Expression;
 
-Expression::Expression() : expressionType(ExpressionType::NONE) {}
+Expression::Expression() {}
 
+LValueExpression::LValueExpression()
+{
+	isLValue = true;
+}
 
 
 BinOp::BinOp(BinOpType type, int precedence) : type(type), precedence(precedence) {}
 
 AST_BinOp::AST_BinOp() {
-	expressionType = ExpressionType::BINARY_OPERATION;
 	isLValue = false;
 }
 
@@ -19,16 +22,38 @@ void AST_BinOp::PrintExpressionAST(int indentLevel) {
 	right->PrintExpressionAST(indentLevel + 1);
 }
 
+ExpressionType AST_BinOp::GetExpressionType()
+{
+	return ExpressionType::_BinOp;
+}
 
 
-void AST_Type_Cast_Expression::PrintExpressionAST(int indentLevel) {
+bool AST_Type_Cast_Expression::IsValidTypeCast()
+{
+	return to.pointerLevel > 0 || (IsNumericType(from.lValueType) && IsNumericType(to.lValueType));
+}
 
+
+void AST_Type_Cast_Expression::PrintExpressionAST(int indentLevel) 
+{
+	std::cout << string(indentLevel, '\t') << "Type Cast:\n";
+	std::cout << string(indentLevel + 1, '\t') << "From type: " << from.lValueType << " " << from.structName << " " << string(from.pointerLevel, '*') << "\n";
+	std::cout << string(indentLevel + 1, '\t') << "To type: " << to.lValueType << " " << to.structName << " " << string(to.pointerLevel, '*') << "\n";
+	expr->PrintExpressionAST(indentLevel + 1);
+}
+
+AST_Type_Cast_Expression::AST_Type_Cast_Expression() {}
+AST_Type_Cast_Expression::AST_Type_Cast_Expression(unique_ptr<Expression>&& expr, VariableType from, VariableType to) : expr(std::move(expr)), from(from), to(to) {}
+
+
+ExpressionType AST_Type_Cast_Expression::GetExpressionType()
+{
+	return ExpressionType::_Type_Cast_Expression;
 }
 
 
 
 AST_Function_Expression::AST_Function_Expression() {
-	expressionType = ExpressionType::FUNCTION_CALL;
 	isLValue = false;
 }
 
@@ -40,12 +65,15 @@ void AST_Function_Expression::PrintExpressionAST(int indentLevel) {
 	}
 }
 
+ExpressionType AST_Function_Expression::GetExpressionType()
+{
+	return ExpressionType::_Function_Expression;
+}
 
 
-AST_Variable_Expression::AST_Variable_Expression(Variable v) : v(v)
+AST_Variable_Expression::AST_Variable_Expression(Variable v) : v(v), LValueExpression()
 {
 	type = v.type;
-	isLValue = true;
 }
 
 void AST_Variable_Expression::PrintExpressionAST(int indentLevel)
@@ -53,9 +81,12 @@ void AST_Variable_Expression::PrintExpressionAST(int indentLevel)
 	std::cout << string(indentLevel, '\t') << "Variable: " << v.name << " (" << v.type.lValueType << ") " << v.type.structName << string(v.type.pointerLevel, '*') << "\n";
 }
 
+ExpressionType AST_Variable_Expression::GetExpressionType()
+{
+	return ExpressionType::_Variable_Expression;
+}
 
 AST_Literal_Expression::AST_Literal_Expression() {
-	expressionType = ExpressionType::LITERAL;
 	type.pointerLevel = 0;
 	isLValue = false;
 }
@@ -65,10 +96,13 @@ void AST_Literal_Expression::PrintExpressionAST(int indentLevel)
 	std::cout << string(indentLevel, '\t') << "Literal: " << value << "\n";
 }
 
-
-AST_Struct_Variable_Access::AST_Struct_Variable_Access()
+ExpressionType AST_Literal_Expression::GetExpressionType()
 {
-	isLValue = true;
+	return ExpressionType::_Literal_Expression;
+}
+
+AST_Struct_Variable_Access::AST_Struct_Variable_Access(): LValueExpression()
+{
 }
 
 void AST_Struct_Variable_Access::PrintExpressionAST(int indentLevel)
@@ -78,10 +112,11 @@ void AST_Struct_Variable_Access::PrintExpressionAST(int indentLevel)
 	std::cout << string(indentLevel + 1, '\t') << "Access name: " << varName << "\n";
 }
 
-AST_Pointer_Dereference::AST_Pointer_Dereference()
+ExpressionType AST_Struct_Variable_Access::GetExpressionType()
 {
-	isLValue = true;
+	return ExpressionType::_Struct_Variable_Access;
 }
+
 
 void AST_Pointer_Dereference::PrintExpressionAST(int indentLevel)
 {
@@ -89,10 +124,47 @@ void AST_Pointer_Dereference::PrintExpressionAST(int indentLevel)
 	baseExpr->PrintExpressionAST(indentLevel + 1);
 }
 
+ExpressionType AST_Pointer_Dereference::GetExpressionType()
+{
+	return ExpressionType::_Pointer_Dereference;
+}
+
+AST_Pointer_Dereference::AST_Pointer_Dereference(): LValueExpression() {
+}
+AST_Pointer_Dereference::AST_Pointer_Dereference(unique_ptr<Expression>&& expr) : baseExpr(std::move(expr)) {}
+
+//AST_Array_Index::AST_Array_Index(unique_ptr<Expression>&& expr): expr(std::move(expr))
+//{
+//	
+//}
+
+
+
+ExpressionType AST_Pointer_Offset::GetExpressionType()
+{
+	return ExpressionType::_Pointer_Offset;
+}
+
+void AST_Pointer_Offset::PrintExpressionAST(int indentLevel)
+{
+	std::cout << string(indentLevel,'\t') << "Pointer offset:\n";
+
+	std::cout << string(indentLevel + 1, '\t') << "Base expression:\n";
+	expr->PrintExpressionAST(indentLevel + 2);
+
+	std::cout << string(indentLevel + 1, '\t') << "Index:\n";
+	index->PrintExpressionAST(indentLevel + 2);
+
+}
 
 void AST_Unary_Assignment_Expression::PrintExpressionAST(int indentLevel)
 {
 
+}
+
+ExpressionType AST_Unary_Assignment_Expression::GetExpressionType()
+{
+	return ExpressionType::_Unary_Assignment_Expression;
 }
 
 void AST_Negative_Expression::PrintExpressionAST(int indentLevel)
@@ -101,10 +173,24 @@ void AST_Negative_Expression::PrintExpressionAST(int indentLevel)
 	expr->PrintExpressionAST(indentLevel + 1);
 }
 
+AST_Negative_Expression::AST_Negative_Expression() {}
+AST_Negative_Expression::AST_Negative_Expression(unique_ptr<Expression>&& expr) : expr(std::move(expr)) {}
+
+
+ExpressionType AST_Negative_Expression::GetExpressionType()
+{
+	return ExpressionType::_Negative_Expression;
+}
+
 void AST_Address_Expression::PrintExpressionAST(int indentLevel)
 {
 	std::cout << string(indentLevel, '\t') << "Address of: " << "\n";
 	expr->PrintExpressionAST(indentLevel + 1);
+}
+
+ExpressionType AST_Address_Expression::GetExpressionType()
+{
+	return ExpressionType::_Address_Expression;
 }
 
 void AST_Not_Expression::PrintExpressionAST(int indentLevel)
@@ -112,6 +198,12 @@ void AST_Not_Expression::PrintExpressionAST(int indentLevel)
 	std::cout << string(indentLevel, '\t') << "Not: " << "\n";
 	expr->PrintExpressionAST(indentLevel + 1);
 }
+
+ExpressionType AST_Not_Expression::GetExpressionType()
+{
+	return ExpressionType::_Not_Expression;
+}
+
 
 
 unordered_map<TokenType, BinOp> ExpressionUtils::BinOpTokenDictionary = {

@@ -50,7 +50,7 @@ public:
 
 	LValueType GetTypeFromName(string&& name);
 
-	unique_ptr<AST_BinOp> ParseBinaryExpression(unique_ptr<Expression> firstExpr);
+	unique_ptr<Expression> ParseBinaryExpression(unique_ptr<Expression> firstExpr);
 
 	vector<Variable> ParseFunctionParameters();
 
@@ -102,6 +102,19 @@ public:
 	unique_ptr<AST_Expression_Statement> ParseExpressionStatement(unique_ptr<Expression>&& expr);
 
 	unique_ptr<Expression> ParseUnaryExpression();
+
+	template <class T>
+	unique_ptr<T> ConvertToSubexpression(unique_ptr<Expression>&& expr);
+
+	unique_ptr<AST_Pointer_Offset> ParseArrayIndexExpression(unique_ptr<Expression>&& prev);
+
+	unique_ptr<AST_Type_Cast_Expression> ParseTypeCastExpression();
+
+	VariableType ParseVariableType();
+
+	void PerformImplicitTypeCastBinaryOp(unique_ptr<AST_BinOp>& binOpExpr);
+
+	unique_ptr<AST_Pointer_Offset> ParsePointerArithmetic(unique_ptr<AST_BinOp>&& binOpExpr);
 };
 
 

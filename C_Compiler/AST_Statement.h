@@ -17,7 +17,6 @@ using std::unique_ptr;
 using std::shared_ptr;
 using std::make_unique;
 
-
 using namespace AST_Expression;
 using namespace VariableNamespace;
 
@@ -103,9 +102,11 @@ namespace AST_Statement
 	struct AST_Struct_Definition : Statement {
 		string name;
 		unordered_map<string, Struct_Variable> variableMapping;
+		vector<Struct_Variable> variableVector;
+
 		size_t memorySize;
 
-		AST_Struct_Definition(string name, unordered_map<string, Struct_Variable>&& variables, size_t memorySize);
+		AST_Struct_Definition(string name, unordered_map<string, Struct_Variable>&& variables, vector<Struct_Variable>&& structVariables, size_t memorySize);
 		AST_Struct_Definition();
 
 		virtual void PrintStatementAST(int indentLevel = 0) override;

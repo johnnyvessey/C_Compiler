@@ -85,7 +85,7 @@ struct Lexer {
 	static string GetNameFromEnum(TokenType& type);
 	static bool IsBinaryAssignmentOp(TokenType type);
 	static bool IsAssignmentOp(TokenType type);
-
+	static bool IsTypeToken(TokenType type);
 	static bool IsNonBinaryExpressionTerminalToken(TokenType type);
 	static unordered_map<string, TokenType> tokenMap;
 };

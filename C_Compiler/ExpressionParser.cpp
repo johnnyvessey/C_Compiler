@@ -7,7 +7,15 @@ unique_ptr<Expression> AST::ParseExpression()
 	if (tokens.at(currentIndex).type == TokenType::OPEN_PAR)
 	{
 		++currentIndex;
-		firstExpr = ParseParentheticalExpression();
+		if (Lexer::IsTypeToken(GetCurrentToken().type)) //parse type casting expression
+		{
+			firstExpr = ParseTypeCastExpression();
+		}
+		else
+		{
+			firstExpr = ParseParentheticalExpression();
+		}
+
 	}
 	else
 	{
@@ -27,24 +35,29 @@ unique_ptr<Expression> AST::ParseExpression()
 	}
 }
 
+template<class T>
+unique_ptr<T> AST::ConvertToSubexpression(unique_ptr<Expression>&& expr)
+{
+	T* tmp = dynamic_cast<T*>(expr.get());
+	unique_ptr<T> subExpr;
+	if (tmp != nullptr)
+	{
+		expr.release();
+		subExpr.reset(tmp);
+	}
+	else
+	{
+		throwError("Error converting expression to subexpression type", GetCurrentLineNum());
+	}
+
+	return subExpr;
+}
 
 unique_ptr<LValueExpression> AST::ConvertExpressionToLValue(unique_ptr<Expression>&& expr)
 {
 	assert(expr->isLValue, "Can only use unary assignment operator on LValue", GetCurrentLineNum());
 
-	LValueExpression* tmp = dynamic_cast<LValueExpression*>(expr.get());
-	unique_ptr<LValueExpression> lValueExpr;
-	if (tmp != nullptr)
-	{
-		expr.release();
-		lValueExpr.reset(tmp);
-	}
-	else
-	{
-		throwError("Error converting expression to LValue type", GetCurrentLineNum());
-	}
-
-	return lValueExpr;
+	return ConvertToSubexpression<LValueExpression>(std::move(expr));
 }
 
 unique_ptr<LValueExpression> AST::ParseLValueExpression()
@@ -70,8 +83,20 @@ unique_ptr<Expression> AST::ParseUnaryExpression()
 		return notExpr;
 	}
 	else if (token.type == TokenType::MINUS) {
+		unique_ptr<Expression> expr = ParseNonBinaryExpression();
+
+		//special case for parsing negative int/float literals
+		if(expr->GetExpressionType() == ExpressionType::_Literal_Expression)
+		{
+			unique_ptr<AST_Literal_Expression> litExpr = ConvertToSubexpression<AST_Literal_Expression>(std::move(expr));
+			assert(litExpr->value[0] != '-', "Double negative not allowed", token.lineNumber);
+			litExpr->value = "-" + litExpr->value;
+
+			return std::move(litExpr);
+		}
+
 		unique_ptr<AST_Negative_Expression> negativeExpr = make_unique<AST_Negative_Expression>();
-		negativeExpr->expr = ParseNonBinaryExpression();
+		negativeExpr->expr = std::move(expr);
 
 		assert((negativeExpr->expr->type.lValueType == LValueType::INT || negativeExpr->expr->type.lValueType == LValueType::FLOAT) 
 			&& negativeExpr->expr->type.pointerLevel == 0,
@@ -95,6 +120,82 @@ unique_ptr<Expression> AST::ParseUnaryExpression()
 
 }
 
+unique_ptr<AST_Pointer_Offset> AST::ParseArrayIndexExpression(unique_ptr<Expression>&& prev)
+{
+	assert(prev->type.pointerLevel > 0, "Can only index a pointer type variable", GetCurrentLineNum());
+
+	++currentIndex;
+	unique_ptr<Expression> indexExpr = ParseExpression();
+	assert(indexExpr->type.lValueType == LValueType::INT && indexExpr->type.pointerLevel == 0, "Array index must be integer value", GetCurrentLineNum());
+
+	unique_ptr<AST_Pointer_Offset> arrayIndexExpr = make_unique<AST_Pointer_Offset>();
+	arrayIndexExpr->expr = std::move(prev);
+	arrayIndexExpr->index = std::move(indexExpr);
+
+	assert(GetCurrentToken().type == TokenType::CLOSE_BRACKET, "Array index must end with close bracket", GetCurrentLineNum());
+
+	++currentIndex;
+
+	return arrayIndexExpr;
+}
+
+VariableType AST::ParseVariableType()
+{
+	VariableType type;
+	Token& token = GetCurrentToken();
+
+	if (token.type == TokenType::STRUCT)
+	{
+		type.lValueType == LValueType::STRUCT;
+		++currentIndex;
+
+		Token& structNameToken = GetCurrentToken();
+		assert(structNameToken.type == TokenType::NAME, "Must have struct name in variable type", structNameToken.lineNumber);
+		type.structName = structNameToken.value;
+	}
+	else
+	{
+		Token& typeNameToken = GetCurrentToken();
+		assert(typeNameToken.type == TokenType::TYPE || typeNameToken.type == TokenType::VOID, "Must have valid variable type", typeNameToken.lineNumber);
+
+		if (typeNameToken.type == TokenType::TYPE)
+		{
+			type.lValueType = typeNameToken.value == "int" ? LValueType::INT : LValueType::FLOAT;
+		}
+		else if (typeNameToken.type == TokenType::VOID)
+		{
+			type.lValueType == LValueType::VOID;
+		}
+
+	}
+
+	++currentIndex;
+	type.pointerLevel = GetConsecutiveTokenNumber(TokenType::STAR);
+
+	assert(type.pointerLevel > 0 || type.lValueType != LValueType::VOID, "Non-pointer void type does not exist", GetCurrentLineNum());
+
+	return type;
+}
+
+unique_ptr<AST_Type_Cast_Expression> AST::ParseTypeCastExpression()
+{
+	VariableType toType = ParseVariableType();
+	assert(GetCurrentToken().type == TokenType::CLOSE_PAR, "Type cast must end with close parentheses", GetCurrentLineNum());
+	++currentIndex;
+
+	unique_ptr<AST_Type_Cast_Expression> typeCastExpr = make_unique<AST_Type_Cast_Expression>();
+	typeCastExpr->to = toType;
+	typeCastExpr->expr = ParseNonBinaryExpression();
+	typeCastExpr->from = typeCastExpr->expr->type;
+
+	typeCastExpr->type = std::move(toType);
+
+	assert(typeCastExpr->IsValidTypeCast(), "Invalid type cast", GetCurrentLineNum());
+
+	return typeCastExpr;
+
+}
+
 unique_ptr<Expression> AST::ParseNonBinaryExpression(unique_ptr<Expression> prev)
 {
 	unique_ptr<Expression> expr;
@@ -106,7 +207,16 @@ unique_ptr<Expression> AST::ParseNonBinaryExpression(unique_ptr<Expression> prev
 	if (token.type == TokenType::OPEN_PAR)
 	{
 		++currentIndex;
-		return ParseNonBinaryExpression(ParseParentheticalExpression());
+		if (Lexer::IsTypeToken(nextToken.type)) //parse type casting expression
+		{
+			assert(!prev, "Invalid type cast expression syntax (must be start of expression)", nextToken.lineNumber);
+			return ParseTypeCastExpression();
+		}
+		else //parse parenthetical expression
+		{
+			return ParseNonBinaryExpression(ParseParentheticalExpression());
+
+		}
 	}
 	else if (Lexer::IsUnaryOp(token.type)) // !, -, &
 	{
@@ -173,15 +283,16 @@ unique_ptr<Expression> AST::ParseNonBinaryExpression(unique_ptr<Expression> prev
 		unique_ptr<AST_Struct_Variable_Access> expr = ParseStructVariableAccess(std::move(prev));
 		return ParseNonBinaryExpression(std::move(expr));
 	}
-	else if (nextToken.type == TokenType::ARROW) //dereference struct pointer
+	else if (token.type == TokenType::ARROW) //dereference struct pointer
 	{
 		unique_ptr<AST_Pointer_Dereference> ptrDerefExpr = make_unique<AST_Pointer_Dereference>();
 		ptrDerefExpr->baseExpr = std::move(prev);
 		return ParseStructVariableAccess(std::move(ptrDerefExpr));
 	}
-	else if (nextToken.type == TokenType::OPEN_BRACKET) //accessing array element
+	else if (token.type == TokenType::OPEN_BRACKET) //accessing array element
 	{
-
+		unique_ptr<AST_Pointer_Offset> expr = ParseArrayIndexExpression(std::move(prev));
+		return ParseNonBinaryExpression(make_unique<AST_Pointer_Dereference>(std::move(expr)));
 	}
 	else if (token.type == TokenType::INT_LITERAL || token.type == TokenType::FLOAT_LITERAL)
 	{
@@ -214,7 +325,40 @@ unique_ptr<Expression> AST::ParseNonBinaryExpression(unique_ptr<Expression> prev
 
 }
 
-unique_ptr<AST_BinOp> AST::ParseBinaryExpression(unique_ptr<Expression> firstExpr)
+void AST::PerformImplicitTypeCastBinaryOp(unique_ptr<AST_BinOp>& binOpExpr)
+{
+	if (binOpExpr->left->type.lValueType == LValueType::INT && binOpExpr->right->type.lValueType == LValueType::FLOAT 
+		&& binOpExpr->left->type.pointerLevel == 0 && binOpExpr->right->type.pointerLevel == 0)
+	{
+		binOpExpr->left = make_unique<AST_Type_Cast_Expression>(std::move(binOpExpr->left), VariableType(LValueType::INT, "", 0), VariableType(LValueType::FLOAT, "", 0));
+	}
+	else if (binOpExpr->left->type.lValueType == LValueType::FLOAT && binOpExpr->right->type.lValueType == LValueType::INT
+		&& binOpExpr->left->type.pointerLevel == 0 && binOpExpr->right->type.pointerLevel == 0)
+	{
+		binOpExpr->right = make_unique<AST_Type_Cast_Expression>(std::move(binOpExpr->right), VariableType(LValueType::INT, "", 0), VariableType(LValueType::FLOAT, "", 0));
+	}
+}
+
+unique_ptr<AST_Pointer_Offset> AST::ParsePointerArithmetic(unique_ptr<AST_BinOp>&& binOpExpr)
+{
+	unique_ptr<AST_Pointer_Offset> ptrArithExpr = make_unique<AST_Pointer_Offset>();
+	ptrArithExpr->expr = std::move(binOpExpr->left);
+
+	if (binOpExpr->op == ADD)
+	{
+		ptrArithExpr->index = std::move(binOpExpr->right);
+	}
+	else
+	{
+		ptrArithExpr->index = make_unique<AST_Negative_Expression>(std::move(binOpExpr->right));
+	}
+
+	ptrArithExpr->type = ptrArithExpr->expr->type;
+	return ptrArithExpr;
+}
+
+
+unique_ptr<Expression> AST::ParseBinaryExpression(unique_ptr<Expression> firstExpr)
 {
 	const BinOp& op = ExpressionUtils::BinOpTokenDictionary.at(tokens.at(currentIndex).type);
 	++currentIndex;
@@ -237,9 +381,12 @@ unique_ptr<AST_BinOp> AST::ParseBinaryExpression(unique_ptr<Expression> firstExp
 		{
 			binOpExpr->right = std::move(secondExpr);
 
+			PerformImplicitTypeCastBinaryOp(binOpExpr);
+
 			//TODO: Add casting from int to float if one value is int and the other is float; ALSO, do BOOL conversions to INT/FLOAT, etc...
 			assert((IsNumericType(binOpExpr->left->type.lValueType) && IsNumericType(binOpExpr->right->type.lValueType))
-				|| (binOpExpr->left->type.pointerLevel > 0 && binOpExpr->right->type.lValueType == LValueType::INT && binOpExpr->right->type.pointerLevel == 0),
+				|| (binOpExpr->left->type.pointerLevel > 0 && binOpExpr->right->type.lValueType == LValueType::INT && binOpExpr->right->type.pointerLevel == 0
+					&& binOpExpr->op == ADD || binOpExpr->op == SUBTRACT),
 				"Type mismatch in binary operation", currentToken.lineNumber);
 
 			return ParseBinaryExpression(std::move(binOpExpr));
@@ -254,9 +401,18 @@ unique_ptr<AST_BinOp> AST::ParseBinaryExpression(unique_ptr<Expression> firstExp
 		binOpExpr->right = std::move(secondExpr);
 	}
 
+	PerformImplicitTypeCastBinaryOp(binOpExpr);
+
 	assert(binOpExpr->left->type == binOpExpr->right->type
-		|| (binOpExpr->left->type.pointerLevel > 0 && binOpExpr->right->type.lValueType == LValueType::INT && binOpExpr->right->type.pointerLevel == 0),
+		|| (binOpExpr->left->type.pointerLevel > 0 && binOpExpr->right->type.lValueType == LValueType::INT && binOpExpr->right->type.pointerLevel == 0 
+			&& binOpExpr->op == ADD || binOpExpr->op == SUBTRACT),
 		"Type mismatch in binary operation", currentToken.lineNumber);
+
+	if (binOpExpr->left->type.pointerLevel > 0 && binOpExpr->right->type.lValueType == LValueType::INT
+		&& binOpExpr->right->type.pointerLevel == 0 && (binOpExpr->op == ADD || binOpExpr->op == SUBTRACT))
+	{
+		return ParsePointerArithmetic(std::move(binOpExpr));
+	}
 
 	return binOpExpr;
 }

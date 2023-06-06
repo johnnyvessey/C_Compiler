@@ -64,12 +64,15 @@ unique_ptr<Statement> AST::ParseStatement()
 		{
 			return make_unique<AST_Struct_Definition>(std::move(ParseStructDefinition()));
 		}
+
+		//BUG!!!!!!: FIGURE OUT WHAT TO DO ABOUT STRUCT POINTERS
+		//PUT ONE FUNCTION THAT COLLECTS THE NUMBER OF STARS AND USES THAT FOR EITHER FUNCTION OR INITIALIZATION
 		else if (tokens.at(currentIndex + 1).type == TokenType::NAME && tokens.at(currentIndex + 2).type == TokenType::NAME)
 		{
 			++currentIndex;
 			if (tokens.at(currentIndex + 2).type == TokenType::OPEN_PAR)
 			{
-				return std::move(ParseFunctionDefinition());
+				return ParseFunctionDefinition();
 			}
 			else 
 			{

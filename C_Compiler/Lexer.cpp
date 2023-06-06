@@ -29,7 +29,7 @@ Token Lexer::ParseToken(const string&& s, size_t& lineNum, size_t& tokenNum)
 vector<Token> Lexer::SplitStringByToken(const string& input)
 {
 	const string doubleOps = "+-&|=<>*/%"; //TODO: move '/' here and figure out what to do about comments
-	const string singleOps = "^(){}; \t\n,"; //[remove \n for now] //TODO: handle *=, -=, +=, /=, and %= 
+	const string singleOps = "^[](){}; \t\n,"; //[remove \n for now] //TODO: handle *=, -=, +=, /=, and %= 
 	vector<Token> output;
 	size_t start = 0;
 	size_t lineNum = 1;
@@ -150,6 +150,8 @@ unordered_map<string, TokenType> Lexer::tokenMap = {
 	{")", TokenType::CLOSE_PAR},
 	{"{", TokenType::OPEN_BRACE},
 	{"}", TokenType::CLOSE_BRACE},
+	{"[", TokenType::OPEN_BRACKET},
+	{"]", TokenType::CLOSE_BRACKET},
 	{";", TokenType::SEMICOLON},
 	{"=", TokenType::SINGLE_EQUAL},
 	{"==", TokenType::DOUBLE_EQUAL},
@@ -194,3 +196,8 @@ bool Lexer::IsNonBinaryExpressionTerminalToken(TokenType type)
 	return (type != PERIOD && type != ARROW && type != NAME && type != OPEN_BRACKET && type != INT_LITERAL 
 		&& type != FLOAT_LITERAL && type != ADDRESS_OF && type != MINUS && type != PLUS_PLUS && type != MINUS_MINUS && type != NOT); //maybe star??
  }
+
+bool Lexer::IsTypeToken(TokenType type)
+{
+	return type == STRUCT || type == TYPE || type == VOID;
+}

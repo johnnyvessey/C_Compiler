@@ -16,6 +16,8 @@ AST_Struct_Definition AST::ParseStructDefinition()
 	scopeStack.scope.back().structs[structName] = structDef;
 
 	unordered_map<string, Struct_Variable> structVariables;
+	vector<Struct_Variable> structVariablesVector;
+
 	size_t currentMemoryOffset = 0;
 
 	while (GetCurrentToken().type != TokenType::CLOSE_BRACE)
@@ -67,11 +69,12 @@ AST_Struct_Definition AST::ParseStructDefinition()
 
 		currentMemoryOffset += GetMemorySize(structVar.v.type);
 
+		structVariablesVector.push_back(structVar);
 		structVariables[structVar.v.name] = std::move(structVar);
 		
 	}
 
-	AST_Struct_Definition structDefinition = AST_Struct_Definition(structName, std::move(structVariables), currentMemoryOffset);
+	AST_Struct_Definition structDefinition = AST_Struct_Definition(structName, std::move(structVariables), std::move(structVariablesVector), currentMemoryOffset);
 	scopeStack.scope.back().structs[structName] = structDefinition;
 
 	++currentIndex;
