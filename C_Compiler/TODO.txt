@@ -5,8 +5,6 @@ PARSER TODO:
 
 	Important next steps;
 
-	- FIX BUG ON STRUCT POINTER INITIALIZATION
-
 	- Parse struct variable initialization (i.e. struct structVar v = {1, 2}; struct structVar2 v2 = {1, {1,2}, {3,4}};)
 		-> figure out what type that rvalue should be? (struct literal??, but what if it references other struct variable) -> (i.e. struct structVar1 v = {1, testVar}; )
 

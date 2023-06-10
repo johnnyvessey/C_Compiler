@@ -96,48 +96,33 @@ unique_ptr<AST_Initialization> AST::ParseInitAssignment()
 	return make_unique<AST_Initialization>(std::move(assignment));
 }
 
-//TODO: Figure out if assignment and initialization should be different in AST
-unique_ptr<AST_Assignment> AST::ParseAssignment(unique_ptr<LValueExpression>&& lValueExpr)
+unique_ptr<AST_Assignment_Expression> AST::ParseAssignmentExpression(unique_ptr<LValueExpression>&& lValueExpr)
 {
-	//Token& token = tokens.at(currentIndex);
-	/*Variable var;
-	bool foundVariable = scopeStack.TryFindVariable(token.value, var);
-	if (!foundVariable) {
-		throwError("Variable doesn't exist in scope", token.lineNumber);
-	}*/
-
-
-	AST_Assignment assignment;
+	AST_Assignment_Expression assignment;
 
 	assignment.lvalue = std::move(lValueExpr);
 	Token& opToken = tokens.at(currentIndex);
 
 	++currentIndex;
-	//if (Lexer::IsBinaryAssignmentOp(opToken.type)) // +=, -=. *=, /=, %=
-	//{
-	//	//AST_Variable_Expression varExpr(var);
-	//	AST_BinOp binOp;
-	//	binOp.op = ExpressionUtils::BinOpAssignmentTypeDictionary.at(opToken.type);
-	//	binOp.left = make_unique<AST_Variable_Expression>(std::move());
-	//	binOp.right = ParseExpression();
-
-	//	//do type check!!!
-
-	//	assignment.rvalue = make_unique<AST_BinOp>(std::move(binOp));
-	//}
-	//else
-	//{
-	//	assignment.rvalue = ParseExpression();
-	//}
 
 	assignment.assignmentOperator = opToken.type;
 	assignment.rvalue = ParseExpression();
 
-
 	assert(assignment.lvalue->type == assignment.rvalue->type, "Type mismatch in variable assignment", opToken.lineNumber);
+
+	return make_unique<AST_Assignment_Expression>(std::move(assignment));
+}
+//TODO: Figure out if assignment and initialization should be different in AST
+unique_ptr<AST_Assignment> AST::ParseAssignment(unique_ptr<LValueExpression>&& lValueExpr)
+{
+	unique_ptr<AST_Assignment_Expression> expr = ParseAssignmentExpression(std::move(lValueExpr));
 
 	assert(GetCurrentToken().type == TokenType::SEMICOLON, "Missing semicolon", GetCurrentLineNum());
 	++currentIndex;
-	return make_unique<AST_Assignment>(std::move(assignment));
+
+	unique_ptr<AST_Assignment> assignmentStatement = make_unique<AST_Assignment>();
+	assignmentStatement->expr = std::move(expr);
+
+	return assignmentStatement;
 
 }

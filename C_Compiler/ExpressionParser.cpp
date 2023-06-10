@@ -29,6 +29,10 @@ unique_ptr<Expression> AST::ParseExpression()
 
 		return ParseBinaryExpression(std::move(firstExpr));
 	}
+	else if (Lexer::IsBinaryAssignmentOp(token.type))
+	{
+		return ParseAssignmentExpression(ConvertExpressionToLValue(std::move(firstExpr)));
+	}
 	else
 	{
 		return firstExpr;
@@ -227,10 +231,10 @@ unique_ptr<Expression> AST::ParseNonBinaryExpression(unique_ptr<Expression> prev
 	{
 		unique_ptr<AST_Unary_Assignment_Expression> unaryExpr = make_unique<AST_Unary_Assignment_Expression>();
 		unaryExpr->opType = token.type;
+		++currentIndex;
 
 		if (!prev)
 		{
-			++currentIndex;
 			unaryExpr->isPrefix = true;
 			unaryExpr->expr = ParseLValueExpression();
 		}
@@ -316,6 +320,10 @@ unique_ptr<Expression> AST::ParseNonBinaryExpression(unique_ptr<Expression> prev
 	else if (Lexer::IsNonBinaryExpressionTerminalToken(token.type))
 	{
 		assert(prev != nullptr, "Expression is empty", token.lineNumber);
+		return prev;
+	}
+	else if (token.type == TokenType::CLOSE_PAR)
+	{
 		return prev;
 	}
 	else

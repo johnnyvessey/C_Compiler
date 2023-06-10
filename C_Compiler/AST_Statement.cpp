@@ -2,6 +2,7 @@
 
 using namespace AST_Statement;
 
+
 void StatementGroup::PrintStatementAST(int indentLevel)
 {
 	for (const unique_ptr<Statement>& statement : statements)
@@ -9,6 +10,11 @@ void StatementGroup::PrintStatementAST(int indentLevel)
 		statement->PrintStatementAST(indentLevel);
 		std::cout << "\n-----------------------\n";
 	}
+}
+
+StatementType StatementGroup::GetStatementType()
+{
+	return _STATEMENT_GROUP;
 }
 
 void AST_Initialization::PrintStatementAST(int indentLevel)
@@ -22,14 +28,23 @@ void AST_Initialization::PrintStatementAST(int indentLevel)
 
 }
 
+StatementType AST_Initialization::GetStatementType()
+{
+	return _INITIALIZATION;
+}
+
+
 
 void AST_Assignment::PrintStatementAST(int indentLevel)
 {
-	std::cout << string(indentLevel, '\t') << "Assign: \n";// << lvalue->name << "; type: " << lvalue->type.lValueType << " ;ptr: " << lvalue->type.pointerLevel << " " << lvalue->type.structName << "\n";
-	lvalue->PrintExpressionAST(indentLevel + 1);
-	rvalue->PrintExpressionAST(indentLevel + 1);
-	
+	expr->PrintExpressionAST(indentLevel);
 }
+
+StatementType AST_Assignment::GetStatementType()
+{
+	return _ASSIGNMENT;
+}
+
 
 
 
@@ -37,6 +52,12 @@ AST_Else_If::AST_Else_If()
 {
 	statements = make_unique<StatementGroup>();
 }
+
+StatementType AST_Else_If::GetStatementType()
+{
+	return _ELSE_IF;
+}
+
 
 void AST_Else_If::PrintStatementAST(int indentLevel)
 {
@@ -47,12 +68,18 @@ void AST_Else_If::PrintStatementAST(int indentLevel)
 
 
 
-
 AST_If_Then::AST_If_Then()
 {
 	ifStatement = make_unique<StatementGroup>();
 	elseStatement = make_unique<StatementGroup>();
 }
+
+StatementType AST_If_Then::GetStatementType()
+{
+	return _IF_THEN;
+}
+
+
 
 void AST_If_Then::PrintStatementAST(int indentLevel)
 {
@@ -91,6 +118,10 @@ void AST_Function_Definition::PrintStatementAST(int indentLevel)
 	func->statements->PrintStatementAST(indentLevel + 1);
 }
 
+StatementType AST_Function_Definition::GetStatementType()
+{
+	return _FUNCTION_DEFINITION;
+}
 
 
 
@@ -99,6 +130,12 @@ AST_Struct_Definition::AST_Struct_Definition(string name, unordered_map<string, 
 {
 	//figure out if I need to align struct (to 4 bytes, for example)
 }
+
+StatementType AST_Struct_Definition::GetStatementType()
+{
+	return _STRUCT_DEFINITION;
+}
+
 
 AST_Struct_Definition::AST_Struct_Definition() {}
 
@@ -119,6 +156,12 @@ void AST_Expression_Statement::PrintStatementAST(int indentLevel)
 	expr->PrintExpressionAST(indentLevel);
 }
 
+StatementType AST_Expression_Statement::GetStatementType()
+{
+	return _EXPRESSION;
+}
+
+
 void AST_Return_Statement::PrintStatementAST(int indentLevel)
 {
 	std::cout << string(indentLevel, '\t') << "return: \n";
@@ -127,3 +170,46 @@ void AST_Return_Statement::PrintStatementAST(int indentLevel)
 		returnExpression->PrintExpressionAST(indentLevel + 1);
 	}
  }
+
+StatementType AST_Return_Statement::GetStatementType()
+{
+	return _RETURN;
+}
+
+StatementType AST_NOP::GetStatementType()
+{
+	return _NOP;
+}
+
+void AST_NOP::PrintStatementAST(int indentLevel)
+{
+	std::cout << string(indentLevel, '\t') << "NOP\n";
+}
+
+StatementType AST_For_Loop::GetStatementType()
+{
+	return _FOR_LOOP;
+}
+
+void AST_For_Loop::PrintStatementAST(int indentLevel)
+{
+	std::cout << string(indentLevel, '\t') << "For:\n";
+	First->PrintStatementAST(indentLevel + 1);
+	Condition->PrintExpressionAST(indentLevel + 1);
+	Third->PrintExpressionAST(indentLevel + 1);
+	std::cout << string(indentLevel, '\t') << "------\n";
+	Statements->PrintStatementAST(indentLevel + 1);
+}
+
+StatementType AST_While_Loop::GetStatementType()
+{
+	return _WHILE_LOOP;
+}
+
+void AST_While_Loop::PrintStatementAST(int indentLevel)
+{
+	std::cout << string(indentLevel, '\t') << "While:\n";
+	Condition->PrintExpressionAST(indentLevel + 1);
+	std::cout << string(indentLevel, '\t') << "------\n";
+	Statements->PrintStatementAST(indentLevel + 1);
+}

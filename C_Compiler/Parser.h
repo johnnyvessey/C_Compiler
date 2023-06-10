@@ -17,9 +17,9 @@ using std::make_unique;
 using namespace AST_Expression;
 using namespace AST_Statement;
 
-inline void assert(bool condition, string message, size_t lineNum)
+inline void assert(bool condition, string message, size_t lineNum, bool active = true)
 {
-	if (!condition)
+	if (!condition && active)
 	{
 		std::cout << "ERROR: " << message << "; at line: " << lineNum;
 		throw 0;
@@ -117,6 +117,16 @@ public:
 	void PerformImplicitTypeCastBinaryOp(unique_ptr<AST_BinOp>& binOpExpr);
 
 	unique_ptr<AST_Pointer_Offset> ParsePointerArithmetic(unique_ptr<AST_BinOp>&& binOpExpr);
+
+	unique_ptr<AST_While_Loop> ParseWhileLoop();
+
+	unique_ptr<AST_For_Loop> ParseForLoop();
+
+	bool IsSingleStatement(unique_ptr<Statement>& statement);
+
+	unique_ptr<Statement> ParseSingleStatement();
+
+	unique_ptr<AST_Assignment_Expression> ParseAssignmentExpression(unique_ptr<LValueExpression>&& lValueExpr);
 };
 
 

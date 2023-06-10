@@ -18,7 +18,7 @@ void AST::ParseElseStatement(unique_ptr<StatementGroup>& group)
 
 void AST::ParseScopeStatements(unique_ptr<StatementGroup>& group)
 {
-	assert(GetCurrentToken().type == TokenType::OPEN_BRACE, "Open brace required for if statement", GetCurrentLineNum());
+	assert(GetCurrentToken().type == TokenType::OPEN_BRACE, "Open brace required for scope statement", GetCurrentLineNum());
 	++currentIndex;
 
 	scopeStack.scope.push_back(std::move(ScopeLevel()));
@@ -54,4 +54,56 @@ unique_ptr<AST_If_Then> AST::ParseIfStatement()
 
 	return ifThenExpr;
 
+}
+
+
+unique_ptr<AST_While_Loop> AST::ParseWhileLoop()
+{
+	unique_ptr<AST_While_Loop> whileLoop = make_unique<AST_While_Loop>();
+
+	++currentIndex;
+
+	whileLoop->Condition = ParseExpression();
+
+	assert(whileLoop->Condition->type.lValueType == LValueType::INT, "While loop condition must be boolean", GetCurrentLineNum());
+
+	whileLoop->Statements = make_unique<StatementGroup>();
+	ParseScopeStatements(whileLoop->Statements);
+
+	return whileLoop;
+}
+
+unique_ptr<AST_For_Loop> AST::ParseForLoop()
+{
+	unique_ptr<AST_For_Loop> forLoop = make_unique<AST_For_Loop>();
+
+	++currentIndex;
+	assert(GetCurrentToken().type == TokenType::OPEN_PAR, "For loop must start with open parentheses", GetCurrentLineNum());
+	++currentIndex;
+
+	forLoop->First = ParseSingleStatement();
+	if (GetCurrentToken().type == TokenType::SEMICOLON)
+	{
+		unique_ptr<AST_Literal_Expression> trueExpr = make_unique<AST_Literal_Expression>();
+		trueExpr->value = "1";
+
+		forLoop->Condition = std::move(trueExpr);
+	}
+	else {
+		forLoop->Condition = ParseExpression();
+		assert(forLoop->Condition->type.lValueType == LValueType::INT, "Second for-loop expression must be boolean", GetCurrentLineNum());
+	}
+
+	assert(GetCurrentToken().type == TokenType::SEMICOLON, "Second for-loop expression must end with semicolon", GetCurrentLineNum());
+	++currentIndex;
+
+	
+	forLoop->Third = (GetCurrentToken().type == TokenType::CLOSE_PAR) ? nullptr : ParseExpression();
+	assert(GetCurrentToken().type == TokenType::CLOSE_PAR, "For loop must end with close parentheses", GetCurrentLineNum());
+
+	++currentIndex;
+	forLoop->Statements = make_unique<StatementGroup>();
+	ParseScopeStatements(forLoop->Statements);
+
+	return forLoop;
 }

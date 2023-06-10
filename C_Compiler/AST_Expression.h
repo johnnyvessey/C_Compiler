@@ -29,7 +29,8 @@ namespace AST_Expression {
 		_Unary_Assignment_Expression,
 		_Negative_Expression,
 		_Address_Expression,
-		_Not_Expression
+		_Not_Expression,
+		_Assignment_Expression
 	};
 	
 
@@ -250,6 +251,17 @@ namespace AST_Expression {
 	struct AST_Not_Expression : Expression
 	{
 		unique_ptr<Expression> expr;
+
+		virtual void PrintExpressionAST(int indentLevel = 0) override;
+		virtual ExpressionType GetExpressionType() override;
+
+	};
+
+	struct AST_Assignment_Expression : Expression
+	{
+		unique_ptr<LValueExpression> lvalue;
+		unique_ptr<Expression> rvalue;
+		TokenType assignmentOperator;
 
 		virtual void PrintExpressionAST(int indentLevel = 0) override;
 		virtual ExpressionType GetExpressionType() override;

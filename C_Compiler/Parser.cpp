@@ -15,6 +15,19 @@ unique_ptr<AST_Expression_Statement> AST::ParseExpressionStatement(unique_ptr<Ex
 	return make_unique<AST_Expression_Statement>(std::move(statement));
 }
 
+bool AST::IsSingleStatement(unique_ptr<Statement>& statement)
+{
+	StatementType type = statement->GetStatementType();
+
+	return type == _ASSIGNMENT || type == _EXPRESSION || type == _INITIALIZATION || type == _NOP;
+}
+
+unique_ptr<Statement> AST::ParseSingleStatement()
+{
+	unique_ptr<Statement> statement = ParseStatement();
+	assert(IsSingleStatement(statement), "Statement must be single line statement", GetCurrentLineNum());
+	return statement;
+}
 
 unique_ptr<Statement> AST::ParseStatement()
 {
@@ -25,6 +38,11 @@ unique_ptr<Statement> AST::ParseStatement()
 	{
 		++currentIndex;
 		return nullptr;
+	}
+	case TokenType::SEMICOLON:
+	{
+		++currentIndex;
+		return make_unique<AST_NOP>();
 	}
 	case TokenType::RETURN:
 	{
@@ -120,11 +138,20 @@ unique_ptr<Statement> AST::ParseStatement()
 		{
 			return ParseIfStatement();
 		}
+		case TokenType::WHILE:
+		{
+			return ParseWhileLoop();
+		}
+		case TokenType::FOR:
+		{
+			return ParseForLoop();
+		}
 		default:
 			return ParseExpressionStatement(ParseExpression());
 	}
 		
 }
+
 
 void AST::ParseProgram()
 {

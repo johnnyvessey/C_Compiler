@@ -1,11 +1,4 @@
-struct var{
-	int x;
-};
-
-struct var* f(int x)
+for(int i = 0; i < 5; i++)
 {
-	struct var a;
-	a.x = x;
-
-	return &a;
+	int x = i + 2;
 }

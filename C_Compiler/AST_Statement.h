@@ -23,15 +23,38 @@ using namespace VariableNamespace;
 namespace AST_Statement 
 {
 	
-	struct Statement {
-		 virtual void PrintStatementAST(int indentLevel = 0) = 0;
+	enum StatementType {
+		_STATEMENT_GROUP,
+		_INITIALIZATION,
+		_ASSIGNMENT,
+		_ELSE_IF,
+		_IF_THEN,
+		_FUNCTION_DEFINITION,
+		_EXPRESSION,
+		_STRUCT_DEFINITION,
+		_RETURN,
+		_WHILE_LOOP,
+		_FOR_LOOP,
+		_NOP
+
 	};
+
+
+	struct Statement {
+
+		 virtual void PrintStatementAST(int indentLevel = 0) = 0;
+		 
+		 virtual StatementType GetStatementType() = 0;
+	};
+
 
 
 	struct StatementGroup : Statement {
 		vector<unique_ptr<Statement>> statements;
 
 		virtual void PrintStatementAST(int indentLevel = 0) override;
+
+		virtual StatementType GetStatementType() override;
 	};
 
 	struct AST_Initialization : Statement {
@@ -39,15 +62,21 @@ namespace AST_Statement
 		unique_ptr<Expression> rvalue;
 
 		virtual void PrintStatementAST(int indentLevel = 0) override;
+		virtual StatementType GetStatementType() override;
+
 	};
 
 
 	struct AST_Assignment : Statement {
-		unique_ptr<LValueExpression> lvalue;
-		unique_ptr<Expression> rvalue;
-		TokenType assignmentOperator;
+		//unique_ptr<LValueExpression> lvalue;
+		//unique_ptr<Expression> rvalue;
+		//TokenType assignmentOperator;
+
+		unique_ptr<AST_Assignment_Expression> expr;
 
 		virtual void PrintStatementAST(int indentLevel = 0) override;
+		virtual StatementType GetStatementType() override;
+
 	};
 	
 
@@ -58,6 +87,8 @@ namespace AST_Statement
 		AST_Else_If();
 
 		virtual void PrintStatementAST(int indentLevel = 0) override;
+		virtual StatementType GetStatementType() override;
+
 	};
 
 
@@ -69,6 +100,8 @@ namespace AST_Statement
 
 		AST_If_Then();
 		virtual void PrintStatementAST(int indentLevel = 0) override;
+		virtual StatementType GetStatementType() override;
+
 	};
 
 
@@ -78,6 +111,8 @@ namespace AST_Statement
 		unique_ptr<Expression> expr;
 
 		virtual void PrintStatementAST(int indentLevel = 0) override;
+		virtual StatementType GetStatementType() override;
+
 	};
 
 
@@ -95,6 +130,8 @@ namespace AST_Statement
 		unique_ptr<Function> func;
 
 		virtual void PrintStatementAST(int indentLevel = 0) override;
+		virtual StatementType GetStatementType() override;
+
 
 	};
 
@@ -110,17 +147,44 @@ namespace AST_Statement
 		AST_Struct_Definition();
 
 		virtual void PrintStatementAST(int indentLevel = 0) override;
+		virtual StatementType GetStatementType() override;
+
 	};
 
 	struct AST_Return_Statement : Statement {
 		unique_ptr<Expression> returnExpression;
 
 		virtual void PrintStatementAST(int indentLevel = 0) override;
+		virtual StatementType GetStatementType() override;
+
 	};
 
-	//struct AST_While_Loop : Statement {
-	//	//Expression condition;
-	//	unique_ptr<StatementGroup> statements;
-	//};
-	//	
+	struct AST_While_Loop : Statement {
+
+		unique_ptr<Expression> Condition;
+
+		unique_ptr<StatementGroup> Statements;
+
+		virtual void PrintStatementAST(int indentLevel = 0) override;
+		virtual StatementType GetStatementType() override;
+
+	};
+
+	struct AST_For_Loop : Statement {
+
+		unique_ptr<Statement> First;
+		unique_ptr<Expression> Condition;
+		unique_ptr<Expression> Third;
+		unique_ptr<StatementGroup> Statements;
+		
+		virtual void PrintStatementAST(int indentLevel = 0) override;
+		virtual StatementType GetStatementType() override;
+
+
+	};
+
+	struct AST_NOP : Statement {
+		virtual void PrintStatementAST(int indentLevel = 0) override;
+		virtual StatementType GetStatementType() override;
+	};
 }

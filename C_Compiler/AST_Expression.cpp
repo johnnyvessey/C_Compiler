@@ -159,7 +159,8 @@ void AST_Pointer_Offset::PrintExpressionAST(int indentLevel)
 
 void AST_Unary_Assignment_Expression::PrintExpressionAST(int indentLevel)
 {
-
+	std::cout << string(indentLevel, '\t') << "Unary Assigment (" << opType << ", " << (isPrefix ? "Prefix" : "Postfix") << "):\n";
+	expr->PrintExpressionAST(indentLevel + 1);
 }
 
 ExpressionType AST_Unary_Assignment_Expression::GetExpressionType()
@@ -202,6 +203,18 @@ void AST_Not_Expression::PrintExpressionAST(int indentLevel)
 ExpressionType AST_Not_Expression::GetExpressionType()
 {
 	return ExpressionType::_Not_Expression;
+}
+
+ExpressionType AST_Assignment_Expression::GetExpressionType()
+{
+	return ExpressionType::_Assignment_Expression;
+}
+
+void AST_Assignment_Expression::PrintExpressionAST(int indentLevel)
+{
+	std::cout << string(indentLevel, '\t') << "Assign (op = " << assignmentOperator << "):\n";
+	lvalue->PrintExpressionAST(indentLevel + 1);
+	rvalue->PrintExpressionAST(indentLevel + 1);
 }
 
 
