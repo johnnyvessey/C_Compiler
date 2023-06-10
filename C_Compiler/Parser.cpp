@@ -65,12 +65,13 @@ unique_ptr<Statement> AST::ParseStatement()
 			return make_unique<AST_Struct_Definition>(std::move(ParseStructDefinition()));
 		}
 
-		//BUG!!!!!!: FIGURE OUT WHAT TO DO ABOUT STRUCT POINTERS
-		//PUT ONE FUNCTION THAT COLLECTS THE NUMBER OF STARS AND USES THAT FOR EITHER FUNCTION OR INITIALIZATION
-		else if (tokens.at(currentIndex + 1).type == TokenType::NAME && tokens.at(currentIndex + 2).type == TokenType::NAME)
+		else if (tokens.at(currentIndex + 1).type == TokenType::NAME) //this has more complex logic because it has to look ahead to see whether it's a function or variable
 		{
 			++currentIndex;
-			if (tokens.at(currentIndex + 2).type == TokenType::OPEN_PAR)
+			int pointerLevel = GetConsecutiveTokenNumberWithoutUpdatingCurrentIndex(TokenType::STAR, 1);
+			assert(tokens.at(currentIndex + pointerLevel + 1).type == TokenType::NAME, "Must have name of struct variable/function", GetCurrentLineNum());
+
+			if (tokens.at(currentIndex + pointerLevel + 2).type == TokenType::OPEN_PAR)
 			{
 				return ParseFunctionDefinition();
 			}

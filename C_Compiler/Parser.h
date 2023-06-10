@@ -48,6 +48,8 @@ public:
 
 	int GetConsecutiveTokenNumber(TokenType type);
 
+	int GetConsecutiveTokenNumberWithoutUpdatingCurrentIndex(TokenType type, int init_offset = 0);
+
 	LValueType GetTypeFromName(string&& name);
 
 	unique_ptr<Expression> ParseBinaryExpression(unique_ptr<Expression> firstExpr);
