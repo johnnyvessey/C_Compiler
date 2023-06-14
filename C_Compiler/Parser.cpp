@@ -59,6 +59,14 @@ unique_ptr<Statement> AST::ParseStatement()
 		++currentIndex;
 		return make_unique<AST_Return_Statement>(std::move(retStatement));
 	}
+	case TokenType::CONTINUE:
+	{
+		return make_unique<AST_Continue>();
+	}
+	case TokenType::BREAK:
+	{
+		return make_unique<AST_Break>();
+	}
 	case TokenType::OPEN_BRACE:
 	{
 		unique_ptr<StatementGroup> group = make_unique<StatementGroup>();
@@ -67,7 +75,9 @@ unique_ptr<Statement> AST::ParseStatement()
 	}
 	case TokenType::TYPE:
 	{
-		if (tokens.at(currentIndex + 1).type == TokenType::NAME && tokens.at(currentIndex + 2).type == TokenType::OPEN_PAR)
+		int pointerLevel = GetConsecutiveTokenNumberWithoutUpdatingCurrentIndex(TokenType::STAR, 1);
+
+		if (tokens.at(currentIndex + pointerLevel + 1).type == TokenType::NAME && tokens.at(currentIndex + pointerLevel + 2).type == TokenType::OPEN_PAR)
 		{
 			return std::move(ParseFunctionDefinition());
 		}

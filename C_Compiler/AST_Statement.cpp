@@ -137,7 +137,9 @@ StatementType AST_Struct_Definition::GetStatementType()
 }
 
 
-AST_Struct_Definition::AST_Struct_Definition() {}
+AST_Struct_Definition::AST_Struct_Definition() {
+	//memorySize = 0;
+}
 
 
 void AST_Struct_Definition::PrintStatementAST(int indentLevel)
@@ -212,4 +214,25 @@ void AST_While_Loop::PrintStatementAST(int indentLevel)
 	Condition->PrintExpressionAST(indentLevel + 1);
 	std::cout << string(indentLevel, '\t') << "------\n";
 	Statements->PrintStatementAST(indentLevel + 1);
+}
+
+
+StatementType AST_Continue::GetStatementType()
+{
+	return _CONTINUE;
+}
+
+void AST_Continue::PrintStatementAST(int indentLevel)
+{
+	std::cout << string(indentLevel, '\t') << "Continue Loop\n";
+}
+
+StatementType AST_Break::GetStatementType()
+{
+	return _BREAK;
+}
+
+void AST_Break::PrintStatementAST(int indentLevel)
+{
+	std::cout << string(indentLevel, '\t') << "Break Loop\n";
 }

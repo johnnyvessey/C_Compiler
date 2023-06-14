@@ -1,7 +1,6 @@
 TODO:
 
 PARSER TODO:
-	
 
 	Important next steps;
 
@@ -11,10 +10,9 @@ PARSER TODO:
 	- add ControlFlowBlock class that has statementgroup as member
 		- if statements, loops create new ControlFlowBlocks
 
-	- figure out Lexing/Parsing for negative int/float literals
+	- figure out Lexing/Parsing for negative int/float literals [DONE??]
 
 	- unit tests
-	- while, for statements (as well as break and continue)
 	- Properly parse string literals and char literals
 	- figure out calling external functions (malloc??)
 	- add const variables

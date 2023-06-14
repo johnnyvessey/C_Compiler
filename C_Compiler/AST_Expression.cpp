@@ -131,7 +131,10 @@ ExpressionType AST_Pointer_Dereference::GetExpressionType()
 
 AST_Pointer_Dereference::AST_Pointer_Dereference(): LValueExpression() {
 }
-AST_Pointer_Dereference::AST_Pointer_Dereference(unique_ptr<Expression>&& expr) : baseExpr(std::move(expr)) {}
+AST_Pointer_Dereference::AST_Pointer_Dereference(unique_ptr<Expression>&& expr) {
+	baseExpr = std::move(expr);
+	type = VariableType(baseExpr->type.lValueType, baseExpr->type.structName, baseExpr->type.pointerLevel - 1);
+}
 
 //AST_Array_Index::AST_Array_Index(unique_ptr<Expression>&& expr): expr(std::move(expr))
 //{

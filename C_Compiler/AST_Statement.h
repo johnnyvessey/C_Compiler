@@ -35,8 +35,9 @@ namespace AST_Statement
 		_RETURN,
 		_WHILE_LOOP,
 		_FOR_LOOP,
-		_NOP
-
+		_NOP,
+		_BREAK,
+		_CONTINUE
 	};
 
 
@@ -186,5 +187,17 @@ namespace AST_Statement
 	struct AST_NOP : Statement {
 		virtual void PrintStatementAST(int indentLevel = 0) override;
 		virtual StatementType GetStatementType() override;
+	};
+
+	struct AST_Continue : Statement {
+		virtual void PrintStatementAST(int indentLevel = 0) override;
+		virtual StatementType GetStatementType() override;
+
+	};
+
+	struct AST_Break : Statement {
+		virtual void PrintStatementAST(int indentLevel = 0) override;
+		virtual StatementType GetStatementType() override;
+
 	};
 }

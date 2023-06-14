@@ -143,11 +143,13 @@
     <ClCompile Include="Variable.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ArmStatement.h" />
     <ClInclude Include="AST_Statement.h" />
     <ClInclude Include="AST_Expression.h" />
     <ClInclude Include="Lexer.h" />
     <ClInclude Include="Parser.h" />
     <ClInclude Include="Scope.h" />
+    <ClInclude Include="SSA.h" />
     <ClInclude Include="Variable.h" />
   </ItemGroup>
   <ItemGroup>

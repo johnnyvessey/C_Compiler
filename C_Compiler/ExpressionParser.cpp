@@ -29,7 +29,7 @@ unique_ptr<Expression> AST::ParseExpression()
 
 		return ParseBinaryExpression(std::move(firstExpr));
 	}
-	else if (Lexer::IsBinaryAssignmentOp(token.type))
+	else if (Lexer::IsAssignmentOp(token.type))
 	{
 		return ParseAssignmentExpression(ConvertExpressionToLValue(std::move(firstExpr)));
 	}
@@ -129,12 +129,14 @@ unique_ptr<AST_Pointer_Offset> AST::ParseArrayIndexExpression(unique_ptr<Express
 	assert(prev->type.pointerLevel > 0, "Can only index a pointer type variable", GetCurrentLineNum());
 
 	++currentIndex;
-	unique_ptr<Expression> indexExpr = ParseExpression();
+	unique_ptr<Expression> indexExpr = ParseNonBinaryExpression();
 	assert(indexExpr->type.lValueType == LValueType::INT && indexExpr->type.pointerLevel == 0, "Array index must be integer value", GetCurrentLineNum());
 
 	unique_ptr<AST_Pointer_Offset> arrayIndexExpr = make_unique<AST_Pointer_Offset>();
 	arrayIndexExpr->expr = std::move(prev);
 	arrayIndexExpr->index = std::move(indexExpr);
+
+	arrayIndexExpr->type = arrayIndexExpr->expr->type;
 
 	assert(GetCurrentToken().type == TokenType::CLOSE_BRACKET, "Array index must end with close bracket", GetCurrentLineNum());
 
@@ -438,7 +440,7 @@ unique_ptr<Expression> AST::ParseParentheticalExpression()
 
 unique_ptr<AST_Pointer_Dereference> AST::ParsePointerDereferenceExpression()
 {
-	unique_ptr<Expression> expr = ParseExpression();
+	unique_ptr<Expression> expr = ParseNonBinaryExpression();
 	assert(expr->type.pointerLevel > 0, "Can't dereference a non-pointer type", GetCurrentLineNum());
 
 	unique_ptr<AST_Pointer_Dereference> derefExpr = make_unique<AST_Pointer_Dereference>();

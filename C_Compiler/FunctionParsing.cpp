@@ -32,11 +32,12 @@ unique_ptr<AST_Function_Definition> AST::ParseFunctionDefinition()
 {
 	assert(scopeStack.scope.size() == 1, "Function must be defined at global level", GetCurrentLineNum());
 
-	Token& functionNameToken = tokens.at(currentIndex + 1);
-	assert(!scopeStack.FunctionNameExists(functionNameToken.value), "Function name already defined", GetCurrentLineNum());
 	Function func;
-	func.name = functionNameToken.value;
 	GetFunctionReturnType(func.returnType);
+	Token& functionNameToken = GetCurrentToken();
+	func.name = functionNameToken.value;
+
+	assert(!scopeStack.FunctionNameExists(functionNameToken.value), "Function name already defined", GetCurrentLineNum());
 
 	currentIndex += 2;
 	func.arguments = ParseFunctionParameters();
