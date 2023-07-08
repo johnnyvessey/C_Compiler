@@ -2,9 +2,13 @@
 
 #include <string>
 #include <memory>
+#include <vector>
+#include <unordered_map>
 
 using std::unique_ptr;
 using std::string;
+using std::vector;
+using std::unordered_map;
 
 namespace VariableNamespace {
 
@@ -27,6 +31,7 @@ namespace VariableNamespace {
 		VariableType(LValueType type, string structName, int pointerLevel);
 	};
 
+
 	inline bool IsNumericType(LValueType type)
 	{
 		return type == INT || type == FLOAT || type == BOOL;
@@ -38,10 +43,23 @@ namespace VariableNamespace {
 		size_t arraySize = 0;
 	};
 
+	struct FunctionDefinition {
+		string name;
+		vector<Variable> arguments;
+		VariableType returnType;
+	};
 
 	struct Struct_Variable {
 		Variable v;
 		size_t memoryOffset;
+	};
+
+	struct StructDefinition
+	{
+		string name;
+		unordered_map<string, Struct_Variable> variableMapping;
+		vector<Struct_Variable> variableVector;
+		size_t memorySize;
 	};
 
 	//needs to have access to scopeStack

@@ -35,7 +35,7 @@ class AST
 {
 public:
 	vector<Token> tokens;
-	unique_ptr<StatementGroup> group;
+	shared_ptr<StatementGroup> group;
 
 	size_t currentIndex = 0;
 	Scope scopeStack;
@@ -127,6 +127,7 @@ public:
 	unique_ptr<Statement> ParseSingleStatement();
 
 	unique_ptr<AST_Assignment_Expression> ParseAssignmentExpression(unique_ptr<LValueExpression>&& lValueExpr);
+
 };
 
 

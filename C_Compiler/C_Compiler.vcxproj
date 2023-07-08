@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -133,6 +133,8 @@
     <ClCompile Include="ConditionalParser.cpp" />
     <ClCompile Include="ExpressionParser.cpp" />
     <ClCompile Include="FunctionParsing.cpp" />
+    <ClCompile Include="IR.cpp" />
+    <ClCompile Include="IR_CodeGen.cpp" />
     <ClCompile Include="Lexer.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Parser.cpp" />
@@ -146,11 +148,15 @@
     <ClInclude Include="ArmStatement.h" />
     <ClInclude Include="AST_Statement.h" />
     <ClInclude Include="AST_Expression.h" />
+    <ClInclude Include="IR.h" />
+    <ClInclude Include="IR_CodeGen.h" />
+    <ClInclude Include="IR_Statement.h" />
     <ClInclude Include="Lexer.h" />
     <ClInclude Include="Parser.h" />
     <ClInclude Include="Scope.h" />
     <ClInclude Include="SSA.h" />
     <ClInclude Include="Variable.h" />
+    <ClInclude Include="x64_Statement.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="test_code.txt" />

@@ -8,7 +8,7 @@ AST_Struct_Definition AST::ParseStructDefinition()
 	assert(tokens.at(currentIndex + 2).type == TokenType::OPEN_BRACE, "Struct definition requires open brace", tokens.at(currentIndex).lineNumber);
 	currentIndex += 3;
 
-	AST_Struct_Definition structDef;
+	StructDefinition structDef;
 	assert(!scopeStack.TryFindStructName(structName, structDef), "Struct already defined", GetCurrentLineNum()); //can't redefine struct
 
 	structDef.name = structName;
@@ -37,7 +37,7 @@ AST_Struct_Definition AST::ParseStructDefinition()
 			AST_Struct_Definition structDef;
 			v.type.structName = structNameToken.value;
 
-			assert(scopeStack.TryFindStructName(structNameToken.value, structDef), "Struct name (" + structNameToken.value + ") not found in scope", GetCurrentLineNum());
+			assert(scopeStack.TryFindStructName(structNameToken.value, structDef.def), "Struct name (" + structNameToken.value + ") not found in scope", GetCurrentLineNum());
 		
 		}
 		else if (token.type == TokenType::TYPE)
@@ -75,7 +75,7 @@ AST_Struct_Definition AST::ParseStructDefinition()
 	}
 
 	AST_Struct_Definition structDefinition = AST_Struct_Definition(structName, std::move(structVariables), std::move(structVariablesVector), currentMemoryOffset);
-	scopeStack.scope.back().structs[structName] = structDefinition;
+	scopeStack.scope.back().structs[structName] = structDefinition.def;
 
 	++currentIndex;
 	assert(GetCurrentToken().type == TokenType::SEMICOLON, "Struct definition must end with semicolon", GetCurrentLineNum());
@@ -101,7 +101,7 @@ size_t AST::GetMemorySize(VariableType type)
 	}
 	else if (type.lValueType == LValueType::STRUCT)
 	{
-		AST_Struct_Definition structDef;
+		StructDefinition structDef;
 		scopeStack.TryFindStructName(type.structName, structDef);
 
 		return structDef.memorySize;
@@ -122,7 +122,7 @@ unique_ptr<AST_Struct_Variable_Access> AST::ParseStructVariableAccess(unique_ptr
 
 	structAccessExpr->type = expr->type;
 
-	AST_Struct_Definition structDef;
+	StructDefinition structDef;
 	assert(scopeStack.TryFindStructName(expr->type.structName, structDef), "Struct definition does not exist in scope", GetCurrentLineNum());
 
 

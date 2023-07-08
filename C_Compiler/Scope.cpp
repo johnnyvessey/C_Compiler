@@ -18,7 +18,7 @@ bool Scope::TryFindVariable(const string& name, Variable& var)
 	return false;
 }
 
-bool Scope::TryFindFunction(const string& name, Function& func)
+bool Scope::TryFindFunction(const string& name, FunctionDefinition& func)
 {
 	if (functionScope.find(name) != functionScope.end())
 	{
@@ -35,7 +35,7 @@ bool Scope::FunctionNameExists(const string& name)
 	return functionScope.find(name) != functionScope.end();
 }
 
-bool Scope::TryFindStructName(const string& name, AST_Struct_Definition& structDef)
+bool Scope::TryFindStructName(const string& name, StructDefinition& structDef)
 {
 	for (int i = scope.size() - 1; i >= 0; --i)
 	{

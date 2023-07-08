@@ -1,4 +1,5 @@
 #include "Parser.h"
+#include "IR_CodeGen.h"
 
 int main()
 {
@@ -11,7 +12,14 @@ int main()
 		std::cout << s.type << ": " << Lexer::GetNameFromEnum(s.type) << ": " << s.value << " - line: " << s.lineNumber << " - token: " << s.tokenNumber << "\n";
 	}*/
 
+	//Convert tokens to AST
 	AST ast(tokens);
 	ast.ParseProgram();
 	ast.group->PrintStatementAST();
+
+	//Convert AST to IR
+	IR_CodeGen irCode(ast.group);
+	irCode.ConvertToIR();
+
+	//Convert IR to x64
 }

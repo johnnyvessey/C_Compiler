@@ -27,6 +27,24 @@ ExpressionType AST_BinOp::GetExpressionType()
 	return ExpressionType::_BinOp;
 }
 
+void AST_BinOp::ConvertExpressionToIR(IR& irState)
+{
+
+	size_t lhs_index, rhs_index;
+	left->ConvertExpressionToIR(irState); //figure out whether there should be a second out parameter referring to return value of expression
+	lhs_index = irState.state.tmpVarIndex;
+	
+	right->ConvertExpressionToIR(irState);
+	rhs_index = irState.state.tmpVarIndex;
+
+	IR_ALUBinOp bin_op_statement;
+	//bin_op_statement.val1 = 
+
+
+
+}
+
+
 
 bool AST_Type_Cast_Expression::IsValidTypeCast()
 {
@@ -40,6 +58,11 @@ void AST_Type_Cast_Expression::PrintExpressionAST(int indentLevel)
 	std::cout << string(indentLevel + 1, '\t') << "From type: " << from.lValueType << " " << from.structName << " " << string(from.pointerLevel, '*') << "\n";
 	std::cout << string(indentLevel + 1, '\t') << "To type: " << to.lValueType << " " << to.structName << " " << string(to.pointerLevel, '*') << "\n";
 	expr->PrintExpressionAST(indentLevel + 1);
+}
+
+void AST_Type_Cast_Expression::ConvertExpressionToIR(IR& irState)
+{
+
 }
 
 AST_Type_Cast_Expression::AST_Type_Cast_Expression() {}
@@ -70,6 +93,10 @@ ExpressionType AST_Function_Expression::GetExpressionType()
 	return ExpressionType::_Function_Expression;
 }
 
+void AST_Function_Expression::ConvertExpressionToIR(IR& irState)
+{
+}
+
 
 AST_Variable_Expression::AST_Variable_Expression(Variable v) : v(v), LValueExpression()
 {
@@ -79,6 +106,10 @@ AST_Variable_Expression::AST_Variable_Expression(Variable v) : v(v), LValueExpre
 void AST_Variable_Expression::PrintExpressionAST(int indentLevel)
 {
 	std::cout << string(indentLevel, '\t') << "Variable: " << v.name << " (" << v.type.lValueType << ") " << v.type.structName << string(v.type.pointerLevel, '*') << "\n";
+}
+
+void AST_Variable_Expression::ConvertExpressionToIR(IR& irState)
+{
 }
 
 ExpressionType AST_Variable_Expression::GetExpressionType()
@@ -94,6 +125,10 @@ AST_Literal_Expression::AST_Literal_Expression() {
 void AST_Literal_Expression::PrintExpressionAST(int indentLevel)
 {
 	std::cout << string(indentLevel, '\t') << "Literal: " << value << "\n";
+}
+
+void AST_Literal_Expression::ConvertExpressionToIR(IR& irState)
+{
 }
 
 ExpressionType AST_Literal_Expression::GetExpressionType()
@@ -112,6 +147,10 @@ void AST_Struct_Variable_Access::PrintExpressionAST(int indentLevel)
 	std::cout << string(indentLevel + 1, '\t') << "Access name: " << varName << "\n";
 }
 
+void AST_Struct_Variable_Access::ConvertExpressionToIR(IR& irState)
+{
+}
+
 ExpressionType AST_Struct_Variable_Access::GetExpressionType()
 {
 	return ExpressionType::_Struct_Variable_Access;
@@ -122,6 +161,10 @@ void AST_Pointer_Dereference::PrintExpressionAST(int indentLevel)
 {
 	std::cout << string(indentLevel, '\t') << "Dereference:" << "\n";
 	baseExpr->PrintExpressionAST(indentLevel + 1);
+}
+
+void AST_Pointer_Dereference::ConvertExpressionToIR(IR& irState)
+{
 }
 
 ExpressionType AST_Pointer_Dereference::GetExpressionType()
@@ -160,6 +203,10 @@ void AST_Pointer_Offset::PrintExpressionAST(int indentLevel)
 
 }
 
+void AST_Pointer_Offset::ConvertExpressionToIR(IR& irState)
+{
+}
+
 void AST_Unary_Assignment_Expression::PrintExpressionAST(int indentLevel)
 {
 	std::cout << string(indentLevel, '\t') << "Unary Assigment (" << opType << ", " << (isPrefix ? "Prefix" : "Postfix") << "):\n";
@@ -171,6 +218,10 @@ ExpressionType AST_Unary_Assignment_Expression::GetExpressionType()
 	return ExpressionType::_Unary_Assignment_Expression;
 }
 
+void AST_Unary_Assignment_Expression::ConvertExpressionToIR(IR& irState)
+{
+}
+
 void AST_Negative_Expression::PrintExpressionAST(int indentLevel)
 {
 	std::cout << string(indentLevel, '\t') << "Negative: "  << "\n";
@@ -180,6 +231,12 @@ void AST_Negative_Expression::PrintExpressionAST(int indentLevel)
 AST_Negative_Expression::AST_Negative_Expression() {}
 AST_Negative_Expression::AST_Negative_Expression(unique_ptr<Expression>&& expr) : expr(std::move(expr)) {}
 
+void AST_Negative_Expression::ConvertExpressionToIR(IR& irState)
+{
+	
+
+	
+}
 
 ExpressionType AST_Negative_Expression::GetExpressionType()
 {
@@ -190,6 +247,13 @@ void AST_Address_Expression::PrintExpressionAST(int indentLevel)
 {
 	std::cout << string(indentLevel, '\t') << "Address of: " << "\n";
 	expr->PrintExpressionAST(indentLevel + 1);
+}
+
+void AST_Address_Expression::ConvertExpressionToIR(IR& irState)
+{
+	
+
+	
 }
 
 ExpressionType AST_Address_Expression::GetExpressionType()
@@ -203,6 +267,15 @@ void AST_Not_Expression::PrintExpressionAST(int indentLevel)
 	expr->PrintExpressionAST(indentLevel + 1);
 }
 
+void AST_Not_Expression::ConvertExpressionToIR(IR& irState)
+
+
+{
+	
+
+	
+}
+
 ExpressionType AST_Not_Expression::GetExpressionType()
 {
 	return ExpressionType::_Not_Expression;
@@ -211,6 +284,13 @@ ExpressionType AST_Not_Expression::GetExpressionType()
 ExpressionType AST_Assignment_Expression::GetExpressionType()
 {
 	return ExpressionType::_Assignment_Expression;
+}
+
+void AST_Assignment_Expression::ConvertExpressionToIR(IR& irState)
+{
+	
+
+	
 }
 
 void AST_Assignment_Expression::PrintExpressionAST(int indentLevel)

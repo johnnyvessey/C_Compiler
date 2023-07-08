@@ -9,6 +9,8 @@
 #include <iostream>
 #include "AST_Expression.h"
 #include "Variable.h"
+#include "IR.h"
+#include "Scope.h"
 
 using std::unordered_map;
 using std::vector;
@@ -46,6 +48,8 @@ namespace AST_Statement
 		 virtual void PrintStatementAST(int indentLevel = 0) = 0;
 		 
 		 virtual StatementType GetStatementType() = 0;
+
+		 virtual void ConvertStatementToIR(IR& irState, Scope& scope) = 0;
 	};
 
 
@@ -56,6 +60,9 @@ namespace AST_Statement
 		virtual void PrintStatementAST(int indentLevel = 0) override;
 
 		virtual StatementType GetStatementType() override;
+
+		virtual void ConvertStatementToIR(IR& irState, Scope& scope) override;
+
 	};
 
 	struct AST_Initialization : Statement {
@@ -64,6 +71,7 @@ namespace AST_Statement
 
 		virtual void PrintStatementAST(int indentLevel = 0) override;
 		virtual StatementType GetStatementType() override;
+		virtual void ConvertStatementToIR(IR& irState, Scope& scope) override;
 
 	};
 
@@ -77,6 +85,7 @@ namespace AST_Statement
 
 		virtual void PrintStatementAST(int indentLevel = 0) override;
 		virtual StatementType GetStatementType() override;
+		virtual void ConvertStatementToIR(IR& irState, Scope& scope) override;
 
 	};
 	
@@ -89,6 +98,7 @@ namespace AST_Statement
 
 		virtual void PrintStatementAST(int indentLevel = 0) override;
 		virtual StatementType GetStatementType() override;
+		virtual void ConvertStatementToIR(IR& irState, Scope& scope) override;
 
 	};
 
@@ -102,6 +112,7 @@ namespace AST_Statement
 		AST_If_Then();
 		virtual void PrintStatementAST(int indentLevel = 0) override;
 		virtual StatementType GetStatementType() override;
+		virtual void ConvertStatementToIR(IR& irState, Scope& scope) override;
 
 	};
 
@@ -113,17 +124,16 @@ namespace AST_Statement
 
 		virtual void PrintStatementAST(int indentLevel = 0) override;
 		virtual StatementType GetStatementType() override;
+		virtual void ConvertStatementToIR(IR& irState, Scope& scope) override;
 
 	};
 
 
 
 	struct Function {
-		string name;
-		vector<Variable> arguments;
+		
+		FunctionDefinition def;
 		shared_ptr<StatementGroup> statements;
-		VariableType returnType;
-		string returnTypeStructName;
 	};
 
 	struct AST_Function_Definition : Statement
@@ -132,23 +142,22 @@ namespace AST_Statement
 
 		virtual void PrintStatementAST(int indentLevel = 0) override;
 		virtual StatementType GetStatementType() override;
+		virtual void ConvertStatementToIR(IR& irState, Scope& scope) override;
 
 
 	};
 
 
 	struct AST_Struct_Definition : Statement {
-		string name;
-		unordered_map<string, Struct_Variable> variableMapping;
-		vector<Struct_Variable> variableVector;
 
-		size_t memorySize;
+		StructDefinition def;
 
 		AST_Struct_Definition(string name, unordered_map<string, Struct_Variable>&& variables, vector<Struct_Variable>&& structVariables, size_t memorySize);
 		AST_Struct_Definition();
 
 		virtual void PrintStatementAST(int indentLevel = 0) override;
 		virtual StatementType GetStatementType() override;
+		virtual void ConvertStatementToIR(IR& irState, Scope& scope) override;
 
 	};
 
@@ -157,6 +166,7 @@ namespace AST_Statement
 
 		virtual void PrintStatementAST(int indentLevel = 0) override;
 		virtual StatementType GetStatementType() override;
+		virtual void ConvertStatementToIR(IR& irState, Scope& scope) override;
 
 	};
 
@@ -168,6 +178,7 @@ namespace AST_Statement
 
 		virtual void PrintStatementAST(int indentLevel = 0) override;
 		virtual StatementType GetStatementType() override;
+		virtual void ConvertStatementToIR(IR& irState, Scope& scope) override;
 
 	};
 
@@ -180,6 +191,7 @@ namespace AST_Statement
 		
 		virtual void PrintStatementAST(int indentLevel = 0) override;
 		virtual StatementType GetStatementType() override;
+		virtual void ConvertStatementToIR(IR& irState, Scope& scope) override;
 
 
 	};
@@ -187,17 +199,23 @@ namespace AST_Statement
 	struct AST_NOP : Statement {
 		virtual void PrintStatementAST(int indentLevel = 0) override;
 		virtual StatementType GetStatementType() override;
+		virtual void ConvertStatementToIR(IR& irState, Scope& scope) override;
+
 	};
 
 	struct AST_Continue : Statement {
 		virtual void PrintStatementAST(int indentLevel = 0) override;
 		virtual StatementType GetStatementType() override;
+		virtual void ConvertStatementToIR(IR& irState, Scope& scope) override;
+
 
 	};
 
 	struct AST_Break : Statement {
 		virtual void PrintStatementAST(int indentLevel = 0) override;
 		virtual StatementType GetStatementType() override;
+		virtual void ConvertStatementToIR(IR& irState, Scope& scope) override;
+
 
 	};
 }

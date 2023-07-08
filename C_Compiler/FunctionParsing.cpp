@@ -13,10 +13,10 @@ void AST::GetFunctionReturnType(VariableType& varType)
 	}
 	else if (token.type == TokenType::NAME)
 	{
-		AST_Struct_Definition structDef;
-		bool foundStruct = scopeStack.TryFindStructName(token.value, structDef);
+		AST_Struct_Definition structDefinition;
+		bool foundStruct = scopeStack.TryFindStructName(token.value, structDefinition.def);
 		assert(foundStruct, "Struct " + token.value + " does not exist in this scope", GetCurrentLineNum());
-		varType.structName = structDef.name;
+		varType.structName = structDefinition.def.name;
 		varType.lValueType = LValueType::STRUCT;
 	}
 	else {
@@ -33,30 +33,31 @@ unique_ptr<AST_Function_Definition> AST::ParseFunctionDefinition()
 	assert(scopeStack.scope.size() == 1, "Function must be defined at global level", GetCurrentLineNum());
 
 	Function func;
-	GetFunctionReturnType(func.returnType);
+	GetFunctionReturnType(func.def.returnType);
 	Token& functionNameToken = GetCurrentToken();
-	func.name = functionNameToken.value;
+	func.def.name = functionNameToken.value;
 
 	assert(!scopeStack.FunctionNameExists(functionNameToken.value), "Function name already defined", GetCurrentLineNum());
 
 	currentIndex += 2;
-	func.arguments = ParseFunctionParameters();
+	func.def.arguments = ParseFunctionParameters();
 	// 
 	// expect close parentheses, add to index, etc...
 	ScopeLevel level;
-	for (const Variable& var : func.arguments)
+	for (const Variable& var : func.def.arguments)
 	{
 		level.variables[var.name] = var;
 	}
 	scopeStack.scope.push_back(std::move(level));
 
 	//add to function scope before parsing statements to allow for recursion
-	scopeStack.functionScope[func.name] = func;
+	scopeStack.functionScope[func.def.name] = func.def;
 
-	func.statements = ParseFunctionStatements(func.returnType);
+	func.statements = ParseFunctionStatements(func.def.returnType);
 
+	//Don't store statements in scope
 	//update function in scope dictionary to include statements
-	scopeStack.functionScope[func.name].statements = func.statements;
+	//scopeStack.functionScope[func.def.name].statements = func.statements;
 
 	scopeStack.scope.pop_back();
 
@@ -144,15 +145,15 @@ unique_ptr<AST_Function_Expression> AST::ParseFunctionCall(Function& f)
 	currentIndex += 2;
 
 	AST_Function_Expression funcExpr;
-	funcExpr.type = f.returnType;
-	funcExpr.argumentInstances.reserve(f.arguments.size());
-	funcExpr.functionName = f.name;
+	funcExpr.type = f.def.returnType;
+	funcExpr.argumentInstances.reserve(f.def.arguments.size());
+	funcExpr.functionName = f.def.name;
 
 	size_t argIndex = 0;
 	while (GetCurrentToken().type != TokenType::CLOSE_PAR)
 	{
 		unique_ptr<Expression> arg = ParseExpression();
-		assert(arg->type == f.arguments.at(argIndex).type, "Type mismatch on " + std::to_string(argIndex) + " argument of function", GetCurrentLineNum());
+		assert(arg->type == f.def.arguments.at(argIndex).type, "Type mismatch on " + std::to_string(argIndex) + " argument of function", GetCurrentLineNum());
 		funcExpr.argumentInstances.push_back(std::move(arg));
 		++argIndex;
 

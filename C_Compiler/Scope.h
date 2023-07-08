@@ -1,8 +1,8 @@
 #pragma once
 
-#include "AST_Statement.h"
+#include "Variable.h"
 
-using namespace AST_Statement;
+using namespace VariableNamespace;
 
 /*
 SCOPE of variables:
@@ -12,16 +12,16 @@ SCOPE of variables:
 */
 struct ScopeLevel {
 	unordered_map<string, Variable> variables;
-	unordered_map<string, AST_Struct_Definition> structs;
+	unordered_map<string, StructDefinition> structs;
 };
 
 struct Scope {
 	vector<ScopeLevel> scope;
-	unordered_map<string, Function> functionScope; //functions cannot be declared within functions / inner scope
+	unordered_map<string, FunctionDefinition> functionScope; //functions cannot be declared within functions / inner scope
 
 	Scope();
 	bool TryFindVariable(const string& name, Variable& var);
-	bool TryFindFunction(const string& name, Function& func);
+	bool TryFindFunction(const string& name, FunctionDefinition& func);
 	bool FunctionNameExists(const string& name);
-	bool TryFindStructName(const string& name, AST_Struct_Definition& structDef);
+	bool TryFindStructName(const string& name, StructDefinition& structDef);
 };

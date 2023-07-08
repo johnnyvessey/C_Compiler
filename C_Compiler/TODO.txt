@@ -1,8 +1,72 @@
 TODO:
 
+
+IR TODO:
+
+- add ConvertToIR() function for Expression class (which returns label(s) of result???)
+
+- figure out what to do about literals (not all literals can be used, may require ldr instruction beforehand)
+	- when generating IR, determine if literal can be represented as # in ARM (i.e. #4)
+	- if it can't, include ASSIGN function beforehand that will be translated to LDR
+	- have bool for literal IR variable type on whether it can be represented in #
+	- do this before ARM stage, because we need to know all of the IR variables so we can allocate registers
+
+- figure out what to do about functions (how to store parameters, how to return larger structs)
+
+- determine if there should be separate statements for floats vs ints
+
+- figure out what to do about structs
+	- assign variable to start address
+	- use offsets to load/store specific variables
+	- convert struct assignments to multiple/bulk copies
+
+- figure out type casting (especially for pointers)
+
+- figure out what state we need to keep track of and what to do about scope (do we recreate the scope stack, do we use tree instead of vector so it can be saved?)
+	-> do we create a tree instead of vector and replace push and pop with traversing through tree, adding new nodes, etc... (would need current node variable and root)
+
+
+
+Expression IR:
+
+int x = (5 + 7) * 5 / 9;
+
+ADD %0, literal(5), literal(7)
+MUL %0, %0, literal(5)
+DIV %0, %0, literal(9)
+ASSIGN x, %0
+
+STRUCT IR:
+
+struct ex {
+	int a;
+	float b;
+	int c[10];
+};
+
+struct ex v;
+v.a = 5;
+v.b = 6.5;
+v.c[5] = 7;
+
+
+SUB %v_loc, CUR_LOCATION, SIZE_OF_STRUCT_EX
+STORE literal(5), [%v_loc, 0]
+STORE literal(6.5), [%v_loc, 4];
+MUL %0, 4, SIZE_OF_INT
+ADD %1, %v_loc, 8
+STORE literal(7), [%1, %0]
+
+
+
+
+
 PARSER TODO:
 
 	Important next steps;
+
+	- Add auto cast from int to float or float to int during inits and assigns
+	- Getting memory size of array!
 
 	- Parse struct variable initialization (i.e. struct structVar v = {1, 2}; struct structVar2 v2 = {1, {1,2}, {3,4}};)
 		-> figure out what type that rvalue should be? (struct literal??, but what if it references other struct variable) -> (i.e. struct structVar1 v = {1, testVar}; )

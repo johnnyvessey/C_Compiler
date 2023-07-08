@@ -260,7 +260,7 @@ unique_ptr<Expression> AST::ParseNonBinaryExpression(unique_ptr<Expression> prev
 		{
 			assert(!prev, "Invalid function syntax", GetCurrentLineNum());
 			Function f;
-			bool foundFunction = scopeStack.TryFindFunction(token.value, f);
+			bool foundFunction = scopeStack.TryFindFunction(token.value, f.def);
 			assert(foundFunction, "Function: " + token.value + " doesn't exist in scope", token.lineNumber);
 
 			 unique_ptr<AST_Function_Expression> expr = ParseFunctionCall(f);
@@ -354,7 +354,7 @@ unique_ptr<AST_Pointer_Offset> AST::ParsePointerArithmetic(unique_ptr<AST_BinOp>
 	unique_ptr<AST_Pointer_Offset> ptrArithExpr = make_unique<AST_Pointer_Offset>();
 	ptrArithExpr->expr = std::move(binOpExpr->left);
 
-	if (binOpExpr->op == ADD)
+	if (binOpExpr->op == BinOpType::ADD)
 	{
 		ptrArithExpr->index = std::move(binOpExpr->right);
 	}
@@ -396,7 +396,7 @@ unique_ptr<Expression> AST::ParseBinaryExpression(unique_ptr<Expression> firstEx
 			//TODO: Add casting from int to float if one value is int and the other is float; ALSO, do BOOL conversions to INT/FLOAT, etc...
 			assert((IsNumericType(binOpExpr->left->type.lValueType) && IsNumericType(binOpExpr->right->type.lValueType))
 				|| (binOpExpr->left->type.pointerLevel > 0 && binOpExpr->right->type.lValueType == LValueType::INT && binOpExpr->right->type.pointerLevel == 0
-					&& binOpExpr->op == ADD || binOpExpr->op == SUBTRACT),
+					&& binOpExpr->op == BinOpType::ADD || binOpExpr->op == BinOpType::SUBTRACT),
 				"Type mismatch in binary operation", currentToken.lineNumber);
 
 			return ParseBinaryExpression(std::move(binOpExpr));
@@ -415,11 +415,11 @@ unique_ptr<Expression> AST::ParseBinaryExpression(unique_ptr<Expression> firstEx
 
 	assert(binOpExpr->left->type == binOpExpr->right->type
 		|| (binOpExpr->left->type.pointerLevel > 0 && binOpExpr->right->type.lValueType == LValueType::INT && binOpExpr->right->type.pointerLevel == 0 
-			&& binOpExpr->op == ADD || binOpExpr->op == SUBTRACT),
+			&& binOpExpr->op == BinOpType::ADD || binOpExpr->op == BinOpType::SUBTRACT),
 		"Type mismatch in binary operation", currentToken.lineNumber);
 
 	if (binOpExpr->left->type.pointerLevel > 0 && binOpExpr->right->type.lValueType == LValueType::INT
-		&& binOpExpr->right->type.pointerLevel == 0 && (binOpExpr->op == ADD || binOpExpr->op == SUBTRACT))
+		&& binOpExpr->right->type.pointerLevel == 0 && (binOpExpr->op == BinOpType::ADD || binOpExpr->op == BinOpType::SUBTRACT))
 	{
 		return ParsePointerArithmetic(std::move(binOpExpr));
 	}
