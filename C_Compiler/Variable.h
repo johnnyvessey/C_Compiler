@@ -41,6 +41,7 @@ namespace VariableNamespace {
 		string name;
 		VariableType type;
 		size_t arraySize = 0;
+		bool isConst = false;
 	};
 
 	struct FunctionDefinition {

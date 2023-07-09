@@ -220,6 +220,8 @@ ExpressionType AST_Unary_Assignment_Expression::GetExpressionType()
 
 void AST_Unary_Assignment_Expression::ConvertExpressionToIR(IR& irState)
 {
+	//TODO: if lvalue expression is pointer (pointerLevel > 0) or dereference of pointer, then add IR_VariableReload statement afterward
+
 }
 
 void AST_Negative_Expression::PrintExpressionAST(int indentLevel)
@@ -289,7 +291,7 @@ ExpressionType AST_Assignment_Expression::GetExpressionType()
 void AST_Assignment_Expression::ConvertExpressionToIR(IR& irState)
 {
 	
-
+	//TODO: if lValue is pointer or dereference of pointer, add IR_VariableReload statement afterward
 	
 }
 

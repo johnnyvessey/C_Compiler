@@ -103,3 +103,17 @@ struct IR_ALUBinOp : IR_Statement
 	IR_VarType resultType; //is int or float (or long/double); this will affect what instruction is used
 	ALUBinOpType binOpType;
 };
+
+/*
+	This is a statement that is added anytime after value in a pointer is modified. This is because all bets are off
+	on whether a variable was affected by an aliasing pointer. Thus, each register that is active needs to reload their value
+	from the stack. (Const variables do not need to be reloaded)
+	
+	MAYBE: This does not need to happen for temp variables that will only reside in registers and not the stack. (We might still
+	need to reload if there is register spilling)
+
+*/
+struct IR_VariableReload : IR_Statement
+{
+
+};

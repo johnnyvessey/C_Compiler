@@ -56,7 +56,7 @@ void AST_Assignment::PrintStatementAST(int indentLevel)
 
 void AST_Assignment::ConvertStatementToIR(IR& irState, Scope& scope)
 {
-	//TODO: DEFINE THIS
+
 }
 
 StatementType AST_Assignment::GetStatementType()
