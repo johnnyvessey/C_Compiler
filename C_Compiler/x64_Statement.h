@@ -5,6 +5,26 @@ using std::string;
 using std::vector;
 
 
+enum RegisterSize
+{
+	BYTE,
+	WORD,
+	DWORD,
+	QWORD
+};
+
+struct x64_Register
+{
+	int registerIndex; //figure out how to treat special registers differently (i.e. rsp, rbp, rax, etc...)
+	RegisterSize size;
+
+};
+
+struct x64_Statement
+{
+
+};
+
 
 /*
 Compiling function to x64:

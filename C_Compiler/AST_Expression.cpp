@@ -37,8 +37,13 @@ void AST_BinOp::ConvertExpressionToIR(IR& irState)
 	right->ConvertExpressionToIR(irState);
 	rhs_index = irState.state.tmpVarIndex;
 
-	IR_ALUBinOp bin_op_statement;
-	//bin_op_statement.val1 = 
+	IR_ALUBinOp binOpStatement;
+
+	++irState.state.tmpVarIndex;
+
+	binOpStatement.result.isTempValue = true; //Look back at this... but it probably can be temp
+	binOpStatement.result.varIndex = irState.state.tmpVarIndex;
+	//binOpStatement.result.type = 
 
 
 

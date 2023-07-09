@@ -152,7 +152,7 @@ VariableType AST::ParseVariableType()
 
 	if (token.type == TokenType::STRUCT)
 	{
-		type.lValueType == LValueType::STRUCT;
+		type.lValueType = LValueType::STRUCT;
 		++currentIndex;
 
 		Token& structNameToken = GetCurrentToken();
@@ -170,7 +170,7 @@ VariableType AST::ParseVariableType()
 		}
 		else if (typeNameToken.type == TokenType::VOID)
 		{
-			type.lValueType == LValueType::VOID;
+			type.lValueType = LValueType::VOID;
 		}
 
 	}

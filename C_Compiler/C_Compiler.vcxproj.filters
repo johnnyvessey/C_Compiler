@@ -63,6 +63,9 @@
     <ClCompile Include="IR_CodeGen.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="IR_Statement.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Lexer.h">
