@@ -22,18 +22,19 @@ enum ALUBinOpType
 	IR_FUSED_MULTIPLY_ADD
 };
 
-
 enum IR_VarType
 {
-	INT,
-	FLOAT,
-	LONG
+	IR_INT,
+	IR_FLOAT,
+	IR_STRUCT
 };
+
 
 
 struct IR_Value
 {
 	IR_VarType type;
+	int byteSize;
 	bool isTempValue; //temp value in middle of expression (only needs to be in registers, won't be stored on the stack)
 	};
 
@@ -41,6 +42,7 @@ struct IR_Variable : IR_Value
 {
 	//string name;
 	size_t varIndex;
+	string structName;
 };
 
 struct IR_Int_Literal : IR_Value

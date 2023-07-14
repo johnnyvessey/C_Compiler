@@ -7,3 +7,11 @@ void IR_CodeGen::ConvertToIR()
 }
 
 IR_CodeGen::IR_CodeGen(shared_ptr<StatementGroup> statements) : statements(statements) {}
+
+void IR_CodeGen::PrintIR()
+{
+	//print struct definitions
+	//print function definitions
+
+	//print regular statements
+}

@@ -1,0 +1,150 @@
+Specification for IR:
+
+
+- numbered variables that increase; not SSA
+- each variable could fit in an x64 register
+
+
+Example:
+
+C Code:
+
+int main()
+{
+	int a = 5;
+	int b = a * a + 6;
+
+	struct var {
+		int x[5];
+		float y;
+	};
+
+	struct var v;
+	v.x[2] = 7;
+	v.y = 9;
+
+	float z = v.x[2] + v.y * v.x[a];
+
+	return 0;
+}
+
+IR:
+
+START MAIN
+ASSIGN (INT, 4bytes) %1, literal(5)
+ASSIGN (INT, 4bytes) %2, %1 ;copy to %2 before doing calculations
+ASSIGN_MULT (INT, 4bytes) %2, %1
+ASSIGN_ADD (INT, 4bytes) %2, literal(6) ;stick with %2 rather than moving to new variable because it is all a temp expression on right side that won't go to memory
+
+;do nothing for struct def
+
+STRUCT INIT (24 bytes) %_s1 ;%_s1 won't be a variable but can be hard coded as an offset from rbp (unless dealing with return from function) ;make sure to pad struct defs to 4byte multiples
+
+ASSIGN (INT, 4bytes) [%_s1 + literal(8)], literal(7) ;have memory reload after all assigns to pointer dereference value
+MEMORY_RELOAD ;all registers need to be reloaded from memory
+
+ASSIGN_STRUCT (Int, 4bytes) [%_s1 + literal(20)], literal(9) ;no need to memory reload with struct assign
+
+WRITE_TO_MEMORY ; write all modified registers to memory before accessing pointer dereference value
+ASSIGN (Float, 4bytes) %4, [%_s1 + 20]
+
+WRITE_TO_MEMORY ;write all registers to memory
+CAST (Int to Float, 4bytes) %5, [%_s1 + register(%1)]
+
+ASSIGN (Float, 4) %6, %5 ; since all binary ops are form of +=, *=, etc..., first assign new variable equal to first operand
+ASSIGN_MUL (FLOAT, 4bytes) %6, %4
+CAST (Int to Float, 4bytes) %6, [%_s1 + literal(8)]
+ADD %6, %5
+
+ASSIGN_RETURN %7, literal(0)
+RETURN
+
+
+_____________
+
+function calls:
+
+C CODE:
+
+int f(int x, int y)
+{
+	return x + y * x + 2;
+}
+
+int main()
+{
+	int x = 1;
+	int z = f(x, x + 2);
+}
+
+IR:
+
+FUNCTION F (%1, %2):
+	START_SCOPE
+	ASSIGN %3, %1
+	ASSIGN_MUL %3, %2
+	ASSIGN %4, %1
+	ASSIGN_ADD %4, %3
+	ASSIGN_ADD %4, literal(2)
+
+	ASSIGN_RETURN %4
+	END_SCOPE
+	RETURN
+
+FUNCTION MAIN:
+	START_SCOPE
+	ASSIGN %5, literal(1)
+	ASSIGN %6, %5
+	ASSIGN_ADD %6, literal(2)
+
+	WRITE_TO_MEMORY
+	ASSIGN_FUNC 1, %5
+	ASSIGN_FUNC 2, %6
+	CALL F 
+	ASSIGN %7, RET_FUNC
+	END_SCOPE
+
+_________
+Structs + Functions
+
+C CODE
+
+struct var {
+	int a;
+	int b;
+}
+
+struct var f(int a, int b)
+{
+	struct var v;
+	v.a = a;
+	v.b = b;
+	return v;
+}
+
+int main()
+{
+	struct var v = f(1, 2);
+	int c = v.a + 3;
+	return 0;
+}
+
+IR CODE:
+
+FUNCTION (STRUCT) F (%1, %2, %3): ;%1 represents pointer to struct (hidden pointer value)
+ASSIGN [%1 + 0], %2
+ASSIGN [%2 + 4], %3
+RETURN
+
+FUNCTION MAIN:
+ASSIGN_FUNC 1, CURRENT_STACK_VARIABLE_ADDRESS
+ASSIGN_FUNC 2, literal(1)
+ASSIGN_FUNC 3, literal(2)
+CALL f
+STRUCT_INIT (8 bytes) %_s0 FUNC_RET
+ASSIGN %4, [%_s0 + 0]
+ASSIGN %5, %4
+ASSIGN_ADD %5, literal(3)
+
+ASSIGN_RETURN literal(0)
+RETURN

@@ -108,5 +108,6 @@
   <ItemGroup>
     <Text Include="TODO.txt" />
     <Text Include="test_code.txt" />
+    <Text Include="IR_Specs.txt" />
   </ItemGroup>
 </Project>

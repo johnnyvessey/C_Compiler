@@ -13,4 +13,6 @@ struct IR_CodeGen
 	IR_CodeGen(shared_ptr<StatementGroup> statements);
 
 	void ConvertToIR();
+
+	void PrintIR();
 };

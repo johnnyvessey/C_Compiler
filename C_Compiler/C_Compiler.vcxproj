@@ -160,6 +160,7 @@
     <ClInclude Include="x64_Statement.h" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="IR_Specs.txt" />
     <Text Include="test_code.txt" />
     <Text Include="TODO.txt" />
   </ItemGroup>
