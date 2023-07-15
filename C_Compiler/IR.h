@@ -3,10 +3,11 @@
 #include <vector>
 //#include "Parser.h"
 #include "IR_Statement.h"
-//#include "Scope.h"
+#include "Variable.h"
 
 using std::vector;
 
+using namespace VariableNamespace;
 /*
 TODO:
 figure out how to represent struct member variables in IR
@@ -33,10 +34,21 @@ figure out how to represent struct member variables in IR
 //
 //	size_t memorySize;
 //};
+struct IR_Scope
+{
+	size_t scopeIndex = 1;
+	vector<unordered_map<string, IR_Value>> variableMapping;
+	vector<unordered_map<string, StructDefinition>> structMapping;
+	unordered_map<string, FunctionDefinition> functionMapping;
+
+	IR_Value FindVariable(string name);
+};
 
 struct IR_State
 {
-	size_t tmpVarIndex = 1;
+	size_t varIndex = 1;
+	size_t structVarIndex = 1;
+	IR_Scope scope;
 	size_t labelIndex = 0;
 	int currentStackPointerOffset = 0; //offset from stack pointer in current scope (for instance, if you have already stored 2 ints in the stack, the offset would be 8)
 	//Scope scopeStack;
@@ -46,7 +58,7 @@ struct IR_State
 struct IR
 {
 	IR_State state;
-	vector<IR_Statement> IR_statements;
+	vector<unique_ptr<IR_Statement>> IR_statements;
 	vector<IR_Statement> Function_Statements;
 	vector<IR_Statement> Data_Statements;
 

@@ -31,6 +31,7 @@ inline void throwError(string message, size_t lineNum)
 	assert(false, message, lineNum);
 }
 
+
 class AST
 {
 public:
@@ -104,9 +105,6 @@ public:
 	unique_ptr<AST_Expression_Statement> ParseExpressionStatement(unique_ptr<Expression>&& expr);
 
 	unique_ptr<Expression> ParseUnaryExpression();
-
-	template <class T>
-	unique_ptr<T> ConvertToSubexpression(unique_ptr<Expression>&& expr);
 
 	unique_ptr<AST_Pointer_Offset> ParseArrayIndexExpression(unique_ptr<Expression>&& prev);
 

@@ -2,10 +2,11 @@
 #include "Parser.h"
 #include "IR.h"
 
+
 struct IR_CodeGen
 {
 	IR irState;
-	Scope scope;
+	IR_Scope scope;
 	shared_ptr<StatementGroup> statements;
 
 	vector<IR_Statement> irStatements;

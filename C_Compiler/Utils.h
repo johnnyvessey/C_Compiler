@@ -2,8 +2,10 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+#include <iostream>
 
 using std::string;
+
 
 namespace Utils {
 	inline bool isNumeric(const char& c)
@@ -44,6 +46,12 @@ namespace Utils {
 		buffer << test_code.rdbuf();
 
 		return buffer.str();
+	}
+
+	inline void throwError(string message)
+	{
+		std::cout << "ERROR: " << message;
+		throw 0;
 	}
 
 }

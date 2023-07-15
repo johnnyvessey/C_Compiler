@@ -2,17 +2,20 @@
 
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 using std::vector;
 using std::string;
+using std::unordered_map;
 
 struct IR_Statement
 {
 	virtual string ToString() = 0;
 };
 
-enum ALUBinOpType
+enum IR_AssignType
 {
+	COPY,
 	IR_ADD,
 	IR_SUBTRACT,
 	IR_MULTIPLY,
@@ -22,6 +25,7 @@ enum ALUBinOpType
 	IR_FUSED_MULTIPLY_ADD
 };
 
+
 enum IR_VarType
 {
 	IR_INT,
@@ -29,31 +33,28 @@ enum IR_VarType
 	IR_STRUCT
 };
 
-
+enum IR_ValueType
+{
+	IR_LITERAL,
+	IR_VARIABLE
+};
 
 struct IR_Value
 {
 	IR_VarType type;
+	IR_ValueType valueType;
+
 	int byteSize;
+	size_t varIndex;
 	bool isTempValue; //temp value in middle of expression (only needs to be in registers, won't be stored on the stack)
+	string literalValue;
 	};
 
-struct IR_Variable : IR_Value
-{
-	//string name;
-	size_t varIndex;
-	string structName;
-};
 
-struct IR_Int_Literal : IR_Value
-{
-	int value;
-};
-
-struct IR_Float_Literal : IR_Value
-{
-	float value; //need to have this be a constant in the data section and then load it into stack/float register when you need to use it
-};
+//struct IR_SructVariable : IR_Variable 
+//{
+//	
+//};
 
 
 //figure out how much struct info should be in the IR
@@ -73,13 +74,21 @@ struct IR_Float_Literal : IR_Value
 struct IR_Assign : IR_Statement
 {
 	IR_VarType type;
-	IR_Variable var;
-	IR_Value result;
+	IR_AssignType assignType; 
+	
+	IR_Value dest;
+	IR_Value source;
 
 	virtual string ToString() override;
-
+	IR_Assign();
+	IR_Assign(IR_VarType type, IR_AssignType assignType, IR_Value dest, IR_Value source);
 };
 
+struct IR_StructInit : IR_Statement
+{
+	size_t structVarIdx;
+	int byteNum;
+};
 
 struct IR_Label : IR_Statement
 {
@@ -113,18 +122,23 @@ struct IR_Branch : IR_Statement
 
 };
 
-
-struct IR_ALUBinOp : IR_Statement
+struct IR_Return : IR_Statement
 {
-	IR_Variable result;
-	IR_Variable val1;
-	IR_Value val2;
-
-	IR_VarType resultType; //is int or float (or long/double); this will affect what instruction is used
-	ALUBinOpType binOpType;
-
 	virtual string ToString() override;
+
 };
+
+//struct IR_ALUBinOp : IR_Statement
+//{
+//	IR_Variable result;
+//	IR_Variable val1;
+//	IR_Value val2;
+//
+//	IR_VarType resultType; //is int or float (or long/double); this will affect what instruction is used
+//	ALUBinOpType binOpType;
+//
+//	virtual string ToString() override;
+//};
 
 struct IR_FunctionCall : IR_Statement
 {
@@ -133,6 +147,12 @@ struct IR_FunctionCall : IR_Statement
 
 	virtual string ToString() override;
 
+};
+
+struct IR_FunctionArgAssign : IR_Statement
+{
+	size_t argIdx;
+	IR_Value value;
 };
 
 struct IR_TypeCast : IR_Statement
@@ -157,3 +177,22 @@ struct IR_VariableReload : IR_Statement
 	virtual string ToString() override;
 
 };
+
+//called any time pointer value is read
+struct IR_RegisterWriteToMemory : IR_Statement
+{
+	virtual string ToString() override;
+
+};
+
+namespace IR_Utils
+{
+	static IR_Value ParseLiteral(string value, IR_VarType type)
+	{
+		IR_Value ir_val;
+		ir_val.literalValue = value;
+		ir_val.valueType = IR_LITERAL;
+
+		return ir_val;
+	}
+}

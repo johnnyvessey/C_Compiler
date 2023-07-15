@@ -4,6 +4,34 @@ using namespace AST_Expression;
 
 Expression::Expression() {}
 
+//IR_Value ExpressionFunctions::GetValueFromExpression(unique_ptr<Expression>& expr, IR_State& irState)
+//{
+//	IR_Value result;
+//	if (expr->GetExpressionType() == _Literal_Expression)
+//	{
+//		AST_Literal_Expression* literalExpr = ExpressionFunctions::GetSubexpressionPtr<AST_Literal_Expression>(expr);
+//		result = (expr->type.lValueType == INT) ? IR_Utils::ParseLiteral(literalExpr->value, IR_INT) : IR_Utils::ParseLiteral(literalExpr->value, IR_FLOAT);
+//	}
+//	else if (expr->GetExpressionType() == _Function_Expression)
+//	{
+//		//IR_Value variable = irState.scope.FindVariable()
+//
+//	}
+//
+//}
+
+namespace IR_Utils {
+
+	const static unordered_map<BinOpType, IR_AssignType> irBinOpMapping = {
+		{BinOpType::ADD, IR_AssignType::IR_ADD},
+		{BinOpType::SUBTRACT, IR_AssignType::IR_SUBTRACT},
+		{BinOpType::MULTIPLY, IR_AssignType::IR_MULTIPLY},
+		{BinOpType::DIVIDE, IR_AssignType::IR_DIVIDE}
+		//TODO: Add bit shifting and others
+
+	};
+}
+
 LValueExpression::LValueExpression()
 {
 	isLValue = true;
@@ -27,22 +55,58 @@ ExpressionType AST_BinOp::GetExpressionType()
 	return ExpressionType::_BinOp;
 }
 
-void AST_BinOp::ConvertExpressionToIR(IR& irState)
+
+IR_Value AST_BinOp::ConvertExpressionToIR(IR& irState)
 {
 
-	size_t lhs_index, rhs_index;
-	left->ConvertExpressionToIR(irState); //figure out whether there should be a second out parameter referring to return value of expression
-	lhs_index = irState.state.tmpVarIndex;
+	IR_Value leftValue = left->ConvertExpressionToIR(irState); //figure out whether there should be a second out parameter referring to return value of expression
+	IR_Value rightValue = right->ConvertExpressionToIR(irState);
+	 
+
+	IR_Value dest;
+	dest.varIndex = irState.state.varIndex++; //increment after setting it
+	dest.byteSize = leftValue.byteSize;
+	dest.type = leftValue.type;
+
+	//all expressions are temp values (for now)
+	dest.isTempValue = true;
+
+	if (leftValue.valueType == IR_LITERAL && rightValue.valueType == IR_LITERAL)
+	{
+		//calculate literal value, store it in dest, and return regular assign
+	}
+	else {
+		if (IR_Utils::irBinOpMapping.find(op) != IR_Utils::irBinOpMapping.end())
+		{
+			IR_AssignType binOpAssignType = IR_Utils::irBinOpMapping.at(op);
+			IR_Assign copyLeft(dest.type, IR_AssignType::COPY, dest, leftValue);
+			IR_Assign binOpStatement(dest.type, binOpAssignType, dest, rightValue);
+			
+			irState.IR_statements.push_back(make_unique<IR_Assign>(std::move(copyLeft)));
+			irState.IR_statements.push_back(make_unique<IR_Assign>(std::move(binOpStatement)));
+
+		}
+		else {
+			//pointer arithmetic, etc...
+		}
+
+
+		return dest;
+	}
 	
-	right->ConvertExpressionToIR(irState);
-	rhs_index = irState.state.tmpVarIndex;
+	//binOpStatement.assignType = IR_Utils::irBinOpMapping.at()
 
-	IR_ALUBinOp binOpStatement;
-
-	++irState.state.tmpVarIndex;
-
-	binOpStatement.result.isTempValue = true; //Look back at this... but it probably can be temp
-	binOpStatement.result.varIndex = irState.state.tmpVarIndex;
+	//binOpStatement.result.isTempValue = true; //Look back at this... but it probably can be temp
+	//if (right->GetExpressionType() == _Literal_Expression)
+	//{
+	//	AST_Literal_Expression* literalExpr = ExpressionFunctions::GetSubexpressionPtr<AST_Literal_Expression>(right);
+	//	binOpStatement.result = (right->type.lValueType == INT) ? IR_Utils::ParseLiteral(literalExpr->value, IR_INT) : IR_Utils::ParseLiteral(literalExpr->value, IR_FLOAT);
+	//}
+	//else
+	//{
+	//	IR_Value variable = irState.state.scope.FindVariable()
+	//}
+	//binOpStatement.result.varIndex = irState.state.varIndex;
 	//binOpStatement.result.type = 
 
 
@@ -65,7 +129,7 @@ void AST_Type_Cast_Expression::PrintExpressionAST(int indentLevel)
 	expr->PrintExpressionAST(indentLevel + 1);
 }
 
-void AST_Type_Cast_Expression::ConvertExpressionToIR(IR& irState)
+IR_Value AST_Type_Cast_Expression::ConvertExpressionToIR(IR& irState)
 {
 
 }
@@ -98,7 +162,7 @@ ExpressionType AST_Function_Expression::GetExpressionType()
 	return ExpressionType::_Function_Expression;
 }
 
-void AST_Function_Expression::ConvertExpressionToIR(IR& irState)
+IR_Value AST_Function_Expression::ConvertExpressionToIR(IR& irState)
 {
 }
 
@@ -113,8 +177,9 @@ void AST_Variable_Expression::PrintExpressionAST(int indentLevel)
 	std::cout << string(indentLevel, '\t') << "Variable: " << v.name << " (" << v.type.lValueType << ") " << v.type.structName << string(v.type.pointerLevel, '*') << "\n";
 }
 
-void AST_Variable_Expression::ConvertExpressionToIR(IR& irState)
+IR_Value AST_Variable_Expression::ConvertExpressionToIR(IR& irState)
 {
+	return irState.state.scope.FindVariable(v.name);
 }
 
 ExpressionType AST_Variable_Expression::GetExpressionType()
@@ -132,7 +197,7 @@ void AST_Literal_Expression::PrintExpressionAST(int indentLevel)
 	std::cout << string(indentLevel, '\t') << "Literal: " << value << "\n";
 }
 
-void AST_Literal_Expression::ConvertExpressionToIR(IR& irState)
+IR_Value AST_Literal_Expression::ConvertExpressionToIR(IR& irState)
 {
 }
 
@@ -152,7 +217,7 @@ void AST_Struct_Variable_Access::PrintExpressionAST(int indentLevel)
 	std::cout << string(indentLevel + 1, '\t') << "Access name: " << varName << "\n";
 }
 
-void AST_Struct_Variable_Access::ConvertExpressionToIR(IR& irState)
+IR_Value AST_Struct_Variable_Access::ConvertExpressionToIR(IR& irState)
 {
 }
 
@@ -168,7 +233,7 @@ void AST_Pointer_Dereference::PrintExpressionAST(int indentLevel)
 	baseExpr->PrintExpressionAST(indentLevel + 1);
 }
 
-void AST_Pointer_Dereference::ConvertExpressionToIR(IR& irState)
+IR_Value AST_Pointer_Dereference::ConvertExpressionToIR(IR& irState)
 {
 }
 
@@ -208,7 +273,7 @@ void AST_Pointer_Offset::PrintExpressionAST(int indentLevel)
 
 }
 
-void AST_Pointer_Offset::ConvertExpressionToIR(IR& irState)
+IR_Value AST_Pointer_Offset::ConvertExpressionToIR(IR& irState)
 {
 }
 
@@ -223,7 +288,7 @@ ExpressionType AST_Unary_Assignment_Expression::GetExpressionType()
 	return ExpressionType::_Unary_Assignment_Expression;
 }
 
-void AST_Unary_Assignment_Expression::ConvertExpressionToIR(IR& irState)
+IR_Value AST_Unary_Assignment_Expression::ConvertExpressionToIR(IR& irState)
 {
 	//TODO: if lvalue expression is pointer (pointerLevel > 0) or dereference of pointer, then add IR_VariableReload statement afterward
 
@@ -238,7 +303,7 @@ void AST_Negative_Expression::PrintExpressionAST(int indentLevel)
 AST_Negative_Expression::AST_Negative_Expression() {}
 AST_Negative_Expression::AST_Negative_Expression(unique_ptr<Expression>&& expr) : expr(std::move(expr)) {}
 
-void AST_Negative_Expression::ConvertExpressionToIR(IR& irState)
+IR_Value AST_Negative_Expression::ConvertExpressionToIR(IR& irState)
 {
 	
 
@@ -256,7 +321,7 @@ void AST_Address_Expression::PrintExpressionAST(int indentLevel)
 	expr->PrintExpressionAST(indentLevel + 1);
 }
 
-void AST_Address_Expression::ConvertExpressionToIR(IR& irState)
+IR_Value AST_Address_Expression::ConvertExpressionToIR(IR& irState)
 {
 	
 
@@ -274,9 +339,7 @@ void AST_Not_Expression::PrintExpressionAST(int indentLevel)
 	expr->PrintExpressionAST(indentLevel + 1);
 }
 
-void AST_Not_Expression::ConvertExpressionToIR(IR& irState)
-
-
+IR_Value AST_Not_Expression::ConvertExpressionToIR(IR& irState)
 {
 	
 
@@ -293,7 +356,7 @@ ExpressionType AST_Assignment_Expression::GetExpressionType()
 	return ExpressionType::_Assignment_Expression;
 }
 
-void AST_Assignment_Expression::ConvertExpressionToIR(IR& irState)
+IR_Value AST_Assignment_Expression::ConvertExpressionToIR(IR& irState)
 {
 	
 	//TODO: if lValue is pointer or dereference of pointer, add IR_VariableReload statement afterward

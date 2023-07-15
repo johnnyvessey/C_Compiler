@@ -1,5 +1,6 @@
 #include "Parser.h"
 
+//template unique_ptr<LValueExpression> ExpressionFunctions::ConvertToSubexpression<LValueExpression>(unique_ptr<Expression>&& expr);
 
 unique_ptr<Expression> AST::ParseExpression()
 {
@@ -39,29 +40,13 @@ unique_ptr<Expression> AST::ParseExpression()
 	}
 }
 
-template<class T>
-unique_ptr<T> AST::ConvertToSubexpression(unique_ptr<Expression>&& expr)
-{
-	T* tmp = dynamic_cast<T*>(expr.get());
-	unique_ptr<T> subExpr;
-	if (tmp != nullptr)
-	{
-		expr.release();
-		subExpr.reset(tmp);
-	}
-	else
-	{
-		throwError("Error converting expression to subexpression type", GetCurrentLineNum());
-	}
 
-	return subExpr;
-}
 
 unique_ptr<LValueExpression> AST::ConvertExpressionToLValue(unique_ptr<Expression>&& expr)
 {
 	assert(expr->isLValue, "Can only use unary assignment operator on LValue", GetCurrentLineNum());
 
-	return ConvertToSubexpression<LValueExpression>(std::move(expr));
+	return ExpressionFunctions::ConvertToSubexpression<LValueExpression>(std::move(expr));
 }
 
 unique_ptr<LValueExpression> AST::ParseLValueExpression()
@@ -92,7 +77,7 @@ unique_ptr<Expression> AST::ParseUnaryExpression()
 		//special case for parsing negative int/float literals
 		if(expr->GetExpressionType() == ExpressionType::_Literal_Expression)
 		{
-			unique_ptr<AST_Literal_Expression> litExpr = ConvertToSubexpression<AST_Literal_Expression>(std::move(expr));
+			unique_ptr<AST_Literal_Expression> litExpr = ExpressionFunctions::ConvertToSubexpression<AST_Literal_Expression>(std::move(expr));
 			assert(litExpr->value[0] != '-', "Double negative not allowed", token.lineNumber);
 			litExpr->value = "-" + litExpr->value;
 

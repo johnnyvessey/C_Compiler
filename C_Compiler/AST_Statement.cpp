@@ -17,12 +17,12 @@ StatementType StatementGroup::GetStatementType()
 	return _STATEMENT_GROUP;
 }
 
-void StatementGroup::ConvertStatementToIR(IR& irState, Scope& scope)
+void StatementGroup::ConvertStatementToIR(IR& irState)
 {
 	vector<IR_Statement> ir_statements;
 	for (const unique_ptr<Statement>& statement : statements)
 	{
-		statement->ConvertStatementToIR(irState, scope);	
+		statement->ConvertStatementToIR(irState);	
 	}
 
 }
@@ -43,7 +43,7 @@ StatementType AST_Initialization::GetStatementType()
 	return _INITIALIZATION;
 }
 
-void AST_Initialization::ConvertStatementToIR(IR& irState, Scope& scope)
+void AST_Initialization::ConvertStatementToIR(IR& irState)
 {
 }
 
@@ -54,7 +54,7 @@ void AST_Assignment::PrintStatementAST(int indentLevel)
 	expr->PrintExpressionAST(indentLevel);
 }
 
-void AST_Assignment::ConvertStatementToIR(IR& irState, Scope& scope)
+void AST_Assignment::ConvertStatementToIR(IR& irState)
 {
 
 }
@@ -72,7 +72,7 @@ AST_Else_If::AST_Else_If()
 	statements = make_unique<StatementGroup>();
 }
 
-void AST_Else_If::ConvertStatementToIR(IR& irState, Scope& scope)
+void AST_Else_If::ConvertStatementToIR(IR& irState)
 {
 	//TODO: DEFINE THIS
 }
@@ -98,7 +98,7 @@ AST_If_Then::AST_If_Then()
 	elseStatement = make_unique<StatementGroup>();
 }
 
-void AST_If_Then::ConvertStatementToIR(IR& irState, Scope& scope)
+void AST_If_Then::ConvertStatementToIR(IR& irState)
 {
 	//TODO: DEFINE THIS
 }
@@ -147,7 +147,7 @@ void AST_Function_Definition::PrintStatementAST(int indentLevel)
 	func->statements->PrintStatementAST(indentLevel + 1);
 }
 
-void AST_Function_Definition::ConvertStatementToIR(IR& irState, Scope& scope)
+void AST_Function_Definition::ConvertStatementToIR(IR& irState)
 {
 	//TODO: DEFINE THIS
 }
@@ -171,7 +171,7 @@ AST_Struct_Definition::AST_Struct_Definition(string name, unordered_map<string, 
 		
 }
 
-void AST_Struct_Definition::ConvertStatementToIR(IR& irState, Scope& scope)
+void AST_Struct_Definition::ConvertStatementToIR(IR& irState)
 {
 	//TODO: DEFINE THIS
 }
@@ -203,7 +203,7 @@ void AST_Expression_Statement::PrintStatementAST(int indentLevel)
 	expr->PrintExpressionAST(indentLevel);
 }
 
-void AST_Expression_Statement::ConvertStatementToIR(IR& irState, Scope& scope)
+void AST_Expression_Statement::ConvertStatementToIR(IR& irState)
 {
 	//TODO: DEFINE THIS
 }
@@ -223,7 +223,7 @@ void AST_Return_Statement::PrintStatementAST(int indentLevel)
 	}
  }
 
-void AST_Return_Statement::ConvertStatementToIR(IR& irState, Scope& scope)
+void AST_Return_Statement::ConvertStatementToIR(IR& irState)
 {
 	//TODO: DEFINE THIS
 }
@@ -238,7 +238,7 @@ StatementType AST_NOP::GetStatementType()
 	return _NOP;
 }
 
-void AST_NOP::ConvertStatementToIR(IR& irState, Scope& scope)
+void AST_NOP::ConvertStatementToIR(IR& irState)
 {
 
 }
@@ -253,7 +253,7 @@ StatementType AST_For_Loop::GetStatementType()
 	return _FOR_LOOP;
 }
 
-void AST_For_Loop::ConvertStatementToIR(IR& irState, Scope& scope)
+void AST_For_Loop::ConvertStatementToIR(IR& irState)
 {
 	//TODO: DEFINE THIS
 }
@@ -273,7 +273,7 @@ StatementType AST_While_Loop::GetStatementType()
 	return _WHILE_LOOP;
 }
 
-void AST_While_Loop::ConvertStatementToIR(IR& irState, Scope& scope)
+void AST_While_Loop::ConvertStatementToIR(IR& irState)
 {
 	//TODO: DEFINE THIS
 }
@@ -292,7 +292,7 @@ StatementType AST_Continue::GetStatementType()
 	return _CONTINUE;
 }
 
-void AST_Continue::ConvertStatementToIR(IR& irState, Scope& scope)
+void AST_Continue::ConvertStatementToIR(IR& irState)
 {
 	//TODO: DEFINE THIS
 }
@@ -306,7 +306,7 @@ StatementType AST_Break::GetStatementType()
 	return _BREAK;
 }
 
-void AST_Break::ConvertStatementToIR(IR& irState, Scope& scope)
+void AST_Break::ConvertStatementToIR(IR& irState)
 {
 	//TODO: DEFINE THIS
 }

@@ -3,7 +3,7 @@
 
 void IR_CodeGen::ConvertToIR()
 {
-	statements->ConvertStatementToIR(irState, scope);
+	statements->ConvertStatementToIR(irState);
 }
 
 IR_CodeGen::IR_CodeGen(shared_ptr<StatementGroup> statements) : statements(statements) {}
@@ -15,3 +15,4 @@ void IR_CodeGen::PrintIR()
 
 	//print regular statements
 }
+
