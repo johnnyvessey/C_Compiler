@@ -336,4 +336,30 @@ namespace AST_Expression {
 		Defining template functions in header file to prevent linking errors
 	*/
 	
+
+	struct IR_Expression_Utils {
+
+		static unordered_map<BinOpType, IR_AssignType> irBinOpMapping;
+		//
+		//= {
+		//	{BinOpType::ADD, IR_AssignType::IR_ADD},
+		//	{BinOpType::SUBTRACT, IR_AssignType::IR_SUBTRACT},
+		//	{BinOpType::MULTIPLY, IR_AssignType::IR_MULTIPLY},
+		//	{BinOpType::DIVIDE, IR_AssignType::IR_DIVIDE}
+		//	//TODO: Add bit shifting and others
+
+		//};
+
+		static unordered_map<LValueType, IR_VarType> irTypeMapping;
+		//
+		//= {
+		//	{FLOAT, IR_FLOAT},
+		//	{INT, IR_INT}
+		//};
+
+		IR_Expression_Utils();
+	};
 }
+
+
+

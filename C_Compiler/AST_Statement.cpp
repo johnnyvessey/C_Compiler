@@ -45,6 +45,29 @@ StatementType AST_Initialization::GetStatementType()
 
 void AST_Initialization::ConvertStatementToIR(IR& irState)
 {
+	if (lvalue->type.lValueType == LValueType::STRUCT && lvalue->type.pointerLevel == 0)
+	{
+		//do struct init here
+	}
+	else
+	{
+		IR_Value value;
+		value.type = (lvalue->type.pointerLevel > 0 || lvalue->type.lValueType == LValueType::INT) ? IR_INT : IR_FLOAT;
+		//value.varIndex = irState.state.stackVarIndex++; //decide how to do this when assigning to expression to prevent lots of duplicate copying
+		value.byteSize = (lvalue->type.pointerLevel > 0) ? POINTER_SIZE : 4;
+		value.isTempValue = false;
+		irState.state.scope.variableMapping.back()[this->lvalue->name] = value;
+		
+		if (rvalue)
+		{
+			IR_Value irRValue = rvalue->ConvertExpressionToIR(irState);
+			//add stuff
+		}
+
+	}
+
+
+
 }
 
 

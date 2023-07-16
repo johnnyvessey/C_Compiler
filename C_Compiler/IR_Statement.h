@@ -8,6 +8,8 @@ using std::vector;
 using std::string;
 using std::unordered_map;
 
+#define POINTER_SIZE 8
+
 struct IR_Statement
 {
 	virtual string ToString() = 0;
@@ -15,7 +17,9 @@ struct IR_Statement
 
 enum IR_AssignType
 {
-	COPY,
+	IR_COPY,
+	IR_TYPE_CAST,
+	IR_NEGATIVE,
 	IR_ADD,
 	IR_SUBTRACT,
 	IR_MULTIPLY,
@@ -33,6 +37,7 @@ enum IR_VarType
 	IR_STRUCT
 };
 
+
 enum IR_ValueType
 {
 	IR_LITERAL,
@@ -48,6 +53,9 @@ struct IR_Value
 	size_t varIndex;
 	bool isTempValue; //temp value in middle of expression (only needs to be in registers, won't be stored on the stack)
 	string literalValue;
+
+	IR_Value();
+	IR_Value(IR_VarType type, IR_ValueType valueType, int byteSize, size_t varIndex, bool isTempValue = true, string literalValue = "");
 	};
 
 
@@ -70,6 +78,9 @@ struct IR_Value
 //
 //};
 
+struct IR_VariableInit : IR_Statement {
+	//FINISH THIS
+};
 
 struct IR_Assign : IR_Statement
 {
@@ -153,13 +164,18 @@ struct IR_FunctionArgAssign : IR_Statement
 {
 	size_t argIdx;
 	IR_Value value;
-};
 
-struct IR_TypeCast : IR_Statement
-{
+	IR_FunctionArgAssign();
+	IR_FunctionArgAssign(size_t argIdx, IR_Value value);
 
 	virtual string ToString() override;
 };
+
+//struct IR_TypeCast : IR_Statement
+//{
+//
+//	virtual string ToString() override;
+//};
 
 /*
 	This is a statement that is added anytime after value in a pointer is modified. This is because all bets are off
@@ -195,4 +211,5 @@ namespace IR_Utils
 
 		return ir_val;
 	}
+
 }

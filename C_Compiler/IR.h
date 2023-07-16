@@ -42,17 +42,28 @@ struct IR_Scope
 	unordered_map<string, FunctionDefinition> functionMapping;
 
 	IR_Value FindVariable(string name);
+	StructDefinition FindStruct(string name);
+	FunctionDefinition FindFunction(string name);
+
+	void EnterScope();
+	void ExitScope();
+
+	IR_Scope();
 };
 
 struct IR_State
 {
-	size_t varIndex = 1;
+	size_t tempVarIndex = 1;
+	size_t stackVarIndex = 1;
 	size_t structVarIndex = 1;
 	IR_Scope scope;
 	size_t labelIndex = 0;
 	int currentStackPointerOffset = 0; //offset from stack pointer in current scope (for instance, if you have already stored 2 ints in the stack, the offset would be 8)
 	//Scope scopeStack;
 	size_t scopeIndex = 0; //every time scope index changes (go forward or back in scope), add one to it. When you declare a variable append _{scopeIndex} to it
+	IR_Value functionReturnValue; //RAX register in x64
+
+	IR_State();
 };
 
 struct IR
