@@ -159,13 +159,13 @@ IR_Value AST_Type_Cast_Expression::ConvertExpressionToIR(IR& irState)
 	{
 		dest.byteSize = 4;
 		dest.valueType = IR_VARIABLE;
-		dest.type == IR_FLOAT;
+		dest.type = IR_FLOAT;
 	}
 	else if (this->from.lValueType == FLOAT && this->to.lValueType == INT)
 	{
 		dest.byteSize = 4;
 		dest.valueType = IR_VARIABLE;
-		dest.type == IR_INT;
+		dest.type = IR_INT;
 	}
 	else {
 		Utils::throwError("Haven't implemented this type cast yet");
@@ -173,7 +173,7 @@ IR_Value AST_Type_Cast_Expression::ConvertExpressionToIR(IR& irState)
 
 	typeCast.dest = dest;
 	typeCast.source = std::move(source);
-	typeCast.assignType == IR_TYPE_CAST;
+	typeCast.assignType = IR_TYPE_CAST;
 
 	irState.IR_statements.push_back(make_unique<IR_Assign>(std::move(typeCast)));
 	return dest;
@@ -215,7 +215,7 @@ IR_Value AST_Function_Expression::ConvertExpressionToIR(IR& irState)
 
 	VariableType retType = irState.state.scope.functionMapping.at(this->functionName).returnType;
 
-	size_t offset = 0;
+	int offset = 0;
 	if (retType.lValueType == LValueType::STRUCT && retType.pointerLevel == 0)
 	{
 		//StructDefinition structDef = 
@@ -224,7 +224,7 @@ IR_Value AST_Function_Expression::ConvertExpressionToIR(IR& irState)
 
 		offset = 1;
 	}
-	for (size_t idx = 0; idx < argumentInstances.size(); ++idx)
+	for (int idx = 0; idx < argumentInstances.size(); ++idx)
 	{
 		irState.IR_statements.push_back(make_unique<IR_FunctionArgAssign>(IR_FunctionArgAssign(idx + offset, argumentInstances.at(idx)->ConvertExpressionToIR(irState))));
 	}

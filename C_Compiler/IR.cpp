@@ -24,6 +24,11 @@ IR_Scope::IR_Scope()
 	EnterScope();
 }
 
+IR::IR()
+{
+	IR_statements = vector<unique_ptr<IR_Statement>>();
+}
+
 
 IR_State::IR_State()
 {

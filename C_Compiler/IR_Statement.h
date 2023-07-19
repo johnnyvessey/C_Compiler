@@ -50,12 +50,12 @@ struct IR_Value
 	IR_ValueType valueType;
 
 	int byteSize;
-	size_t varIndex;
+	int varIndex;
 	bool isTempValue; //temp value in middle of expression (only needs to be in registers, won't be stored on the stack)
 	string literalValue;
 
 	IR_Value();
-	IR_Value(IR_VarType type, IR_ValueType valueType, int byteSize, size_t varIndex, bool isTempValue = true, string literalValue = "");
+	IR_Value(IR_VarType type, IR_ValueType valueType, int byteSize, int varIndex, bool isTempValue = true, string literalValue = "");
 	};
 
 
@@ -79,7 +79,12 @@ struct IR_Value
 //};
 
 struct IR_VariableInit : IR_Statement {
-	//FINISH THIS
+	IR_Value dest;
+
+	IR_VariableInit();
+	IR_VariableInit(IR_Value value);
+
+	virtual string ToString() override;
 };
 
 struct IR_Assign : IR_Statement
@@ -97,8 +102,10 @@ struct IR_Assign : IR_Statement
 
 struct IR_StructInit : IR_Statement
 {
-	size_t structVarIdx;
+	int structVarIdx;
 	int byteNum;
+
+	virtual string ToString() override;
 };
 
 struct IR_Label : IR_Statement
@@ -162,11 +169,11 @@ struct IR_FunctionCall : IR_Statement
 
 struct IR_FunctionArgAssign : IR_Statement
 {
-	size_t argIdx;
+	int argIdx;
 	IR_Value value;
 
 	IR_FunctionArgAssign();
-	IR_FunctionArgAssign(size_t argIdx, IR_Value value);
+	IR_FunctionArgAssign(int argIdx, IR_Value value);
 
 	virtual string ToString() override;
 };

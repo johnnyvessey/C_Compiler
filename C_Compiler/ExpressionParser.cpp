@@ -234,7 +234,7 @@ unique_ptr<Expression> AST::ParseNonBinaryExpression(unique_ptr<Expression> prev
 
 		return unaryExpr;
 	}
-	else if (token.type == TokenType::STAR) //dereferencing pointer, right-to-left associativity
+	else if (token.type == TokenType::STAR && prev == nullptr) //dereferencing pointer, right-to-left associativity
 	{
 		++currentIndex;
 		return ParsePointerDereferenceExpression();

@@ -48,20 +48,32 @@ void AST_Initialization::ConvertStatementToIR(IR& irState)
 	if (lvalue->type.lValueType == LValueType::STRUCT && lvalue->type.pointerLevel == 0)
 	{
 		//do struct init here
+		StructDefinition structDef = irState.state.scope.FindStruct(lvalue->type.structName);
+		size_t memorySize = structDef.memorySize;
+
+		IR_StructInit structInit;
+		structInit.byteNum = (int)memorySize;
+
+		//TODO: FINISH THIS AND DETERMINE HOW TO TREAT STRUCTS
 	}
 	else
 	{
 		IR_Value value;
+		value.varIndex = irState.state.stackVarIndex++;
+		value.valueType = IR_VARIABLE;
 		value.type = (lvalue->type.pointerLevel > 0 || lvalue->type.lValueType == LValueType::INT) ? IR_INT : IR_FLOAT;
 		//value.varIndex = irState.state.stackVarIndex++; //decide how to do this when assigning to expression to prevent lots of duplicate copying
 		value.byteSize = (lvalue->type.pointerLevel > 0) ? POINTER_SIZE : 4;
 		value.isTempValue = false;
-		irState.state.scope.variableMapping.back()[this->lvalue->name] = value;
+		irState.state.scope.variableMapping.back()[lvalue->name] = value; //add to variable dictionary
 		
+		irState.IR_statements.push_back(make_unique<IR_VariableInit>(IR_VariableInit(value)));
+
 		if (rvalue)
 		{
+			//add assign statement afterwards
 			IR_Value irRValue = rvalue->ConvertExpressionToIR(irState);
-			//add stuff
+			irState.IR_statements.push_back(make_unique<IR_Assign>(IR_Assign(irRValue.type, IR_COPY, value, irRValue)));
 		}
 
 	}

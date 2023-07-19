@@ -20,6 +20,6 @@ int main()
 	//Convert AST to IR
 	IR_CodeGen irCode(ast.group);
 	irCode.ConvertToIR();
-
+	irCode.PrintIR();
 	//Convert IR to x64
 }

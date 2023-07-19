@@ -14,5 +14,10 @@ void IR_CodeGen::PrintIR()
 	//print function definitions
 
 	//print regular statements
+
+	for (const unique_ptr<IR_Statement>& statement : irState.IR_statements)
+	{
+		std::cout << statement->ToString() << "\n";
+	}
 }
 
