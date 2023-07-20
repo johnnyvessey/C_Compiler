@@ -21,6 +21,9 @@ IR_Value::IR_Value() {}
 IR_Value::IR_Value(IR_VarType type, IR_ValueType valueType, int byteSize, int varIndex, bool isTempValue, string literalValue) :
 	type(type), valueType(valueType), byteSize(byteSize), varIndex(varIndex), isTempValue(isTempValue), literalValue(literalValue) {}
 
+IR_Operand::IR_Operand() {}
+IR_Operand::IR_Operand(IR_Value value): value(value) {}
+
 string IR_Assign::ToString()
 {
 	string assignType;
@@ -59,12 +62,12 @@ string IR_Assign::ToString()
 	}
 	
 	stringstream ss;
-	ss << "Assign " << assignType << " " << varToString(dest) << ", " << varToString(source);
+	ss << "Assign " << assignType << " " << varToString(dest.value) << ", " << varToString(source.value);
 	return ss.str();
 }
 
 IR_Assign::IR_Assign() {}
-IR_Assign::IR_Assign(IR_VarType type, IR_AssignType assignType, IR_Value dest, IR_Value source): type(type), assignType(assignType), dest(dest), source(source) {}
+IR_Assign::IR_Assign(IR_VarType type, IR_AssignType assignType, IR_Operand dest, IR_Operand source): type(type), assignType(assignType), dest(dest), source(source) {}
 
 IR_VariableInit::IR_VariableInit() {}
 IR_VariableInit::IR_VariableInit(IR_Value value) : dest(value) {}
@@ -75,23 +78,43 @@ string IR_VariableInit::ToString()
 
 string IR_Label::ToString()
 {
-	return "";
+	stringstream ss;
+	ss << "Label " << label << ":";
+	return ss.str();
 }
+IR_Label::IR_Label(int label) : label(label) {}
+
 
 string IR_ScopeStart::ToString()
 {
-	return "";
+	return "Scope Start";
 }
 
 string IR_ScopeEnd::ToString()
 {
-	return "";
+	return "Scope End";
 }
 
-string IR_Branch::ToString()
+string IR_Jump::ToString()
 {
-	return "";
+	stringstream ss;
+
+	string cs = "";
+	switch (condition)
+	{
+	case IR_EQUALS: cs = "E"; break;
+	case IR_NOT_EQUALS: cs = "NE"; break;
+	case IR_GREATER: cs = "GT"; break;
+	case IR_GREATER_EQUALS: cs = "GTE"; break;
+	case IR_LESS: cs = "LT"; break;
+	case IR_LESS_EQUALS: cs = "LTE"; break;
+	}
+
+	ss << "J" << cs;
+	return ss.str();
 }
+
+IR_Jump::IR_Jump(int labelIdx, IR_FlagResults condition): labelIdx(labelIdx), condition(condition) {}
 
 //string IR_ALUBinOp::ToString()
 //{
@@ -103,10 +126,6 @@ string IR_FunctionCall::ToString()
 	return "";
 }
 
-string IR_FunctionArgAssign::ToString()
-{
-	return "";
-}
 
 string IR_RegisterWriteToMemory::ToString()
 {
@@ -117,8 +136,14 @@ string IR_StructInit::ToString()
 {
 	return "";
 }
+
+string IR_FunctionArgAssign::ToString()
+{
+	return "";
+}
+
 IR_FunctionArgAssign::IR_FunctionArgAssign() {}
-IR_FunctionArgAssign::IR_FunctionArgAssign(int argIdx, IR_Value value): argIdx(argIdx), value(value) {}
+IR_FunctionArgAssign::IR_FunctionArgAssign(int argIdx, IR_Operand value): argIdx(argIdx), value(value) {}
 
 
 //string IR_TypeCast::ToString()
@@ -131,3 +156,11 @@ string IR_VariableReload::ToString()
 	return "";
 }
 
+
+IR_Compare::IR_Compare() {}
+IR_Compare::IR_Compare(IR_Operand op1, IR_Operand op2): op1(op1), op2(op2) {}
+
+string IR_Compare::ToString()
+{
+	return "";
+}

@@ -45,8 +45,6 @@ struct IR_Scope
 	StructDefinition FindStruct(string name);
 	FunctionDefinition FindFunction(string name);
 
-	void EnterScope();
-	void ExitScope();
 
 	IR_Scope();
 };
@@ -60,7 +58,6 @@ struct IR_State
 	int labelIndex = 0;
 	int currentStackPointerOffset = 0; //offset from stack pointer in current scope (for instance, if you have already stored 2 ints in the stack, the offset would be 8)
 	//Scope scopeStack;
-	int scopeIndex = 0; //every time scope index changes (go forward or back in scope), add one to it. When you declare a variable append _{scopeIndex} to it
 	IR_Value functionReturnValue; //RAX register in x64
 
 	IR_State();
@@ -70,6 +67,9 @@ struct IR
 {
 	IR_State state;
 	vector<unique_ptr<IR_Statement>> IR_statements;
+	void EnterScope();
+	void ExitScope();
+
 	//vector<IR_Statement> Function_Statements;
 	//vector<IR_Statement> Data_Statements;
 

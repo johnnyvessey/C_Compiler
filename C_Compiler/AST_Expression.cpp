@@ -475,6 +475,73 @@ void AST_Assignment_Expression::PrintExpressionAST(int indentLevel)
 	rvalue->PrintExpressionAST(indentLevel + 1);
 }
 
+/*
+	if(((x < y) && (z < w)) || (t < u))
+	{
+
+	}
+
+
+	CMP x, y
+	JGTE LabelX<Y=FALSE ;for AND, get opposite of condition for first condition
+	CMP z, w
+	JLT LabelBothTrue
+	LabelX<Y=FALSE:
+
+	LabelBothTrue:
+	JMP INSIDE_IF
+	LabelX<Y=False:
+	CMP t, u
+	JLT INSIDE_IF
+	JMP OUTSIDE_IF
+
+	INSIDE_IF:
+	;code here
+
+	OUTSIDE_IF:
+*/
+
+//IR_FlagResults IR_Expression_Utils::ConvertExpressionToIRConditional(IR& irState, unique_ptr<Expression>& expr)
+//{
+//	if (expr->GetExpressionType() == _BinOp)
+//	{
+//		//parse AND + OR, as well as comparisons; other bin ops don't matter
+//
+//		AST_BinOp* binOpExpr = ExpressionFunctions::GetSubexpressionPtr<AST_BinOp>(expr);
+//		if (binOpExpr->op == BinOpType::AND || binOpExpr->op == BinOpType::OR)
+//		{
+//			//IMPORTANT: BECAUSE OF SHORT CIRCUITING, IT MUST JUMP AFTER CONDITION THAT WOULD SHORT CIRCUIT IT
+//			//i.e. for the statement: if(x && y) -> if x is false, you have to jump; you can't evaluate y
+//		}
+//		else if (IsComparisonOperation(binOpExpr->op))
+//		{
+//			IR_Value op1 = binOpExpr->left->ConvertExpressionToIR(irState);
+//			IR_Value op2 = binOpExpr->right->ConvertExpressionToIR(irState);
+//
+//			irState.IR_statements.push_back(make_unique<IR_Compare>(IR_Compare(IR_Operand(op1), IR_Operand(op2))));
+//
+//			switch (binOpExpr->op)
+//			{
+//				case BinOpType::NOT_EQUALS: return IR_FlagResults::NOT_EQUALS;
+//				case BinOpType::EQUALS: return IR_FlagResults::EQUALS;
+//				case BinOpType::GREATER: return IR_FlagResults::GREATER;
+//				case BinOpType::GREATER_EQUAL: return IR_FlagResults::GREATER_EQUALS;
+//				case BinOpType::LESS: return IR_FlagResults::LESS;
+//				case BinOpType::LESS_EQUAL: return IR_FlagResults::LESS_EQUALS;
+//			}
+//		}
+//	}
+//	else
+//	{
+//		//for non-binary expressions, return if value is not equal to 0
+//		IR_Value value = expr->ConvertExpressionToIR(irState);
+//		const IR_Value zero(value.type, IR_LITERAL, value.byteSize, true, "0");
+//		irState.IR_statements.push_back(make_unique<IR_Compare>(IR_Compare(IR_Operand(value), IR_Operand(zero))));
+//
+//		return IR_FlagResults::NOT_EQUALS;
+//	}
+//}
+
 
 
 unordered_map<TokenType, BinOp> ExpressionUtils::BinOpTokenDictionary = {

@@ -1,4 +1,5 @@
 #include "IR.h"
+
 //
 //
 //void IR::ConvertToIR()
@@ -6,22 +7,30 @@
 //	//IR_statements = AST->ConvertStatementToIR(state);
 //}
 
-void IR_Scope::EnterScope()
+void IR::EnterScope()
 {
-	++scopeIndex;
-	variableMapping.push_back(unordered_map<string, IR_Value>());
-	structMapping.push_back(unordered_map<string, StructDefinition>());
+	++state.scope.scopeIndex;
+	state.scope.variableMapping.push_back(unordered_map<string, IR_Value>());
+	state.scope.structMapping.push_back(unordered_map<string, StructDefinition>());
+
+	IR_statements.push_back(std::make_unique<IR_ScopeStart>());
+	
 }
-void IR_Scope::ExitScope()
+void IR::ExitScope()
 {
-	++scopeIndex;
-	variableMapping.pop_back();
-	structMapping.pop_back();
+	++state.scope.scopeIndex;
+	state.scope.variableMapping.pop_back();
+	state.scope.structMapping.pop_back();
+
+	IR_statements.push_back(std::make_unique<IR_ScopeEnd>());
+
 }
 
 IR_Scope::IR_Scope()
 {
-	EnterScope();
+	variableMapping.push_back(unordered_map<string, IR_Value>());
+	structMapping.push_back(unordered_map<string, StructDefinition>());
+
 }
 
 IR::IR()

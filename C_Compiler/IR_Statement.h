@@ -44,6 +44,17 @@ enum IR_ValueType
 	IR_VARIABLE
 };
 
+enum IR_FlagResults
+{
+	IR_ALWAYS,
+	IR_GREATER,
+	IR_GREATER_EQUALS,
+	IR_LESS,
+	IR_LESS_EQUALS,
+	IR_EQUALS,
+	IR_NOT_EQUALS,
+};
+
 struct IR_Value
 {
 	IR_VarType type;
@@ -56,7 +67,19 @@ struct IR_Value
 
 	IR_Value();
 	IR_Value(IR_VarType type, IR_ValueType valueType, int byteSize, int varIndex, bool isTempValue = true, string literalValue = "");
-	};
+};
+
+struct IR_Operand
+{
+	IR_Value value;
+	bool dereference = false; 
+
+	bool useMemoryAddress = false;
+	IR_Value memoryOffset;
+
+	IR_Operand();
+	IR_Operand(IR_Value value);
+};
 
 
 //struct IR_SructVariable : IR_Variable 
@@ -92,12 +115,12 @@ struct IR_Assign : IR_Statement
 	IR_VarType type;
 	IR_AssignType assignType; 
 	
-	IR_Value dest;
-	IR_Value source;
+	IR_Operand dest;
+	IR_Operand source;
 
 	virtual string ToString() override;
 	IR_Assign();
-	IR_Assign(IR_VarType type, IR_AssignType assignType, IR_Value dest, IR_Value source);
+	IR_Assign(IR_VarType type, IR_AssignType assignType, IR_Operand dest, IR_Operand source);
 };
 
 struct IR_StructInit : IR_Statement
@@ -110,9 +133,11 @@ struct IR_StructInit : IR_Statement
 
 struct IR_Label : IR_Statement
 {
-	string label;
+	int label;
 
 	virtual string ToString() override;
+
+	IR_Label(int label);
 
 };
 
@@ -132,11 +157,14 @@ struct IR_ScopeEnd : IR_Statement
 	virtual string ToString() override;
 };
 
-struct IR_Branch : IR_Statement
+struct IR_Jump : IR_Statement
 {
-	IR_Label dest;
+	int labelIdx;
+	IR_FlagResults condition = IR_ALWAYS;
 
 	virtual string ToString() override;
+
+	IR_Jump(int labelIdx, IR_FlagResults condition = IR_ALWAYS);
 
 };
 
@@ -170,10 +198,10 @@ struct IR_FunctionCall : IR_Statement
 struct IR_FunctionArgAssign : IR_Statement
 {
 	int argIdx;
-	IR_Value value;
+	IR_Operand value;
 
 	IR_FunctionArgAssign();
-	IR_FunctionArgAssign(int argIdx, IR_Value value);
+	IR_FunctionArgAssign(int argIdx, IR_Operand value);
 
 	virtual string ToString() override;
 };
@@ -206,6 +234,17 @@ struct IR_RegisterWriteToMemory : IR_Statement
 {
 	virtual string ToString() override;
 
+};
+
+struct IR_Compare : IR_Statement
+{
+	IR_Operand op1;
+	IR_Operand op2;
+
+	virtual string ToString() override;
+
+	IR_Compare();
+	IR_Compare(IR_Operand op1, IR_Operand op2);
 };
 
 namespace IR_Utils

@@ -73,7 +73,7 @@ void AST_Initialization::ConvertStatementToIR(IR& irState)
 		{
 			//add assign statement afterwards
 			IR_Value irRValue = rvalue->ConvertExpressionToIR(irState);
-			irState.IR_statements.push_back(make_unique<IR_Assign>(IR_Assign(irRValue.type, IR_COPY, value, irRValue)));
+			irState.IR_statements.push_back(make_unique<IR_Assign>(IR_Assign(irRValue.type, IR_COPY, IR_Operand(value), IR_Operand(irRValue))));
 		}
 
 	}
@@ -135,7 +135,69 @@ AST_If_Then::AST_If_Then()
 
 void AST_If_Then::ConvertStatementToIR(IR& irState)
 {
-	//TODO: DEFINE THIS
+	if (Condition->GetExpressionType() == _BinOp)
+	{
+		//parse AND + OR, as well as comparisons; other bin ops don't matter
+		
+		AST_BinOp* binOpExpr = ExpressionFunctions::GetSubexpressionPtr<AST_BinOp>(Condition);
+		if (binOpExpr->op == BinOpType::AND || binOpExpr->op == BinOpType::OR)
+		{
+			//IMPORTANT: BECAUSE OF SHORT CIRCUITING, IT MUST JUMP AFTER CONDITION THAT WOULD SHORT CIRCUIT IT
+			//i.e. for the statement: if(x && y) -> if x is false, you have to jump; you can't evaluate y
+		}
+		else if (IsComparisonOperation(binOpExpr->op))
+		{
+			IR_Value op1 = binOpExpr->left->ConvertExpressionToIR(irState);
+			IR_Value op2 = binOpExpr->right->ConvertExpressionToIR(irState);
+		
+			irState.IR_statements.push_back(make_unique<IR_Compare>(IR_Compare(IR_Operand(op1), IR_Operand(op2))));
+		
+			switch (binOpExpr->op)
+			{
+				//case BinOpType::NOT_EQUALS: return IR_FlagResults::NOT_EQUALS;
+				//case BinOpType::EQUALS: return IR_FlagResults::EQUALS;
+				//case BinOpType::GREATER: return IR_FlagResults::GREATER;
+				//case BinOpType::GREATER_EQUAL: return IR_FlagResults::GREATER_EQUALS;
+				//case BinOpType::LESS: return IR_FlagResults::LESS;
+				//case BinOpType::LESS_EQUAL: return IR_FlagResults::LESS_EQUALS;
+			}
+		}
+	}
+	else
+	{
+		//for non-binary expressions, return if value is not equal to 0
+		IR_Value value = Condition->ConvertExpressionToIR(irState);
+		const IR_Value zero(value.type, IR_LITERAL, value.byteSize, true, "0");
+		irState.IR_statements.push_back(make_unique<IR_Compare>(IR_Compare(IR_Operand(value), IR_Operand(zero))));
+				
+		//create label for not true (at bottom)
+		//Add JNE statement
+	}
+
+	int notTrueLabelIdx = irState.state.labelIndex++;
+
+	irState.EnterScope();
+	this->ifStatement->ConvertStatementToIR(irState); //convert statements inside if to IR
+	irState.ExitScope();
+
+	for (const unique_ptr<AST_Else_If>& elseIf : elseIfStatements)
+	{
+		irState.EnterScope();
+		//parse statements and have proper branching code
+		irState.ExitScope();
+	}
+	if (this->elseStatement)
+	{
+		irState.EnterScope();
+		int endLabelIdx = irState.state.labelIndex++;
+		irState.IR_statements.push_back(make_unique<IR_Jump>(IR_Jump(endLabelIdx, IR_ALWAYS)));
+		//irState.IR_statements.push_back(make_unique<IR_Label>(IR_Label(notTrueLabelIdx))); //watch out for ELSE-IF STATEMENTS!!!!
+
+		this->elseStatement->ConvertStatementToIR(irState);
+		irState.IR_statements.push_back(make_unique<IR_Label>(IR_Label(notTrueLabelIdx)));
+		irState.ExitScope();
+	}
+
 }
 
 StatementType AST_If_Then::GetStatementType()

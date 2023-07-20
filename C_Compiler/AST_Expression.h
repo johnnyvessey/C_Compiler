@@ -61,6 +61,11 @@ namespace AST_Expression {
 		return type == EQUALS || type == NOT_EQUALS || type == LESS || type == LESS_EQUAL || type == GREATER || type == GREATER_EQUAL || type == AND || type == OR;
 	}
 
+	inline bool IsComparisonOperation(BinOpType type)
+	{
+		return type == EQUALS || type == NOT_EQUALS || type == LESS || type == LESS_EQUAL || type == GREATER || type == GREATER_EQUAL;
+	}
+
 	struct BinOp {
 		BinOpType type;
 		int precedence;
@@ -358,6 +363,8 @@ namespace AST_Expression {
 		//};
 
 		IR_Expression_Utils();
+
+		static IR_FlagResults ConvertExpressionToIRConditional(IR& irState, unique_ptr<Expression>& expr);
 	};
 }
 
