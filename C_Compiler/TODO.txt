@@ -4,10 +4,7 @@ TODO:
 IR TODO:
 
 
-- IMPORTANT: ; add new index in irState for tempVarIndex
-	-> tempVarIndex is for expressions and the values won't be stored on the stack (unless there is register spilling; in any case, their memory address won't be referenced)
-	-> change values in code to be that
-
+- figure out what to do about assignFlags IR statement (do we need it or just have it be separate assign type??? / just assign with rvalue of flags)
 
 
 

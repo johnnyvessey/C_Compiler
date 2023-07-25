@@ -59,7 +59,7 @@ struct IR_State
 	int currentStackPointerOffset = 0; //offset from stack pointer in current scope (for instance, if you have already stored 2 ints in the stack, the offset would be 8)
 	//Scope scopeStack;
 	IR_Value functionReturnValue; //RAX register in x64
-
+	IR_Value flags; //flags set based on operations (especially used for boolean values)
 	IR_State();
 };
 

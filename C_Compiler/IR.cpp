@@ -42,7 +42,8 @@ IR::IR()
 IR_State::IR_State()
 {
 	//This is what the RAX or XMM0 register would be in x64
-	functionReturnValue = IR_Value(IR_INT, IR_VARIABLE, 8, 0, true, "");
+	functionReturnValue = IR_Value(IR_INT, IR_VARIABLE, 8, 0, true, "", IR_RETURN);
+	flags = IR_Value(IR_INT, IR_VARIABLE, 1, 0, true, "", IR_FLAGS);
 }
 
 IR_Value IR_Scope::FindVariable(string name)

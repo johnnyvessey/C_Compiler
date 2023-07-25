@@ -46,15 +46,22 @@ enum IR_ValueType
 
 enum IR_FlagResults
 {
-	IR_ALWAYS,
-	IR_GREATER,
-	IR_GREATER_EQUALS,
-	IR_LESS,
-	IR_LESS_EQUALS,
-	IR_EQUALS,
-	IR_NOT_EQUALS,
+	IR_ALWAYS = 1,
+	IR_NEVER = -1,
+	IR_GREATER = 2,
+	IR_LESS_EQUALS = -2,
+	IR_GREATER_EQUALS = 3,
+	IR_LESS = -3,
+	IR_EQUALS = 4,
+	IR_NOT_EQUALS = -4,
 };
 
+enum IR_SpecialVars
+{
+	IR_NONE,
+	IR_FLAGS,
+	IR_RETURN
+};
 struct IR_Value
 {
 	IR_VarType type;
@@ -64,9 +71,9 @@ struct IR_Value
 	int varIndex;
 	bool isTempValue; //temp value in middle of expression (only needs to be in registers, won't be stored on the stack)
 	string literalValue;
-
+	IR_SpecialVars specialVars = IR_NONE;
 	IR_Value();
-	IR_Value(IR_VarType type, IR_ValueType valueType, int byteSize, int varIndex, bool isTempValue = true, string literalValue = "");
+	IR_Value(IR_VarType type, IR_ValueType valueType, int byteSize, int varIndex, bool isTempValue = true, string literalValue = "", IR_SpecialVars specialVars = IR_NONE);
 };
 
 struct IR_Operand
@@ -245,6 +252,15 @@ struct IR_Compare : IR_Statement
 
 	IR_Compare();
 	IR_Compare(IR_Operand op1, IR_Operand op2);
+};
+
+struct IR_Assign_From_Flags : IR_Statement
+{
+	IR_Value dest;
+
+	virtual string ToString() override;
+
+	IR_Assign_From_Flags(IR_Value dest);
 };
 
 namespace IR_Utils

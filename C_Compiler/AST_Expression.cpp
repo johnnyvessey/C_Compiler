@@ -59,44 +59,161 @@ ExpressionType AST_BinOp::GetExpressionType()
 	return ExpressionType::_BinOp;
 }
 
+/*
+		(expr1 && expr2) || expr3
 
+		cmp expr1, 0
+		je SHORT_CIRCUIT1
+		cmp expr2, 0
+		SHORT_CIRCUIT1:
+		jne SHORT_CIRCUIT2
+		cmp expr3, 0
+		//return flags
+		*/
+IR_Value ParseBooleanExpression(Expression* expr, IR& irState, IR_FlagResults& flagResults)
+{
+	if (expr->GetExpressionType() == _BinOp)
+	{
+		//parse AND + OR, as well as comparisons; other bin ops don't matter
+
+		AST_BinOp* binOpExpr = dynamic_cast<AST_BinOp*>(expr);
+		if (!binOpExpr)
+		{
+			//ERROR!
+			throw 0;
+		}
+		if (binOpExpr->op == BinOpType::AND || binOpExpr->op == BinOpType::OR)
+		{
+			IR_Value leftValue = binOpExpr->left->ConvertExpressionToIR(irState);
+			const IR_Value zero(leftValue.type, IR_LITERAL, leftValue.byteSize, 0, true, "0");
+
+			if (leftValue.specialVars != IR_FLAGS)
+			{
+				irState.IR_statements.push_back(make_unique<IR_Compare>(IR_Compare(IR_Operand(leftValue), IR_Operand(zero))));
+			}
+
+			//if and, short circuit on opposite of flags
+			IR_FlagResults newFlagResults = (binOpExpr->op == BinOpType::AND) ? (IR_FlagResults) -flagResults : flagResults;
+
+			IR_Label shortCircuitLabel(irState.state.labelIndex++);
+
+			irState.IR_statements.push_back(make_unique<IR_Jump>(IR_Jump(shortCircuitLabel.label, newFlagResults)));
+
+			IR_Value rightValue = binOpExpr->right->ConvertExpressionToIR(irState);
+
+			irState.IR_statements.push_back(make_unique<IR_Compare>(IR_Compare(IR_Operand(rightValue), IR_Operand(zero))));
+
+			irState.IR_statements.push_back(make_unique<IR_Label>(shortCircuitLabel));
+
+			return irState.state.flags;
+		}
+		else if (IsComparisonOperation(binOpExpr->op))
+		{
+			IR_Value op1 = binOpExpr->left->ConvertExpressionToIR(irState);
+			IR_Value op2 = binOpExpr->right->ConvertExpressionToIR(irState);
+
+			irState.IR_statements.push_back(make_unique<IR_Compare>(IR_Compare(IR_Operand(op1), IR_Operand(op2))));
+
+			//set flag results to use in later boolean expressions without having to convert it to another variable
+			switch (binOpExpr->op)
+			{
+				case BinOpType::NOT_EQUALS: flagResults = IR_FlagResults::IR_NOT_EQUALS;
+				case BinOpType::EQUALS: flagResults = IR_FlagResults::IR_EQUALS;
+				case BinOpType::GREATER: flagResults = IR_FlagResults::IR_GREATER;
+				case BinOpType::GREATER_EQUAL: flagResults = IR_FlagResults::IR_GREATER_EQUALS;
+				case BinOpType::LESS: flagResults = IR_FlagResults::IR_LESS;
+				case BinOpType::LESS_EQUAL: flagResults = IR_FlagResults::IR_LESS_EQUALS;
+			}
+
+			return irState.state.flags;
+
+		}
+		//else {
+		//	//TODO: treat like normal value (is 0 or not)
+		//}
+	}
+	//else
+	//{
+	//	//for non-binary expressions, return if value is not equal to 0
+	//	IR_Value value = expr->ConvertExpressionToIR(irState);
+	//	const IR_Value zero(value.type, IR_LITERAL, value.byteSize, true, "0");
+	//	irState.IR_statements.push_back(make_unique<IR_Compare>(IR_Compare(IR_Operand(value), IR_Operand(zero))));
+
+	//	//create label for not true (at bottom)
+	//	//Add JNE statement
+	//}
+
+}
 IR_Value AST_BinOp::ConvertExpressionToIR(IR& irState)
 {
 
-	IR_Value leftValue = left->ConvertExpressionToIR(irState); //figure out whether there should be a second out parameter referring to return value of expression
-	IR_Value rightValue = right->ConvertExpressionToIR(irState);
+	//IR_Value rightValue = right->ConvertExpressionToIR(irState);
 	 
 
-	IR_Value dest;
-	dest.varIndex = irState.state.tempVarIndex++; //increment after setting it
-	dest.byteSize = leftValue.byteSize;
-	dest.type = leftValue.type;
 
 	//all expressions are temp values (for now)
-	dest.isTempValue = true;
 
-	if (leftValue.valueType == IR_LITERAL && rightValue.valueType == IR_LITERAL)
+	//if (leftValue.valueType == IR_LITERAL && rightValue.valueType == IR_LITERAL)
+	//{
+	//	//calculate literal value, store it in dest, and return regular assign
+	//}
+	 
+	if (IR_Expression_Utils::irBinOpMapping.find(op) != IR_Expression_Utils::irBinOpMapping.end())
 	{
-		//calculate literal value, store it in dest, and return regular assign
-	}
-	else {
-		if (IR_Expression_Utils::irBinOpMapping.find(op) != IR_Expression_Utils::irBinOpMapping.end())
-		{
-			IR_AssignType binOpAssignType = IR_Expression_Utils::irBinOpMapping.at(op);
-			IR_Assign copyLeft(dest.type, IR_AssignType::IR_COPY, dest, leftValue);
-			IR_Assign binOpStatement(dest.type, binOpAssignType, dest, rightValue);
-			
-			irState.IR_statements.push_back(make_unique<IR_Assign>(std::move(copyLeft)));
-			irState.IR_statements.push_back(make_unique<IR_Assign>(std::move(binOpStatement)));
+		IR_Value leftValue = left->ConvertExpressionToIR(irState); //figure out whether there should be a second out parameter referring to return value of expression
 
+		IR_Value dest;
+		dest.varIndex = irState.state.tempVarIndex++; //increment after setting it
+		dest.byteSize = leftValue.byteSize;
+		dest.type = leftValue.type;
+		dest.isTempValue = true;
+
+		IR_AssignType binOpAssignType = IR_Expression_Utils::irBinOpMapping.at(op);
+
+		//if it's result of boolean operation, convert it to int first
+		if (leftValue.specialVars == IR_FLAGS)
+		{
+			IR_Assign_From_Flags assignFromFlags(dest);
+			irState.IR_statements.push_back(make_unique<IR_Assign_From_Flags>(std::move(assignFromFlags)));
 		}
 		else {
-			//pointer arithmetic, etc...
+			IR_Assign copyLeft(dest.type, IR_AssignType::IR_COPY, dest, leftValue);
+			irState.IR_statements.push_back(make_unique<IR_Assign>(std::move(copyLeft)));
 		}
 
+		IR_Value rightValue = right->ConvertExpressionToIR(irState);
+
+		//if right value is boolean, convert it to int first
+		if (rightValue.specialVars == IR_FLAGS)
+		{
+			IR_Value newRight(IR_INT, IR_VARIABLE, 4, irState.state.tempVarIndex++, true, "", IR_NONE);
+			IR_Assign_From_Flags assignFromFlags(newRight); //think about whether I need to add potential FLOAT cast if left is FLOAT
+			irState.IR_statements.push_back(make_unique<IR_Assign_From_Flags>(std::move(assignFromFlags)));
+
+			IR_Assign binOpStatement(dest.type, binOpAssignType, dest, newRight);
+			irState.IR_statements.push_back(make_unique<IR_Assign>(std::move(binOpStatement)));
+		}
+		else
+		{
+			IR_Assign binOpStatement(dest.type, binOpAssignType, dest, rightValue);
+			irState.IR_statements.push_back(make_unique<IR_Assign>(std::move(binOpStatement)));
+		}
 
 		return dest;
+
 	}
+	else if (IsBooleanOperation(op))
+	{
+		IR_FlagResults flagResults = IR_NOT_EQUALS; //default value
+		return ParseBooleanExpression(this, irState, flagResults);
+	}
+	else {
+		//pointer arith/ others
+	}
+
+
+	//return dest;
+	
 	
 	//binOpStatement.assignType = IR_Utils::irBinOpMapping.at()
 

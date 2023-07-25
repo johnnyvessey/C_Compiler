@@ -117,7 +117,7 @@ bool Lexer::IsBinOp(TokenType type)
 {
 	return type == TokenType::PLUS || type == TokenType::MINUS || type == TokenType::STAR || type == TokenType::SLASH || type == TokenType::PERCENT ||
 		type == TokenType::DOUBLE_EQUAL || type == TokenType::NOT_EQUALS || type == TokenType::LESS_THAN || type == TokenType::LESS_THAN_EQUALS ||
-		type == TokenType::GREATER_THAN || type == TokenType::GREATER_THAN_EQUALS;
+		type == TokenType::GREATER_THAN || type == TokenType::GREATER_THAN_EQUALS || type == TokenType::AND || type == TokenType::OR;
 }
 
 bool Lexer::IsUnaryAssignmentOp(TokenType type)

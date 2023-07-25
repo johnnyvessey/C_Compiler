@@ -133,6 +133,54 @@ AST_If_Then::AST_If_Then()
 	elseStatement = make_unique<StatementGroup>();
 }
 
+//void ParseConditionalIR(unique_ptr<Expression>& Condition, IR& irState, int& labelEnd)
+//{
+//	if (Condition->GetExpressionType() == _BinOp)
+//	{
+//		//parse AND + OR, as well as comparisons; other bin ops don't matter
+//
+//		AST_BinOp* binOpExpr = ExpressionFunctions::GetSubexpressionPtr<AST_BinOp>(Condition);
+//		if (binOpExpr->op == BinOpType::AND || binOpExpr->op == BinOpType::OR)
+//		{
+//			//IMPORTANT: BECAUSE OF SHORT CIRCUITING, IT MUST JUMP AFTER CONDITION THAT WOULD SHORT CIRCUIT IT
+//			//i.e. for the statement: if(x && y) -> if x is false, you have to jump; you can't evaluate y
+//		}
+//		else if (IsComparisonOperation(binOpExpr->op))
+//		{
+//			IR_Value op1 = binOpExpr->left->ConvertExpressionToIR(irState);
+//			IR_Value op2 = binOpExpr->right->ConvertExpressionToIR(irState);
+//
+//			irState.IR_statements.push_back(make_unique<IR_Compare>(IR_Compare(IR_Operand(op1), IR_Operand(op2))));
+//
+//			IR_FlagResults cmpFlag;
+//			switch (binOpExpr->op)
+//			{
+//				case BinOpType::NOT_EQUALS: cmpFlag = IR_FlagResults::IR_NOT_EQUALS;
+//				case BinOpType::EQUALS: cmpFlag = IR_FlagResults::IR_EQUALS;
+//				case BinOpType::GREATER: cmpFlag = IR_FlagResults::IR_GREATER;
+//				case BinOpType::GREATER_EQUAL: cmpFlag = IR_FlagResults::IR_GREATER_EQUALS;
+//				case BinOpType::LESS: cmpFlag = IR_FlagResults::IR_LESS;
+//				case BinOpType::LESS_EQUAL: cmpFlag = IR_FlagResults::IR_LESS_EQUALS;
+//			}
+//
+//
+//		}
+//		else {
+//			//TODO: treat like normal value (is it zero or not)
+//		}
+//	}
+//	else
+//	{
+//		//for non-binary expressions, return if value is not equal to 0
+//		IR_Value value = Condition->ConvertExpressionToIR(irState);
+//		const IR_Value zero(value.type, IR_LITERAL, value.byteSize, true, "0");
+//		irState.IR_statements.push_back(make_unique<IR_Compare>(IR_Compare(IR_Operand(value), IR_Operand(zero))));
+//
+//		//create label for not true (at bottom)
+//		//Add JNE statement
+//	}
+//}
+
 void AST_If_Then::ConvertStatementToIR(IR& irState)
 {
 	if (Condition->GetExpressionType() == _BinOp)
@@ -184,6 +232,7 @@ void AST_If_Then::ConvertStatementToIR(IR& irState)
 	{
 		irState.EnterScope();
 		//parse statements and have proper branching code
+		elseIf->ConvertStatementToIR(irState);
 		irState.ExitScope();
 	}
 	if (this->elseStatement)
