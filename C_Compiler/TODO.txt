@@ -3,29 +3,12 @@ TODO:
 
 IR TODO:
 
+- IMPORTANT: make sure to add enter and exit scope calls for if statements and loops, as well as curly brace expressions
 
--BUG:
--> figure out trueJump and falseJump sharedPtrs
--> pass them by reference
--> set the values inside 
--> i.e. for (a && b) && c:
-
-	- calling the a && b expr sets the trueJump and falseJump values during the call for (a && b) && c
-	- f(a, b, trueJump, falseJump):
-		-> create leftTrueJump and leftFalseJump
-		-> call f(a.left, a.right, leftTrueJump, leftFalseJump)
-		-> set leftTrueJump and leftFalseJump values
-		-> call f(b)
-
-
--> IMPORTANT: figure out if (a && b) || ( c && d) works -> "non-linear" expression
-
-- figure out what to do about assignFlags IR statement (do we need it or just have it be separate assign type??? / just assign with rvalue of flags)
-- add parsing for ifs and loops -> use ParseConditionalExpression() for the condition and then use flagResults for jumps (don't just use ConvertExpressionToIR() for condition expression)
-
-
-
-
+- add optimization later for IR: optimizing Jump statements and labels
+	-> if always jump to label which is next line, remove the jump statement
+	-> while jumping to a label which immediately afterwards has an absolute jump, continue until to last label which doesn't have immediate absolute jump
+	-> finally, remove all labels which don't have any jumps to them
 
 
 
