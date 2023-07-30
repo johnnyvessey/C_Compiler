@@ -6,7 +6,8 @@
 #include "Variable.h"
 
 using std::vector;
-
+using std::shared_ptr;
+using std::make_shared;
 using namespace VariableNamespace;
 /*
 TODO:
@@ -60,13 +61,14 @@ struct IR_State
 	//Scope scopeStack;
 	IR_Value functionReturnValue; //RAX register in x64
 	IR_Value flags; //flags set based on operations (especially used for boolean values)
+
 	IR_State();
 };
 
 struct IR
 {
 	IR_State state;
-	vector<unique_ptr<IR_Statement>> IR_statements;
+	vector<shared_ptr<IR_Statement>> IR_statements;
 	void EnterScope();
 	void ExitScope();
 

@@ -73,7 +73,13 @@ void AST_Initialization::ConvertStatementToIR(IR& irState)
 		{
 			//add assign statement afterwards
 			IR_Value irRValue = rvalue->ConvertExpressionToIR(irState);
-			irState.IR_statements.push_back(make_unique<IR_Assign>(IR_Assign(irRValue.type, IR_COPY, IR_Operand(value), IR_Operand(irRValue))));
+			if (irRValue.specialVars == IR_FLAGS)
+			{
+				irState.IR_statements.push_back(make_unique<IR_Assign>(IR_Assign(irRValue.type, IR_FLAG_CONVERT, IR_Operand(value), IR_Operand(irRValue))));
+			}
+			else {
+				irState.IR_statements.push_back(make_unique<IR_Assign>(IR_Assign(irRValue.type, IR_COPY, IR_Operand(value), IR_Operand(irRValue))));
+			}
 		}
 
 	}

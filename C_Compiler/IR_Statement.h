@@ -26,7 +26,8 @@ enum IR_AssignType
 	IR_DIVIDE, //divide in x64 is tricky because it uses eax, edx registers (look into this more)
 	IR_LEFT_SHIFT,
 	IR_RIGHT_SHIFT,
-	IR_FUSED_MULTIPLY_ADD
+	IR_FUSED_MULTIPLY_ADD,
+	IR_FLAG_CONVERT
 };
 
 
@@ -46,6 +47,7 @@ enum IR_ValueType
 
 enum IR_FlagResults
 {
+	IR_NO_FLAGS = 0,
 	IR_ALWAYS = 1,
 	IR_NEVER = -1,
 	IR_GREATER = 2,
@@ -72,6 +74,7 @@ struct IR_Value
 	bool isTempValue; //temp value in middle of expression (only needs to be in registers, won't be stored on the stack)
 	string literalValue;
 	IR_SpecialVars specialVars = IR_NONE;
+	IR_FlagResults flag = IR_NO_FLAGS;
 	IR_Value();
 	IR_Value(IR_VarType type, IR_ValueType valueType, int byteSize, int varIndex, bool isTempValue = true, string literalValue = "", IR_SpecialVars specialVars = IR_NONE);
 };
@@ -254,14 +257,14 @@ struct IR_Compare : IR_Statement
 	IR_Compare(IR_Operand op1, IR_Operand op2);
 };
 
-struct IR_Assign_From_Flags : IR_Statement
-{
-	IR_Value dest;
-
-	virtual string ToString() override;
-
-	IR_Assign_From_Flags(IR_Value dest);
-};
+//struct IR_Assign_From_Flags : IR_Statement
+//{
+//	IR_Value dest;
+//	IR_FlagResults flag;
+//	virtual string ToString() override;
+//
+//	IR_Assign_From_Flags(IR_Value dest, IR_FlagResults flag);
+//};
 
 namespace IR_Utils
 {

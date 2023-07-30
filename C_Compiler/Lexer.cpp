@@ -28,7 +28,7 @@ Token Lexer::ParseToken(const string&& s, size_t& lineNum, size_t& tokenNum)
 //KNOWN BUG: WILL PARSE WRONG WHEN THERE IS A STRING WITH SPACES/OTHER SPECIAL CHARACTERS
 vector<Token> Lexer::SplitStringByToken(const string& input)
 {
-	const string doubleOps = "+-&|=<>*/%"; //TODO: move '/' here and figure out what to do about comments
+	const string doubleOps = "!+-&|=<>*/%"; //TODO: move '/' here and figure out what to do about comments
 	const string singleOps = "^[](){}; \t\n,"; //[remove \n for now] //TODO: handle *=, -=, +=, /=, and %= 
 	vector<Token> output;
 	size_t start = 0;

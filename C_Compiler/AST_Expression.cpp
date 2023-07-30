@@ -3,6 +3,7 @@
 using namespace AST_Expression;
 
 Expression::Expression() {}
+IR_Value ParseBooleanExpression(Expression* expr, IR& irState, bool returnVar, shared_ptr<IR_Jump> prevTrueJump, shared_ptr<IR_Jump> prevFalseJump, bool invertResult);
 
 unordered_map<BinOpType, IR_AssignType> IR_Expression_Utils::irBinOpMapping = {
 		{BinOpType::ADD, IR_AssignType::IR_ADD},
@@ -59,18 +60,203 @@ ExpressionType AST_BinOp::GetExpressionType()
 	return ExpressionType::_BinOp;
 }
 
-/*
-		(expr1 && expr2) || expr3
 
-		cmp expr1, 0
-		je SHORT_CIRCUIT1
-		cmp expr2, 0
-		SHORT_CIRCUIT1:
-		jne SHORT_CIRCUIT2
-		cmp expr3, 0
-		//return flags
-		*/
-IR_Value ParseBooleanExpression(Expression* expr, IR& irState, IR_FlagResults& flagResults)
+IR_Value ConvertToBoolean(Expression* expr, IR& irState, bool invertResult)
+{
+	IR_Value value = expr->ConvertExpressionToIR(irState);
+	const IR_Value zero(value.type, IR_LITERAL, value.byteSize, 0, true, "0");
+	irState.IR_statements.push_back(make_shared<IR_Compare>(IR_Compare(IR_Operand(value), IR_Operand(zero))));
+	IR_Value flagValue = irState.state.flags;
+	flagValue.flag = invertResult ? IR_EQUALS : IR_NOT_EQUALS;
+	return flagValue;
+}
+
+bool isAndOrExpression(Expression* expr)
+{
+	AST_BinOp* binOpExpr = dynamic_cast<AST_BinOp*>(expr);
+	if (!binOpExpr) return false;
+	return binOpExpr->op == BinOpType::AND || binOpExpr->op == BinOpType::OR;
+}
+
+IR_Value ParseAndOrReturnVar(AST_BinOp* binOpExpr, IR& irState, bool hasPrevAndOr, shared_ptr<IR_Jump>& prevTrueJump, shared_ptr<IR_Jump>& prevFalseJump, bool invertResult)
+{
+	int startIdx = irState.state.labelIndex++;
+	int trueLabelIdx = irState.state.labelIndex++;
+	int falseLabelIdx = irState.state.labelIndex++;
+	int endLabelIdx = irState.state.labelIndex++;
+	
+	irState.IR_statements.push_back(make_shared<IR_Label>(startIdx));
+
+	IR_Value result(IR_INT, IR_VARIABLE, 4, irState.state.tempVarIndex++, true, "", IR_NONE);
+
+	IR_Value leftValue = ParseBooleanExpression(binOpExpr->left.get(), irState, false, nullptr, nullptr, false);
+
+	const IR_Value zero(leftValue.type, IR_LITERAL, leftValue.byteSize, 0, true, "0");
+
+	if (leftValue.specialVars != IR_FLAGS)
+	{
+		irState.IR_statements.push_back(make_shared<IR_Compare>(IR_Compare(IR_Operand(leftValue), IR_Operand(zero))));
+	}
+
+	IR_FlagResults newFlagResults;
+	int shortCircuitLabelIdx;
+	int nonShortCircuitLabelIdx;
+	if (binOpExpr->op == BinOpType::AND)
+	{
+		newFlagResults = (IR_FlagResults)-leftValue.flag;
+		shortCircuitLabelIdx = falseLabelIdx;
+		if (hasPrevAndOr)
+		{
+			prevFalseJump->labelIdx = falseLabelIdx;
+			prevTrueJump->labelIdx = startIdx;
+		}
+
+		irState.IR_statements.push_back(make_shared<IR_Jump>(IR_Jump(shortCircuitLabelIdx, newFlagResults)));
+	}
+	else { //OR
+		newFlagResults = leftValue.flag;
+		shortCircuitLabelIdx = trueLabelIdx;
+
+		if (hasPrevAndOr)
+		{
+			prevTrueJump->labelIdx = trueLabelIdx;
+			prevFalseJump->labelIdx = startIdx;
+		}
+
+		irState.IR_statements.push_back(make_shared<IR_Jump>(IR_Jump(shortCircuitLabelIdx, newFlagResults)));
+	}
+
+	IR_Value rightValue = ParseBooleanExpression(binOpExpr->right.get(), irState, false, nullptr, nullptr, false);
+
+	if (rightValue.specialVars != IR_FLAGS)
+	{
+		irState.IR_statements.push_back(make_shared<IR_Compare>(IR_Compare(IR_Operand(rightValue), IR_Operand(zero))));
+	}
+
+	irState.IR_statements.push_back(make_shared<IR_Jump>(IR_Jump(trueLabelIdx, rightValue.flag)));
+	//irState.IR_statements.push_back(make_unique<IR_Jump>(IR_Jump(falseLabelIdx, IR_ALWAYS))); //will be optimized out since FALSE label is right after this
+
+	IR_Value falseIntLiteral(IR_INT, IR_LITERAL, 4, 0, true, "0", IR_NONE);
+	IR_Value trueIntLiteral(IR_INT, IR_LITERAL, 4, 0, true, "1", IR_NONE);
+
+	//FALSE Label:
+	irState.IR_statements.push_back(make_shared<IR_Label>(IR_Label(falseLabelIdx)));
+	irState.IR_statements.push_back(make_shared<IR_Assign>(IR_Assign(IR_INT, IR_COPY, IR_Operand(result), IR_Operand(invertResult ? trueIntLiteral : falseIntLiteral))));
+	irState.IR_statements.push_back(make_shared<IR_Jump>(IR_Jump(endLabelIdx, IR_ALWAYS))); //maybe remove this, or let it be optimized out?
+
+
+	//TRUE Label:
+	irState.IR_statements.push_back(make_shared<IR_Label>(IR_Label(trueLabelIdx)));
+	irState.IR_statements.push_back(make_shared<IR_Assign>(IR_Assign(IR_INT, IR_COPY, IR_Operand(result), IR_Operand(invertResult ? falseIntLiteral : trueIntLiteral))));
+	//irState.IR_statements.push_back(make_unique<IR_Jump>(IR_Jump(endLabelIdx, IR_ALWAYS)));
+
+
+	//END Label
+	irState.IR_statements.push_back(make_shared<IR_Label>(IR_Label(endLabelIdx)));
+
+
+	return result;
+	
+}
+
+IR_Value ParseAndOrNoReturnVar(AST_BinOp* binOpExpr, IR& irState, bool hasPrevAndOr, shared_ptr<IR_Jump> prevTrueJump, shared_ptr<IR_Jump> prevFalseJump, bool invertResult)
+{
+	int startLabelIdx = irState.state.labelIndex++;
+	int trueLabelIdx = irState.state.labelIndex++;
+	int falseLabelIdx = irState.state.labelIndex++;
+
+
+	irState.IR_statements.push_back(make_shared<IR_Label>(startLabelIdx));
+
+	IR_Value leftValue = ParseBooleanExpression(binOpExpr->left.get(), irState, false, nullptr, nullptr, false);
+	const IR_Value zero(leftValue.type, IR_LITERAL, leftValue.byteSize, 0, true, "0");
+
+	if (leftValue.specialVars != IR_FLAGS)
+	{
+		irState.IR_statements.push_back(make_shared<IR_Compare>(IR_Compare(IR_Operand(leftValue), IR_Operand(zero))));
+	}
+
+	IR_FlagResults newFlagResults;
+	int shortCircuitLabelIdx;
+	int nonShortCircuitLabelIdx;
+	shared_ptr<IR_Jump> trueJump = make_shared<IR_Jump>(IR_Jump(-1, IR_ALWAYS));
+	shared_ptr<IR_Jump> falseJump = make_shared<IR_Jump>(IR_Jump(-1, IR_ALWAYS));
+
+	if (binOpExpr->op == BinOpType::AND)
+	{
+		newFlagResults = (IR_FlagResults)-leftValue.flag;
+		shortCircuitLabelIdx = falseLabelIdx;
+		if (hasPrevAndOr)
+		{
+			prevFalseJump->labelIdx = falseLabelIdx;
+			prevTrueJump->labelIdx = startLabelIdx;
+		}
+
+		irState.IR_statements.push_back(make_shared<IR_Jump>(IR_Jump(shortCircuitLabelIdx, newFlagResults)));
+		//falseJump = dynamic_cast<IR_Jump*>(irState.IR_statements.back().get());
+
+	}
+	else { //OR
+		newFlagResults = leftValue.flag;
+		shortCircuitLabelIdx = trueLabelIdx;
+
+		if (hasPrevAndOr)
+		{
+			prevTrueJump->labelIdx = trueLabelIdx;
+			prevFalseJump->labelIdx = startLabelIdx;
+		}
+
+		irState.IR_statements.push_back(make_shared<IR_Jump>(IR_Jump(shortCircuitLabelIdx, newFlagResults)));
+	}
+
+	IR_Value rightValue = ParseBooleanExpression(binOpExpr->right.get(), irState, false, trueJump, falseJump, false);
+	if (rightValue.specialVars != IR_FLAGS)
+	{
+		irState.IR_statements.push_back(make_shared<IR_Compare>(IR_Compare(IR_Operand(rightValue), IR_Operand(zero))));
+	}
+
+
+	//TRUE Label:
+	irState.IR_statements.push_back(make_shared<IR_Label>(IR_Label(trueLabelIdx)));
+	irState.IR_statements.push_back(invertResult ? falseJump : trueJump); //will be overwritten in next ParseAndOr call
+	
+
+	//FALSE Label:
+	irState.IR_statements.push_back(make_shared<IR_Label>(IR_Label(falseLabelIdx)));
+
+	irState.IR_statements.push_back(invertResult ? trueJump : falseJump); //will be overwritten in next ParseAndOr call	
+
+	return irState.state.flags; //doesn't matter b/c this won't be used in the next part of the AND/OR chain
+
+}
+
+IR_Value ParseAndOr(AST_BinOp* binOpExpr, IR& irState, bool returnVar, shared_ptr<IR_Jump> prevTrueJump, shared_ptr<IR_Jump> prevFalseJump, bool invertResult)
+{
+	bool hasPrevAndOr = isAndOrExpression(binOpExpr->left.get());
+	if (returnVar)
+	{
+		return ParseAndOrReturnVar(binOpExpr, irState, hasPrevAndOr, prevTrueJump, prevFalseJump, invertResult);
+	}
+	else {
+		return ParseAndOrNoReturnVar(binOpExpr, irState, hasPrevAndOr, prevTrueJump, prevFalseJump, invertResult);
+	}
+}
+
+
+IR_Value ConvertFlagsToTempVarConditionally(IR_Value flagValue, IR& irState, bool returnVar)
+{
+	if (returnVar)
+	{
+		IR_Value var(IR_INT, IR_VARIABLE, 4, irState.state.tempVarIndex++, true, "", IR_NONE);
+		IR_Assign asssignFromFlags(IR_INT, IR_FLAG_CONVERT, var, flagValue);
+		irState.IR_statements.push_back(make_shared<IR_Assign>(asssignFromFlags));
+		return var;
+	}
+	else {
+		return flagValue;
+	}
+}
+IR_Value ParseBooleanExpression(Expression* expr, IR& irState, bool returnVar, shared_ptr<IR_Jump> prevTrueJump, shared_ptr<IR_Jump> prevFalseJump, bool invertResult)
 {
 	if (expr->GetExpressionType() == _BinOp)
 	{
@@ -84,72 +270,58 @@ IR_Value ParseBooleanExpression(Expression* expr, IR& irState, IR_FlagResults& f
 		}
 		if (binOpExpr->op == BinOpType::AND || binOpExpr->op == BinOpType::OR)
 		{
-			IR_Value leftValue = binOpExpr->left->ConvertExpressionToIR(irState);
-			const IR_Value zero(leftValue.type, IR_LITERAL, leftValue.byteSize, 0, true, "0");
-
-			if (leftValue.specialVars != IR_FLAGS)
-			{
-				irState.IR_statements.push_back(make_unique<IR_Compare>(IR_Compare(IR_Operand(leftValue), IR_Operand(zero))));
-			}
-
-			//if and, short circuit on opposite of flags
-			IR_FlagResults newFlagResults = (binOpExpr->op == BinOpType::AND) ? (IR_FlagResults) -flagResults : flagResults;
-
-			IR_Label shortCircuitLabel(irState.state.labelIndex++);
-
-			irState.IR_statements.push_back(make_unique<IR_Jump>(IR_Jump(shortCircuitLabel.label, newFlagResults)));
-
-			IR_Value rightValue = binOpExpr->right->ConvertExpressionToIR(irState);
-
-			irState.IR_statements.push_back(make_unique<IR_Compare>(IR_Compare(IR_Operand(rightValue), IR_Operand(zero))));
-
-			irState.IR_statements.push_back(make_unique<IR_Label>(shortCircuitLabel));
-
-			return irState.state.flags;
+			return ParseAndOr(binOpExpr, irState, returnVar, prevTrueJump, prevFalseJump, invertResult);
 		}
 		else if (IsComparisonOperation(binOpExpr->op))
 		{
 			IR_Value op1 = binOpExpr->left->ConvertExpressionToIR(irState);
 			IR_Value op2 = binOpExpr->right->ConvertExpressionToIR(irState);
 
-			irState.IR_statements.push_back(make_unique<IR_Compare>(IR_Compare(IR_Operand(op1), IR_Operand(op2))));
+			irState.IR_statements.push_back(make_shared<IR_Compare>(IR_Compare(IR_Operand(op1), IR_Operand(op2))));
 
+			IR_Value flagValue = irState.state.flags;
 			//set flag results to use in later boolean expressions without having to convert it to another variable
 			switch (binOpExpr->op)
 			{
-				case BinOpType::NOT_EQUALS: flagResults = IR_FlagResults::IR_NOT_EQUALS;
-				case BinOpType::EQUALS: flagResults = IR_FlagResults::IR_EQUALS;
-				case BinOpType::GREATER: flagResults = IR_FlagResults::IR_GREATER;
-				case BinOpType::GREATER_EQUAL: flagResults = IR_FlagResults::IR_GREATER_EQUALS;
-				case BinOpType::LESS: flagResults = IR_FlagResults::IR_LESS;
-				case BinOpType::LESS_EQUAL: flagResults = IR_FlagResults::IR_LESS_EQUALS;
+			case BinOpType::NOT_EQUALS: flagValue.flag = IR_FlagResults::IR_NOT_EQUALS; break;
+			case BinOpType::EQUALS: flagValue.flag = IR_FlagResults::IR_EQUALS; break;
+			case BinOpType::GREATER: flagValue.flag = IR_FlagResults::IR_GREATER; break;
+			case BinOpType::GREATER_EQUAL: flagValue.flag = IR_FlagResults::IR_GREATER_EQUALS; break;
+			case BinOpType::LESS: flagValue.flag = IR_FlagResults::IR_LESS; break;
+			case BinOpType::LESS_EQUAL: flagValue.flag = IR_FlagResults::IR_LESS_EQUALS; break;
 			}
 
-			return irState.state.flags;
+			flagValue.flag = invertResult ? (IR_FlagResults) -flagValue.flag : flagValue.flag;
+
+			return ConvertFlagsToTempVarConditionally(flagValue, irState, returnVar);
+
 
 		}
-		//else {
-		//	//TODO: treat like normal value (is 0 or not)
-		//}
-	}
-	//else
-	//{
-	//	//for non-binary expressions, return if value is not equal to 0
-	//	IR_Value value = expr->ConvertExpressionToIR(irState);
-	//	const IR_Value zero(value.type, IR_LITERAL, value.byteSize, true, "0");
-	//	irState.IR_statements.push_back(make_unique<IR_Compare>(IR_Compare(IR_Operand(value), IR_Operand(zero))));
+		else {
+			IR_Value flagValue = ConvertToBoolean(expr, irState, invertResult);
 
-	//	//create label for not true (at bottom)
-	//	//Add JNE statement
-	//}
+			return ConvertFlagsToTempVarConditionally(flagValue, irState, returnVar);
+		}
+	}
+	else if (expr->GetExpressionType() == _Not_Expression)
+	{
+		AST_Not_Expression* notExpr = dynamic_cast<AST_Not_Expression*>(expr);
+		if (!notExpr)
+		{
+			//ERROR!!
+			throw 0;
+		}
+		return ParseBooleanExpression(notExpr->expr.get(), irState, returnVar, prevTrueJump, prevFalseJump, !invertResult);
+
+	}
+	else {
+		return ConvertToBoolean(expr, irState, invertResult);
+	}
 
 }
+
 IR_Value AST_BinOp::ConvertExpressionToIR(IR& irState)
 {
-
-	//IR_Value rightValue = right->ConvertExpressionToIR(irState);
-	 
-
 
 	//all expressions are temp values (for now)
 
@@ -162,23 +334,19 @@ IR_Value AST_BinOp::ConvertExpressionToIR(IR& irState)
 	{
 		IR_Value leftValue = left->ConvertExpressionToIR(irState); //figure out whether there should be a second out parameter referring to return value of expression
 
-		IR_Value dest;
-		dest.varIndex = irState.state.tempVarIndex++; //increment after setting it
-		dest.byteSize = leftValue.byteSize;
-		dest.type = leftValue.type;
-		dest.isTempValue = true;
+		IR_Value dest(leftValue.type, IR_VARIABLE, leftValue.byteSize, irState.state.tempVarIndex++, true, "", IR_NONE);
 
 		IR_AssignType binOpAssignType = IR_Expression_Utils::irBinOpMapping.at(op);
 
 		//if it's result of boolean operation, convert it to int first
 		if (leftValue.specialVars == IR_FLAGS)
 		{
-			IR_Assign_From_Flags assignFromFlags(dest);
-			irState.IR_statements.push_back(make_unique<IR_Assign_From_Flags>(std::move(assignFromFlags)));
+			IR_Assign assignFromFlags(IR_INT, IR_FLAG_CONVERT, dest, leftValue);
+			irState.IR_statements.push_back(make_shared<IR_Assign>(std::move(assignFromFlags)));
 		}
 		else {
 			IR_Assign copyLeft(dest.type, IR_AssignType::IR_COPY, dest, leftValue);
-			irState.IR_statements.push_back(make_unique<IR_Assign>(std::move(copyLeft)));
+			irState.IR_statements.push_back(make_shared<IR_Assign>(std::move(copyLeft)));
 		}
 
 		IR_Value rightValue = right->ConvertExpressionToIR(irState);
@@ -187,16 +355,16 @@ IR_Value AST_BinOp::ConvertExpressionToIR(IR& irState)
 		if (rightValue.specialVars == IR_FLAGS)
 		{
 			IR_Value newRight(IR_INT, IR_VARIABLE, 4, irState.state.tempVarIndex++, true, "", IR_NONE);
-			IR_Assign_From_Flags assignFromFlags(newRight); //think about whether I need to add potential FLOAT cast if left is FLOAT
-			irState.IR_statements.push_back(make_unique<IR_Assign_From_Flags>(std::move(assignFromFlags)));
+			IR_Assign assignFromFlags(IR_INT, IR_FLAG_CONVERT, newRight, rightValue);
+			irState.IR_statements.push_back(make_shared<IR_Assign>(std::move(assignFromFlags)));
 
 			IR_Assign binOpStatement(dest.type, binOpAssignType, dest, newRight);
-			irState.IR_statements.push_back(make_unique<IR_Assign>(std::move(binOpStatement)));
+			irState.IR_statements.push_back(make_shared<IR_Assign>(std::move(binOpStatement)));
 		}
 		else
 		{
 			IR_Assign binOpStatement(dest.type, binOpAssignType, dest, rightValue);
-			irState.IR_statements.push_back(make_unique<IR_Assign>(std::move(binOpStatement)));
+			irState.IR_statements.push_back(make_shared<IR_Assign>(std::move(binOpStatement)));
 		}
 
 		return dest;
@@ -204,8 +372,7 @@ IR_Value AST_BinOp::ConvertExpressionToIR(IR& irState)
 	}
 	else if (IsBooleanOperation(op))
 	{
-		IR_FlagResults flagResults = IR_NOT_EQUALS; //default value
-		return ParseBooleanExpression(this, irState, flagResults);
+		return ParseBooleanExpression(this, irState, true, nullptr, nullptr, false); //when using ConvertExpressionToIR, always make it return a variable (not just flags) for AND and OR
 	}
 	else {
 		//pointer arith/ others
@@ -343,11 +510,11 @@ IR_Value AST_Function_Expression::ConvertExpressionToIR(IR& irState)
 	}
 	for (int idx = 0; idx < argumentInstances.size(); ++idx)
 	{
-		irState.IR_statements.push_back(make_unique<IR_FunctionArgAssign>(IR_FunctionArgAssign(idx + offset, argumentInstances.at(idx)->ConvertExpressionToIR(irState))));
+		irState.IR_statements.push_back(make_shared<IR_FunctionArgAssign>(IR_FunctionArgAssign(idx + offset, argumentInstances.at(idx)->ConvertExpressionToIR(irState))));
 	}
 
 	//reload variables after function call b/c values could have changed inside the function
-	irState.IR_statements.push_back(make_unique<IR_VariableReload>());
+	irState.IR_statements.push_back(make_shared<IR_VariableReload>());
 
 	if (retType.pointerLevel > 0)
 	{
@@ -522,7 +689,7 @@ IR_Value AST_Negative_Expression::ConvertExpressionToIR(IR& irState)
 {
 	IR_Value source = expr->ConvertExpressionToIR(irState);
 	IR_Value dest = IR_Value(source.type, source.valueType, source.byteSize, irState.state.tempVarIndex++);
-	irState.IR_statements.push_back(make_unique<IR_Assign>(IR_Assign(source.type, IR_NEGATIVE, dest, source)));
+	irState.IR_statements.push_back(make_shared<IR_Assign>(IR_Assign(source.type, IR_NEGATIVE, dest, source)));
 
 	return dest;
 }
@@ -560,8 +727,8 @@ void AST_Not_Expression::PrintExpressionAST(int indentLevel)
 
 IR_Value AST_Not_Expression::ConvertExpressionToIR(IR& irState)
 {
-	//TODO: Finish this
-	return IR_Value();
+	//set invertResult to false, because it will be set to true inside the ParseBooleanExpression function
+	return ParseBooleanExpression(this, irState, true, nullptr, nullptr, false); 
 }
 
 ExpressionType AST_Not_Expression::GetExpressionType()
@@ -591,73 +758,6 @@ void AST_Assignment_Expression::PrintExpressionAST(int indentLevel)
 	lvalue->PrintExpressionAST(indentLevel + 1);
 	rvalue->PrintExpressionAST(indentLevel + 1);
 }
-
-/*
-	if(((x < y) && (z < w)) || (t < u))
-	{
-
-	}
-
-
-	CMP x, y
-	JGTE LabelX<Y=FALSE ;for AND, get opposite of condition for first condition
-	CMP z, w
-	JLT LabelBothTrue
-	LabelX<Y=FALSE:
-
-	LabelBothTrue:
-	JMP INSIDE_IF
-	LabelX<Y=False:
-	CMP t, u
-	JLT INSIDE_IF
-	JMP OUTSIDE_IF
-
-	INSIDE_IF:
-	;code here
-
-	OUTSIDE_IF:
-*/
-
-//IR_FlagResults IR_Expression_Utils::ConvertExpressionToIRConditional(IR& irState, unique_ptr<Expression>& expr)
-//{
-//	if (expr->GetExpressionType() == _BinOp)
-//	{
-//		//parse AND + OR, as well as comparisons; other bin ops don't matter
-//
-//		AST_BinOp* binOpExpr = ExpressionFunctions::GetSubexpressionPtr<AST_BinOp>(expr);
-//		if (binOpExpr->op == BinOpType::AND || binOpExpr->op == BinOpType::OR)
-//		{
-//			//IMPORTANT: BECAUSE OF SHORT CIRCUITING, IT MUST JUMP AFTER CONDITION THAT WOULD SHORT CIRCUIT IT
-//			//i.e. for the statement: if(x && y) -> if x is false, you have to jump; you can't evaluate y
-//		}
-//		else if (IsComparisonOperation(binOpExpr->op))
-//		{
-//			IR_Value op1 = binOpExpr->left->ConvertExpressionToIR(irState);
-//			IR_Value op2 = binOpExpr->right->ConvertExpressionToIR(irState);
-//
-//			irState.IR_statements.push_back(make_unique<IR_Compare>(IR_Compare(IR_Operand(op1), IR_Operand(op2))));
-//
-//			switch (binOpExpr->op)
-//			{
-//				case BinOpType::NOT_EQUALS: return IR_FlagResults::NOT_EQUALS;
-//				case BinOpType::EQUALS: return IR_FlagResults::EQUALS;
-//				case BinOpType::GREATER: return IR_FlagResults::GREATER;
-//				case BinOpType::GREATER_EQUAL: return IR_FlagResults::GREATER_EQUALS;
-//				case BinOpType::LESS: return IR_FlagResults::LESS;
-//				case BinOpType::LESS_EQUAL: return IR_FlagResults::LESS_EQUALS;
-//			}
-//		}
-//	}
-//	else
-//	{
-//		//for non-binary expressions, return if value is not equal to 0
-//		IR_Value value = expr->ConvertExpressionToIR(irState);
-//		const IR_Value zero(value.type, IR_LITERAL, value.byteSize, true, "0");
-//		irState.IR_statements.push_back(make_unique<IR_Compare>(IR_Compare(IR_Operand(value), IR_Operand(zero))));
-//
-//		return IR_FlagResults::NOT_EQUALS;
-//	}
-//}
 
 
 

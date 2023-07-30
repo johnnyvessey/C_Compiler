@@ -15,7 +15,7 @@ void IR_CodeGen::PrintIR()
 
 	//print regular statements
 
-	for (const unique_ptr<IR_Statement>& statement : irState.IR_statements)
+	for (const shared_ptr<IR_Statement>& statement : irState.IR_statements)
 	{
 		std::cout << statement->ToString() << "\n";
 	}

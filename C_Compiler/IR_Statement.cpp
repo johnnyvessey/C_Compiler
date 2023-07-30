@@ -3,28 +3,6 @@
 
 using std::stringstream;
 
-string varToString(IR_Value& v)
-{
-	stringstream ss;
-	if (v.valueType == IR_LITERAL)
-	{
-		ss << "LITERAL (" << v.literalValue + ")";
-	}
-	else if (v.specialVars == IR_FLAGS)
-	{
-		ss << "%flags";
-	}
-	else if (v.specialVars == IR_RETURN)
-	{
-		ss << "%return [" << (v.type == IR_INT ? "INT" : "FLOAT") << ", " << v.byteSize << "]";
-	}
-	else {
-		ss << "%" << (v.isTempValue ? "tmp" : "v") << v.varIndex << "[" << (v.type == IR_INT ? "Int" : "Float") << ", " << v.byteSize << "]";
-	}
-
-	return ss.str();
-}
-
 string conditionToString(IR_FlagResults condition)
 {
 	string cs = "";
@@ -39,6 +17,28 @@ string conditionToString(IR_FlagResults condition)
 	}
 
 	return cs;
+}
+
+string varToString(IR_Value& v)
+{
+	stringstream ss;
+	if (v.valueType == IR_LITERAL)
+	{
+		ss << "LITERAL (" << v.literalValue + ")";
+	}
+	else if (v.specialVars == IR_FLAGS)
+	{
+		ss << "%flags: " << conditionToString(v.flag);
+	}
+	else if (v.specialVars == IR_RETURN)
+	{
+		ss << "%return [" << (v.type == IR_INT ? "INT" : "FLOAT") << ", " << v.byteSize << "]";
+	}
+	else {
+		ss << "%" << (v.isTempValue ? "tmp" : "v") << v.varIndex << "[" << (v.type == IR_INT ? "Int" : "Float") << ", " << v.byteSize << "]";
+	}
+
+	return ss.str();
 }
 
 
@@ -89,6 +89,9 @@ string IR_Assign::ToString()
 		break;
 	case IR_TYPE_CAST:
 		assignType = "TYPE_CAST";
+		break;
+	case IR_FLAG_CONVERT:
+		assignType = "FLAG";
 		break;
 	}
 	
@@ -190,11 +193,11 @@ string IR_Compare::ToString()
 	return ss.str();
 }
 
-string IR_Assign_From_Flags::ToString()
-{
-	stringstream ss;
-	ss << "Assign from Flags: " << varToString(dest);
-	return ss.str();
- }
-
-IR_Assign_From_Flags::IR_Assign_From_Flags(IR_Value dest) : dest(dest) {}
+//string IR_Assign_From_Flags::ToString()
+//{
+//	stringstream ss;
+//	ss << "Assign from Flags: " << varToString(dest);
+//	return ss.str();
+// }
+//
+//IR_Assign_From_Flags::IR_Assign_From_Flags(IR_Value dest, IR_FlagResults flag) : dest(dest), flag(flag) {}

@@ -35,7 +35,7 @@ IR_Scope::IR_Scope()
 
 IR::IR()
 {
-	IR_statements = vector<unique_ptr<IR_Statement>>();
+	IR_statements = vector<shared_ptr<IR_Statement>>();
 }
 
 
