@@ -19,7 +19,7 @@ string conditionToString(IR_FlagResults condition)
 	return cs;
 }
 
-string varToString(IR_Value& v)
+string varToString(IR_Value v)
 {
 	stringstream ss;
 	if (v.valueType == IR_LITERAL)
@@ -32,28 +32,85 @@ string varToString(IR_Value& v)
 	}
 	else if (v.specialVars == IR_RETURN)
 	{
-		ss << "%return [" << (v.type == IR_INT ? "INT" : "FLOAT") << ", " << v.byteSize << "]";
+		ss << "%return (" << (v.type == IR_INT ? "INT" : "FLOAT") << ", " << v.byteSize << ")";
 	}
 	else {
-		ss << "%" << (v.isTempValue ? "tmp" : "v") << v.varIndex << "[" << (v.type == IR_INT ? "Int" : "Float") << ", " << v.byteSize << "]";
+		ss << "%" << (v.isTempValue ? "tmp" : "v") << v.varIndex << "(" << (v.type == IR_INT ? "Int" : "Float")
+			<< (v.pointerLevel > 0 ? string(v.pointerLevel, '*') : "") << ", " << v.byteSize << ")";
 	}
 
 	return ss.str();
 }
 
 
-string operandToString(IR_Operand& operand)
+string operandToString(IR_Operand operand)
 {
 	//TODO: add more!!!!
-	return varToString(operand.value);
+	stringstream ss;
+
+	//set var type and byte size and pointer level based on if it's a derefenced value
+	operand.value.byteSize = operand.GetByteSize();
+	operand.value.type = operand.GetVarType();
+	operand.value.pointerLevel = operand.GetPointerLevel();
+
+	if (operand.dereference)
+	{
+		ss << "[" << varToString(operand.value);
+		if (operand.baseOffset != 0)
+		{
+			ss << " + " << operand.baseOffset;
+		}
+		if (operand.memoryOffsetMultiplier != 0)
+		{
+			if (operand.memoryOffsetMultiplier == 1)
+			{
+				ss << " + " << varToString(operand.memoryOffset);
+			}
+			else {
+				ss << " + " << operand.memoryOffsetMultiplier << " * " << varToString(operand.memoryOffset);
+			}
+		}
+
+		ss << "]";
+	}
+	else if (operand.useMemoryAddress)
+	{
+		ss << "Address(" << varToString(operand.value) << ")";
+	}
+	else {
+		ss << varToString(operand.value);
+	}
+	return ss.str();
 }
 
 IR_Value::IR_Value() {}
 IR_Value::IR_Value(IR_VarType type, IR_ValueType valueType, int byteSize, int varIndex, bool isTempValue, string literalValue, IR_SpecialVars specialVars) :
-	type(type), valueType(valueType), byteSize(byteSize), varIndex(varIndex), isTempValue(isTempValue), literalValue(literalValue), specialVars(specialVars) {}
+	type(type), valueType(valueType), byteSize(byteSize), varIndex(varIndex), isTempValue(isTempValue), literalValue(literalValue), specialVars(specialVars),
+	baseType(type) {} 
+
+IR_Value::IR_Value(IR_VarType type, IR_ValueType valueType, int byteSize, int varIndex, bool isTempValue, string literalValue, IR_SpecialVars specialVars, 
+	int pointerLevel, IR_VarType baseType) :
+	type(type), valueType(valueType), byteSize(byteSize), varIndex(varIndex), isTempValue(isTempValue), literalValue(literalValue), specialVars(specialVars),
+	pointerLevel(pointerLevel), baseType(baseType) {}
 
 IR_Operand::IR_Operand() {}
 IR_Operand::IR_Operand(IR_Value value): value(value) {}
+
+int IR_Operand::GetPointerLevel()
+{
+	int pointerLevelOffset = dereference ? -1 : 0;
+	int refOffset = useMemoryAddress ? 1 : 0;
+
+	return value.pointerLevel + pointerLevelOffset + refOffset;
+}
+IR_VarType IR_Operand::GetVarType()
+{
+	return GetPointerLevel() > 0 ? IR_VarType::IR_INT : this->value.baseType;
+}
+int IR_Operand::GetByteSize()
+{
+	return GetPointerLevel() > 0 ? POINTER_SIZE : 4;
+}
 
 string IR_Assign::ToString()
 {
@@ -96,12 +153,12 @@ string IR_Assign::ToString()
 	}
 	
 	stringstream ss;
-	ss << "Assign " << assignType << " " << varToString(dest.value) << ", " << varToString(source.value);
+	ss << "Assign " << assignType << " " << operandToString(dest) << ", " << operandToString(source);
 	return ss.str();
 }
 
 IR_Assign::IR_Assign() {}
-IR_Assign::IR_Assign(IR_VarType type, IR_AssignType assignType, IR_Operand dest, IR_Operand source): type(type), assignType(assignType), dest(dest), source(source) {}
+IR_Assign::IR_Assign(IR_VarType type, IR_AssignType assignType, int byteSize, IR_Operand dest, IR_Operand source): type(type), assignType(assignType), byteSize(byteSize), dest(dest), source(source) {}
 
 IR_VariableInit::IR_VariableInit() {}
 IR_VariableInit::IR_VariableInit(IR_Value value) : dest(value) {}

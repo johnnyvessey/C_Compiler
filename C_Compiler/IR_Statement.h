@@ -75,8 +75,13 @@ struct IR_Value
 	string literalValue;
 	IR_SpecialVars specialVars = IR_NONE;
 	IR_FlagResults flag = IR_NO_FLAGS;
+
+	int pointerLevel = 0;
+	IR_VarType baseType; //this is for pointers to know what the base type it is
+
 	IR_Value();
 	IR_Value(IR_VarType type, IR_ValueType valueType, int byteSize, int varIndex, bool isTempValue = true, string literalValue = "", IR_SpecialVars specialVars = IR_NONE);
+	IR_Value(IR_VarType type, IR_ValueType valueType, int byteSize, int varIndex, bool isTempValue, string literalValue, IR_SpecialVars specialVars, int pointerLevel, IR_VarType baseType);
 };
 
 struct IR_Operand
@@ -85,7 +90,15 @@ struct IR_Operand
 	bool dereference = false; 
 
 	bool useMemoryAddress = false;
+
+	int baseOffset = 0;
+
+	int memoryOffsetMultiplier = 0; //NOTE: this can only be 1,2,4,8
 	IR_Value memoryOffset;
+
+	IR_VarType GetVarType();
+	int GetByteSize();
+	int GetPointerLevel();
 
 	IR_Operand();
 	IR_Operand(IR_Value value);
@@ -128,9 +141,11 @@ struct IR_Assign : IR_Statement
 	IR_Operand dest;
 	IR_Operand source;
 
+	int byteSize;
+
 	virtual string ToString() override;
 	IR_Assign();
-	IR_Assign(IR_VarType type, IR_AssignType assignType, IR_Operand dest, IR_Operand source);
+	IR_Assign(IR_VarType type, IR_AssignType assignType, int byteSize, IR_Operand dest, IR_Operand source);
 };
 
 struct IR_StructInit : IR_Statement

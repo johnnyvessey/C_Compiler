@@ -52,8 +52,7 @@ struct IR_Scope
 
 struct IR_State
 {
-	int tempVarIndex = 1;
-	int stackVarIndex = 1;
+	int varIndex = 1;
 	int structVarIndex = 1;
 	IR_Scope scope;
 	int labelIndex = 0;

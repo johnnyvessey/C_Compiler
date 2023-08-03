@@ -59,11 +59,13 @@ void AST_Initialization::ConvertStatementToIR(IR& irState)
 	else
 	{
 		IR_Value value;
-		value.varIndex = irState.state.stackVarIndex++;
+		value.varIndex = irState.state.varIndex++;
 		value.valueType = IR_VARIABLE;
 		value.type = (lvalue->type.pointerLevel > 0 || lvalue->type.lValueType == LValueType::INT) ? IR_INT : IR_FLOAT;
-		//value.varIndex = irState.state.stackVarIndex++; //decide how to do this when assigning to expression to prevent lots of duplicate copying
+		//value.varIndex = irState.state.varIndex++; //decide how to do this when assigning to expression to prevent lots of duplicate copying
 		value.byteSize = (lvalue->type.pointerLevel > 0) ? POINTER_SIZE : 4;
+		value.pointerLevel = lvalue->type.pointerLevel;
+		value.baseType = lvalue->type.lValueType ==  LValueType::INT ? IR_INT : IR_FLOAT; //TODO: Figure out other types
 		value.isTempValue = false;
 		irState.state.scope.variableMapping.back()[lvalue->name] = value; //add to variable dictionary
 		
@@ -72,13 +74,13 @@ void AST_Initialization::ConvertStatementToIR(IR& irState)
 		if (rvalue)
 		{
 			//add assign statement afterwards
-			IR_Value irRValue = rvalue->ConvertExpressionToIR(irState);
-			if (irRValue.specialVars == IR_FLAGS)
+			IR_Operand irRValue = rvalue->ConvertExpressionToIR(irState);
+			if (irRValue.value.specialVars == IR_FLAGS)
 			{
-				irState.IR_statements.push_back(make_unique<IR_Assign>(IR_Assign(irRValue.type, IR_FLAG_CONVERT, IR_Operand(value), IR_Operand(irRValue))));
+				irState.IR_statements.push_back(make_unique<IR_Assign>(IR_Assign(irRValue.value.type, IR_FLAG_CONVERT, 4, IR_Operand(value), IR_Operand(irRValue))));
 			}
 			else {
-				irState.IR_statements.push_back(make_unique<IR_Assign>(IR_Assign(irRValue.type, IR_COPY, IR_Operand(value), IR_Operand(irRValue))));
+				irState.IR_statements.push_back(make_unique<IR_Assign>(IR_Assign(irRValue.value.type, IR_COPY, value.byteSize, IR_Operand(value), IR_Operand(irRValue))));
 			}
 		}
 
@@ -97,7 +99,7 @@ void AST_Assignment::PrintStatementAST(int indentLevel)
 
 void AST_Assignment::ConvertStatementToIR(IR& irState)
 {
-
+	this->expr->ConvertExpressionToIR(irState);
 }
 
 StatementType AST_Assignment::GetStatementType()
@@ -139,54 +141,6 @@ AST_If_Then::AST_If_Then()
 	elseStatement = make_unique<StatementGroup>();
 }
 
-//void ParseConditionalIR(unique_ptr<Expression>& Condition, IR& irState, int& labelEnd)
-//{
-//	if (Condition->GetExpressionType() == _BinOp)
-//	{
-//		//parse AND + OR, as well as comparisons; other bin ops don't matter
-//
-//		AST_BinOp* binOpExpr = ExpressionFunctions::GetSubexpressionPtr<AST_BinOp>(Condition);
-//		if (binOpExpr->op == BinOpType::AND || binOpExpr->op == BinOpType::OR)
-//		{
-//			//IMPORTANT: BECAUSE OF SHORT CIRCUITING, IT MUST JUMP AFTER CONDITION THAT WOULD SHORT CIRCUIT IT
-//			//i.e. for the statement: if(x && y) -> if x is false, you have to jump; you can't evaluate y
-//		}
-//		else if (IsComparisonOperation(binOpExpr->op))
-//		{
-//			IR_Value op1 = binOpExpr->left->ConvertExpressionToIR(irState);
-//			IR_Value op2 = binOpExpr->right->ConvertExpressionToIR(irState);
-//
-//			irState.IR_statements.push_back(make_unique<IR_Compare>(IR_Compare(IR_Operand(op1), IR_Operand(op2))));
-//
-//			IR_FlagResults cmpFlag;
-//			switch (binOpExpr->op)
-//			{
-//				case BinOpType::NOT_EQUALS: cmpFlag = IR_FlagResults::IR_NOT_EQUALS;
-//				case BinOpType::EQUALS: cmpFlag = IR_FlagResults::IR_EQUALS;
-//				case BinOpType::GREATER: cmpFlag = IR_FlagResults::IR_GREATER;
-//				case BinOpType::GREATER_EQUAL: cmpFlag = IR_FlagResults::IR_GREATER_EQUALS;
-//				case BinOpType::LESS: cmpFlag = IR_FlagResults::IR_LESS;
-//				case BinOpType::LESS_EQUAL: cmpFlag = IR_FlagResults::IR_LESS_EQUALS;
-//			}
-//
-//
-//		}
-//		else {
-//			//TODO: treat like normal value (is it zero or not)
-//		}
-//	}
-//	else
-//	{
-//		//for non-binary expressions, return if value is not equal to 0
-//		IR_Value value = Condition->ConvertExpressionToIR(irState);
-//		const IR_Value zero(value.type, IR_LITERAL, value.byteSize, true, "0");
-//		irState.IR_statements.push_back(make_unique<IR_Compare>(IR_Compare(IR_Operand(value), IR_Operand(zero))));
-//
-//		//create label for not true (at bottom)
-//		//Add JNE statement
-//	}
-//}
-
 void AST_If_Then::ConvertStatementToIR(IR& irState)
 {
 	if (Condition->GetExpressionType() == _BinOp)
@@ -201,10 +155,10 @@ void AST_If_Then::ConvertStatementToIR(IR& irState)
 		}
 		else if (IsComparisonOperation(binOpExpr->op))
 		{
-			IR_Value op1 = binOpExpr->left->ConvertExpressionToIR(irState);
-			IR_Value op2 = binOpExpr->right->ConvertExpressionToIR(irState);
+			IR_Operand op1 = binOpExpr->left->ConvertExpressionToIR(irState);
+			IR_Operand op2 = binOpExpr->right->ConvertExpressionToIR(irState);
 		
-			irState.IR_statements.push_back(make_unique<IR_Compare>(IR_Compare(IR_Operand(op1), IR_Operand(op2))));
+			irState.IR_statements.push_back(make_unique<IR_Compare>(IR_Compare(op1, op2)));
 		
 			switch (binOpExpr->op)
 			{
@@ -220,9 +174,9 @@ void AST_If_Then::ConvertStatementToIR(IR& irState)
 	else
 	{
 		//for non-binary expressions, return if value is not equal to 0
-		IR_Value value = Condition->ConvertExpressionToIR(irState);
-		const IR_Value zero(value.type, IR_LITERAL, value.byteSize, true, "0");
-		irState.IR_statements.push_back(make_unique<IR_Compare>(IR_Compare(IR_Operand(value), IR_Operand(zero))));
+		IR_Operand condition = Condition->ConvertExpressionToIR(irState);
+		const IR_Value zero(condition.value.type, IR_LITERAL, condition.value.byteSize, true, "0");
+		irState.IR_statements.push_back(make_unique<IR_Compare>(IR_Compare(condition, IR_Operand(zero))));
 				
 		//create label for not true (at bottom)
 		//Add JNE statement
@@ -357,7 +311,7 @@ void AST_Expression_Statement::PrintStatementAST(int indentLevel)
 
 void AST_Expression_Statement::ConvertStatementToIR(IR& irState)
 {
-	//TODO: DEFINE THIS
+	this->expr->ConvertExpressionToIR(irState);
 }
 
 StatementType AST_Expression_Statement::GetStatementType()

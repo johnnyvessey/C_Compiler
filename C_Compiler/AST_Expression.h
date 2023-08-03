@@ -93,7 +93,7 @@ namespace AST_Expression {
 
 		virtual ExpressionType GetExpressionType() = 0;
 
-		virtual IR_Value ConvertExpressionToIR(IR& irState) = 0;
+		virtual IR_Operand ConvertExpressionToIR(IR& irState) = 0;
 
 	};
 
@@ -113,7 +113,7 @@ namespace AST_Expression {
 
 		virtual ExpressionType GetExpressionType() override;
 
-		virtual IR_Value ConvertExpressionToIR(IR& irState) override;
+		virtual IR_Operand ConvertExpressionToIR(IR& irState) override;
 
 	};
 
@@ -130,7 +130,7 @@ namespace AST_Expression {
 		AST_Type_Cast_Expression();
 		AST_Type_Cast_Expression(unique_ptr<Expression>&& expr, VariableType from, VariableType to);
 		bool IsValidTypeCast();
-		virtual IR_Value ConvertExpressionToIR(IR& irState) override;
+		virtual IR_Operand ConvertExpressionToIR(IR& irState) override;
 
 	};
 
@@ -144,7 +144,7 @@ namespace AST_Expression {
 
 		virtual void PrintExpressionAST(int indentLevel = 0) override;
 		virtual ExpressionType GetExpressionType() override;
-		virtual IR_Value ConvertExpressionToIR(IR& irState) override;
+		virtual IR_Operand ConvertExpressionToIR(IR& irState) override;
 
 	};
 
@@ -159,7 +159,7 @@ namespace AST_Expression {
 		Variable v;
 		virtual void PrintExpressionAST(int indentLevel = 0) override;
 		virtual ExpressionType GetExpressionType() override;
-		virtual IR_Value ConvertExpressionToIR(IR& irState) override;
+		virtual IR_Operand ConvertExpressionToIR(IR& irState) override;
 
 
 		AST_Variable_Expression(Variable v);
@@ -174,7 +174,7 @@ namespace AST_Expression {
 
 		virtual void PrintExpressionAST(int indentLevel = 0) override;
 		virtual ExpressionType GetExpressionType() override;
-		virtual IR_Value ConvertExpressionToIR(IR& irState) override;
+		virtual IR_Operand ConvertExpressionToIR(IR& irState) override;
 
 	};
 
@@ -187,7 +187,7 @@ namespace AST_Expression {
 		AST_Struct_Variable_Access();
 		virtual void PrintExpressionAST(int indentLevel = 0) override;
 		virtual ExpressionType GetExpressionType() override;
-		virtual IR_Value ConvertExpressionToIR(IR& irState) override;
+		virtual IR_Operand ConvertExpressionToIR(IR& irState) override;
 
 	};
 
@@ -200,7 +200,7 @@ namespace AST_Expression {
 
 		virtual void PrintExpressionAST(int indentLevel = 0) override;
 		virtual ExpressionType GetExpressionType() override;
-		virtual IR_Value ConvertExpressionToIR(IR& irState) override;
+		virtual IR_Operand ConvertExpressionToIR(IR& irState) override;
 
 		AST_Pointer_Dereference(unique_ptr<Expression>&& expr);
 	};
@@ -223,7 +223,7 @@ namespace AST_Expression {
 
 		virtual void PrintExpressionAST(int indentLevel = 0) override;
 		virtual ExpressionType GetExpressionType() override;
-		virtual IR_Value ConvertExpressionToIR(IR& irState) override;
+		virtual IR_Operand ConvertExpressionToIR(IR& irState) override;
 
 	};
 
@@ -233,7 +233,7 @@ namespace AST_Expression {
 
 		virtual void PrintExpressionAST(int indentLevel = 0) override;
 		virtual ExpressionType GetExpressionType() override;
-		virtual IR_Value ConvertExpressionToIR(IR& irState) override;
+		virtual IR_Operand ConvertExpressionToIR(IR& irState) override;
 
 	};
 
@@ -246,7 +246,7 @@ namespace AST_Expression {
 
 		virtual void PrintExpressionAST(int indentLevel = 0) override;
 		virtual ExpressionType GetExpressionType() override;
-		virtual IR_Value ConvertExpressionToIR(IR& irState) override;
+		virtual IR_Operand ConvertExpressionToIR(IR& irState) override;
 
 	};
 
@@ -259,7 +259,7 @@ namespace AST_Expression {
 
 		AST_Negative_Expression();
 		AST_Negative_Expression(unique_ptr<Expression>&& expr);
-		virtual IR_Value ConvertExpressionToIR(IR& irState) override;
+		virtual IR_Operand ConvertExpressionToIR(IR& irState) override;
 
 	};
 
@@ -269,7 +269,7 @@ namespace AST_Expression {
 
 		virtual void PrintExpressionAST(int indentLevel = 0) override;
 		virtual ExpressionType GetExpressionType() override;
-		virtual IR_Value ConvertExpressionToIR(IR& irState) override;
+		virtual IR_Operand ConvertExpressionToIR(IR& irState) override;
 
 	};
 
@@ -279,7 +279,7 @@ namespace AST_Expression {
 
 		virtual void PrintExpressionAST(int indentLevel = 0) override;
 		virtual ExpressionType GetExpressionType() override;
-		virtual IR_Value ConvertExpressionToIR(IR& irState) override;
+		virtual IR_Operand ConvertExpressionToIR(IR& irState) override;
 
 	};
 
@@ -291,7 +291,7 @@ namespace AST_Expression {
 
 		virtual void PrintExpressionAST(int indentLevel = 0) override;
 		virtual ExpressionType GetExpressionType() override;
-		virtual IR_Value ConvertExpressionToIR(IR& irState) override;
+		virtual IR_Operand ConvertExpressionToIR(IR& irState) override;
 
 	};
 
