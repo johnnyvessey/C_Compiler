@@ -66,6 +66,7 @@ namespace AST_Expression {
 		return type == EQUALS || type == NOT_EQUALS || type == LESS || type == LESS_EQUAL || type == GREATER || type == GREATER_EQUAL;
 	}
 
+
 	struct BinOp {
 		BinOpType type;
 		int precedence;
@@ -94,6 +95,10 @@ namespace AST_Expression {
 		virtual ExpressionType GetExpressionType() = 0;
 
 		virtual IR_Operand ConvertExpressionToIR(IR& irState) = 0;
+
+		static IR_Operand ParseBooleanExpression(Expression* expr, IR& irState, bool returnVar, int& trueLabel, int& falseLabel, bool invertResult);
+
+		static bool isAndOrExpression(Expression* expr);
 
 	};
 

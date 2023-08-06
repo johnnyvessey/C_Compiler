@@ -141,71 +141,65 @@ AST_If_Then::AST_If_Then()
 	elseStatement = make_unique<StatementGroup>();
 }
 
+void ParseIfThenCondition(Expression* condition, IR& irState, int& trueLabel, int& falseLabel)
+{
+	IR_Operand irCondition = Expression::ParseBooleanExpression(condition, irState, false, trueLabel, falseLabel, false);
+
+	if (!Expression::isAndOrExpression(condition))
+	{
+		irState.IR_statements.push_back(make_shared<IR_Jump>(IR_Jump(falseLabel, (IR_FlagResults) -irCondition.value.flag)));
+		irState.IR_statements.push_back(make_shared<IR_Jump>(IR_Jump(trueLabel, IR_ALWAYS)));
+
+	}
+
+}
+
+
 void AST_If_Then::ConvertStatementToIR(IR& irState)
 {
-	if (Condition->GetExpressionType() == _BinOp)
-	{
-		//parse AND + OR, as well as comparisons; other bin ops don't matter
-		
-		AST_BinOp* binOpExpr = ExpressionFunctions::GetSubexpressionPtr<AST_BinOp>(Condition);
-		if (binOpExpr->op == BinOpType::AND || binOpExpr->op == BinOpType::OR)
-		{
-			//IMPORTANT: BECAUSE OF SHORT CIRCUITING, IT MUST JUMP AFTER CONDITION THAT WOULD SHORT CIRCUIT IT
-			//i.e. for the statement: if(x && y) -> if x is false, you have to jump; you can't evaluate y
-		}
-		else if (IsComparisonOperation(binOpExpr->op))
-		{
-			IR_Operand op1 = binOpExpr->left->ConvertExpressionToIR(irState);
-			IR_Operand op2 = binOpExpr->right->ConvertExpressionToIR(irState);
-		
-			irState.IR_statements.push_back(make_unique<IR_Compare>(IR_Compare(op1, op2)));
-		
-			switch (binOpExpr->op)
-			{
-				//case BinOpType::NOT_EQUALS: return IR_FlagResults::NOT_EQUALS;
-				//case BinOpType::EQUALS: return IR_FlagResults::EQUALS;
-				//case BinOpType::GREATER: return IR_FlagResults::GREATER;
-				//case BinOpType::GREATER_EQUAL: return IR_FlagResults::GREATER_EQUALS;
-				//case BinOpType::LESS: return IR_FlagResults::LESS;
-				//case BinOpType::LESS_EQUAL: return IR_FlagResults::LESS_EQUALS;
-			}
-		}
-	}
-	else
-	{
-		//for non-binary expressions, return if value is not equal to 0
-		IR_Operand condition = Condition->ConvertExpressionToIR(irState);
-		const IR_Value zero(condition.value.type, IR_LITERAL, condition.value.byteSize, true, "0");
-		irState.IR_statements.push_back(make_unique<IR_Compare>(IR_Compare(condition, IR_Operand(zero))));
-				
-		//create label for not true (at bottom)
-		//Add JNE statement
-	}
+	int trueLabelIdx;
+	int falseLabelIdx;
+	int endLabelIdx = irState.state.labelIndex++;
 
-	int notTrueLabelIdx = irState.state.labelIndex++;
-
+	ParseIfThenCondition(condition.get(), irState, trueLabelIdx, falseLabelIdx);
+	irState.IR_statements.push_back(make_shared<IR_Label>(IR_Label(trueLabelIdx)));
 	irState.EnterScope();
-	this->ifStatement->ConvertStatementToIR(irState); //convert statements inside if to IR
+	ifStatement->ConvertStatementToIR(irState); //convert statements inside if to IR
 	irState.ExitScope();
+	irState.IR_statements.push_back(make_shared<IR_Jump>(IR_Jump(endLabelIdx, IR_ALWAYS)));
 
+	int currentFalseLabel = falseLabelIdx;
 	for (const unique_ptr<AST_Else_If>& elseIf : elseIfStatements)
-	{
+	{ 
+		irState.IR_statements.push_back(make_shared<IR_Label>(IR_Label(currentFalseLabel)));
+
+		
+		int trueLabelElseIf;
+		int falseLabelElseIf;
+		ParseIfThenCondition(elseIf->condition.get(), irState, trueLabelElseIf, falseLabelElseIf);
+
+		irState.IR_statements.push_back(make_shared<IR_Label>(IR_Label(trueLabelElseIf)));
+
 		irState.EnterScope();
-		//parse statements and have proper branching code
-		elseIf->ConvertStatementToIR(irState);
+		elseIf->statements->ConvertStatementToIR(irState);
 		irState.ExitScope();
+
+		currentFalseLabel = falseLabelElseIf;
+		irState.IR_statements.push_back(make_shared<IR_Jump>(IR_Jump(endLabelIdx, IR_ALWAYS)));
 	}
 	if (this->elseStatement)
 	{
-		irState.EnterScope();
-		int endLabelIdx = irState.state.labelIndex++;
-		irState.IR_statements.push_back(make_unique<IR_Jump>(IR_Jump(endLabelIdx, IR_ALWAYS)));
-		//irState.IR_statements.push_back(make_unique<IR_Label>(IR_Label(notTrueLabelIdx))); //watch out for ELSE-IF STATEMENTS!!!!
+		irState.IR_statements.push_back(make_shared<IR_Label>(IR_Label(currentFalseLabel)));
 
-		this->elseStatement->ConvertStatementToIR(irState);
-		irState.IR_statements.push_back(make_unique<IR_Label>(IR_Label(notTrueLabelIdx)));
+		irState.EnterScope();
+		elseStatement->ConvertStatementToIR(irState);
 		irState.ExitScope();
+
+		irState.IR_statements.push_back(make_shared<IR_Jump>(IR_Jump(endLabelIdx, IR_ALWAYS)));
+
 	}
+
+	irState.IR_statements.push_back(make_shared<IR_Label>(IR_Label(endLabelIdx)));
 
 }
 
@@ -219,7 +213,7 @@ StatementType AST_If_Then::GetStatementType()
 void AST_If_Then::PrintStatementAST(int indentLevel)
 {
 	std::cout << string(indentLevel, '\t') << "if statement:\n";
-	Condition->PrintExpressionAST(indentLevel);
+	condition->PrintExpressionAST(indentLevel);
 	std::cout << string(indentLevel + 1, '\t') << "then:\n";
 	ifStatement->PrintStatementAST(indentLevel + 2);
 
@@ -279,7 +273,7 @@ AST_Struct_Definition::AST_Struct_Definition(string name, unordered_map<string, 
 
 void AST_Struct_Definition::ConvertStatementToIR(IR& irState)
 {
-	//TODO: DEFINE THIS
+	irState.state.scope.structMapping.back()[def.name] = def;
 }
 
 StatementType AST_Struct_Definition::GetStatementType()

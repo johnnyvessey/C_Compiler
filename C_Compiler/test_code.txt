@@ -1,5 +1,10 @@
-int** x;
+int x  = 2;
 
-int* i;
-
-int y = (*x)[*i];
+if(x < 3)
+{
+	x = 0;
+}
+else {
+	x = 1;
+}
+x = 2;

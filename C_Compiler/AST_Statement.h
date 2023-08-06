@@ -103,7 +103,7 @@ namespace AST_Statement
 
 
 	struct AST_If_Then : Statement {
-		unique_ptr<Expression> Condition;
+		unique_ptr<Expression> condition;
 		unique_ptr<StatementGroup> ifStatement;
 		vector<unique_ptr<AST_Else_If>> elseIfStatements;
 		unique_ptr<StatementGroup> elseStatement;

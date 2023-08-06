@@ -10,9 +10,28 @@ using std::unordered_map;
 
 #define POINTER_SIZE 8
 
+
+enum IR_StatementType
+{
+	_IR_ASSIGN,
+	_IR_VARIABLE_INIT,
+	_IR_JUMP,
+	_IR_LABEL,
+	_IR_STRUCT_INIT,
+	_IR_FUNCTION_CALL,
+	_IR_SCOPE_START,
+	_IR_SCOPE_END,
+	_IR_RETURN,
+	_IR_FUNCTION_ARG_ASSIGN,
+	_IR_VARIABLE_RELOAD,
+	_IR_REGISTER_WRITE_TO_MEMORY,
+	_IR_COMPARE,
+	_IR_NOP
+};
 struct IR_Statement
 {
 	virtual string ToString() = 0;
+	virtual IR_StatementType GetType() = 0;
 };
 
 enum IR_AssignType
@@ -131,6 +150,7 @@ struct IR_VariableInit : IR_Statement {
 	IR_VariableInit(IR_Value value);
 
 	virtual string ToString() override;
+	virtual IR_StatementType GetType() override;
 };
 
 struct IR_Assign : IR_Statement
@@ -144,6 +164,8 @@ struct IR_Assign : IR_Statement
 	int byteSize;
 
 	virtual string ToString() override;
+	virtual IR_StatementType GetType() override;
+
 	IR_Assign();
 	IR_Assign(IR_VarType type, IR_AssignType assignType, int byteSize, IR_Operand dest, IR_Operand source);
 };
@@ -154,6 +176,8 @@ struct IR_StructInit : IR_Statement
 	int byteNum;
 
 	virtual string ToString() override;
+	virtual IR_StatementType GetType() override;
+
 };
 
 struct IR_Label : IR_Statement
@@ -161,6 +185,8 @@ struct IR_Label : IR_Statement
 	int label;
 
 	virtual string ToString() override;
+	virtual IR_StatementType GetType() override;
+
 
 	IR_Label(int label);
 
@@ -171,6 +197,8 @@ struct IR_ScopeStart : IR_Statement
 
 
 	virtual string ToString() override;
+	virtual IR_StatementType GetType() override;
+
 
 };
 
@@ -180,6 +208,8 @@ struct IR_ScopeEnd : IR_Statement
 
 
 	virtual string ToString() override;
+	virtual IR_StatementType GetType() override;
+
 };
 
 struct IR_Jump : IR_Statement
@@ -188,6 +218,7 @@ struct IR_Jump : IR_Statement
 	IR_FlagResults condition = IR_ALWAYS;
 
 	virtual string ToString() override;
+	virtual IR_StatementType GetType() override;
 
 	IR_Jump(int labelIdx, IR_FlagResults condition = IR_ALWAYS);
 
@@ -196,6 +227,8 @@ struct IR_Jump : IR_Statement
 struct IR_Return : IR_Statement
 {
 	virtual string ToString() override;
+	virtual IR_StatementType GetType() override;
+
 
 };
 
@@ -217,6 +250,7 @@ struct IR_FunctionCall : IR_Statement
 	vector<IR_Value> args;
 
 	virtual string ToString() override;
+	virtual IR_StatementType GetType() override;
 
 };
 
@@ -229,13 +263,9 @@ struct IR_FunctionArgAssign : IR_Statement
 	IR_FunctionArgAssign(int argIdx, IR_Operand value);
 
 	virtual string ToString() override;
-};
+	virtual IR_StatementType GetType() override;
 
-//struct IR_TypeCast : IR_Statement
-//{
-//
-//	virtual string ToString() override;
-//};
+};
 
 /*
 	This is a statement that is added anytime after value in a pointer is modified. This is because all bets are off
@@ -251,6 +281,7 @@ struct IR_VariableReload : IR_Statement
 
 
 	virtual string ToString() override;
+	virtual IR_StatementType GetType() override;
 
 };
 
@@ -258,6 +289,8 @@ struct IR_VariableReload : IR_Statement
 struct IR_RegisterWriteToMemory : IR_Statement
 {
 	virtual string ToString() override;
+	virtual IR_StatementType GetType() override;
+
 
 };
 
@@ -267,9 +300,17 @@ struct IR_Compare : IR_Statement
 	IR_Operand op2;
 
 	virtual string ToString() override;
+	virtual IR_StatementType GetType() override;
+
 
 	IR_Compare();
 	IR_Compare(IR_Operand op1, IR_Operand op2);
+};
+
+struct IR_NOP : IR_Statement
+{
+	virtual string ToString() override;
+	virtual IR_StatementType GetType() override;
 };
 
 //struct IR_Assign_From_Flags : IR_Statement

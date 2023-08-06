@@ -3,7 +3,6 @@
 using namespace AST_Expression;
 
 Expression::Expression() {}
-IR_Operand ParseBooleanExpression(Expression* expr, IR& irState, bool returnVar, int& trueLabel, int& falseLabel, bool invertResult);
 
 unordered_map<BinOpType, IR_AssignType> IR_Expression_Utils::irBinOpMapping = {
 		{BinOpType::ADD, IR_AssignType::IR_ADD},
@@ -85,7 +84,7 @@ IR_Operand ConvertToBoolean(Expression* expr, IR& irState, bool invertResult)
 	return IR_Operand(flagValue);
 }
 
-bool isAndOrExpression(Expression* expr)
+bool Expression::isAndOrExpression(Expression* expr)
 {
 	AST_BinOp* binOpExpr = dynamic_cast<AST_BinOp*>(expr);
 	if (!binOpExpr) return false;
@@ -104,10 +103,10 @@ IR_Value ParseAndOrNoReturnVar(AST_BinOp* binOpExpr, IR& irState, int& trueLabel
 	falseLabelIdx = !invertResult ? outerFalseLabelIdx : outerTrueLabelIdx;
 
 	//this call sets the values of insideTrueLabelIdx and insideFalseLabelIdx
-	IR_Operand leftValue = ParseBooleanExpression(binOpExpr->left.get(), irState, false, insideTrueLabelIdx, insideFalseLabelIdx, false);
+	IR_Operand leftValue = Expression::ParseBooleanExpression(binOpExpr->left.get(), irState, false, insideTrueLabelIdx, insideFalseLabelIdx, false);
 
 	//TODO: Add inversion logic (logical NOT)
-	if (isAndOrExpression(binOpExpr->left.get()))
+	if (Expression::isAndOrExpression(binOpExpr->left.get()))
 	{
 		irState.IR_statements.push_back(make_shared<IR_Label>(IR_Label(insideTrueLabelIdx)));
 		if (binOpExpr->op == BinOpType::OR)
@@ -145,8 +144,8 @@ IR_Value ParseAndOrNoReturnVar(AST_BinOp* binOpExpr, IR& irState, int& trueLabel
 	int insideTrueLabelIdxRight = trueLabelIdx;
 	int insideFalseLabelIdxRight = falseLabelIdx;
 
-	IR_Operand rightValue = ParseBooleanExpression(binOpExpr->right.get(), irState, false, insideTrueLabelIdxRight, insideFalseLabelIdxRight, false);
-	if (isAndOrExpression(binOpExpr->right.get()))
+	IR_Operand rightValue = Expression::ParseBooleanExpression(binOpExpr->right.get(), irState, false, insideTrueLabelIdxRight, insideFalseLabelIdxRight, false);
+	if (Expression::isAndOrExpression(binOpExpr->right.get()))
 	{
 		//this will be optimized later so that there won't be multiple jumps in a row
 		irState.IR_statements.push_back(make_shared<IR_Label>(IR_Label(insideTrueLabelIdxRight)));
@@ -164,8 +163,8 @@ IR_Value ParseAndOrNoReturnVar(AST_BinOp* binOpExpr, IR& irState, int& trueLabel
 			rightValue.value.flag = IR_NOT_EQUALS;
 		}
 
-		irState.IR_statements.push_back(make_shared<IR_Jump>(IR_Jump(trueLabelIdx, rightValue.value.flag)));
-		irState.IR_statements.push_back(make_shared<IR_Jump>(IR_Jump(falseLabelIdx, IR_ALWAYS)));
+		irState.IR_statements.push_back(make_shared<IR_Jump>(IR_Jump(falseLabelIdx, (IR_FlagResults) -rightValue.value.flag)));
+		irState.IR_statements.push_back(make_shared<IR_Jump>(IR_Jump(trueLabelIdx, IR_ALWAYS)));
 	}
 
 	//this value is irrelevant
@@ -206,7 +205,7 @@ IR_Value ParseAndOrReturnVar(AST_BinOp* binOpExpr, IR& irState, int& trueLabel, 
 
 IR_Operand ParseAndOr(AST_BinOp* binOpExpr, IR& irState, bool returnVar, int& trueLabel, int& falseLabel, bool invertResult)
 {
-	bool hasPrevAndOr = isAndOrExpression(binOpExpr->left.get());
+	bool hasPrevAndOr = Expression::isAndOrExpression(binOpExpr->left.get());
 	if (returnVar)
 	{
 		return ParseAndOrReturnVar(binOpExpr, irState, trueLabel, falseLabel, invertResult);
@@ -230,7 +229,7 @@ IR_Operand ConvertFlagsToTempVarConditionally(IR_Value flagValue, IR& irState, b
 		return IR_Operand(flagValue);
 	}
 }
-IR_Operand ParseBooleanExpression(Expression* expr, IR& irState, bool returnVar, int& trueLabel, int& falseLabel, bool invertResult)
+IR_Operand Expression::ParseBooleanExpression(Expression* expr, IR& irState, bool returnVar, int& trueLabel, int& falseLabel, bool invertResult)
 {
 	if (expr->GetExpressionType() == _BinOp)
 	{
@@ -249,6 +248,8 @@ IR_Operand ParseBooleanExpression(Expression* expr, IR& irState, bool returnVar,
 		}
 		else if (IsComparisonOperation(binOpExpr->op))
 		{
+			trueLabel = irState.state.labelIndex++;
+			falseLabel = irState.state.labelIndex++;
 			IR_Operand op1 = binOpExpr->left->ConvertExpressionToIR(irState);
 			IR_Operand op2 = binOpExpr->right->ConvertExpressionToIR(irState);
 
@@ -273,6 +274,9 @@ IR_Operand ParseBooleanExpression(Expression* expr, IR& irState, bool returnVar,
 
 		}
 		else {
+			trueLabel = irState.state.labelIndex++;
+			falseLabel = irState.state.labelIndex++;
+
 			IR_Operand flagValue = ConvertToBoolean(expr, irState, invertResult);
 
 			return ConvertFlagsToTempVarConditionally(flagValue.value, irState, returnVar);
@@ -288,10 +292,14 @@ IR_Operand ParseBooleanExpression(Expression* expr, IR& irState, bool returnVar,
 		}
 		int trueLabel;
 		int falseLabel;
-		return ParseBooleanExpression(notExpr->expr.get(), irState, returnVar, trueLabel, falseLabel, !invertResult);
+		return Expression::ParseBooleanExpression(notExpr->expr.get(), irState, returnVar, trueLabel, falseLabel, !invertResult);
 
 	}
 	else {
+
+		trueLabel = irState.state.labelIndex++;
+		falseLabel = irState.state.labelIndex++;
+
 		return ConvertToBoolean(expr, irState, invertResult);
 	}
 
@@ -351,7 +359,7 @@ IR_Operand AST_BinOp::ConvertExpressionToIR(IR& irState)
 	{
 		int trueLabel;
 		int falseLabel;
-		return ParseBooleanExpression(this, irState, true, trueLabel, falseLabel, false); //when using ConvertExpressionToIR, always make it return a variable (not just flags) for AND and OR
+		return Expression::ParseBooleanExpression(this, irState, true, trueLabel, falseLabel, false); //when using ConvertExpressionToIR, always make it return a variable (not just flags) for AND and OR
 	}
 	else {
 		//pointer arith/ others
@@ -766,7 +774,7 @@ IR_Operand AST_Not_Expression::ConvertExpressionToIR(IR& irState)
 	int trueLabel;
 	int falseLabel;
 	//set invertResult to false, because it will be set to true inside the ParseBooleanExpression function
-	return ParseBooleanExpression(this, irState, true, trueLabel, falseLabel, false); 
+	return Expression::ParseBooleanExpression(this, irState, true, trueLabel, falseLabel, false); 
 }
 
 ExpressionType AST_Not_Expression::GetExpressionType()

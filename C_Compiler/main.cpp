@@ -22,4 +22,9 @@ int main()
 	irCode.ConvertToIR();
 	irCode.PrintIR();
 	//Convert IR to x64
+	irCode.Optimize();
+
+	std::cout << "-------------\n\n\n";
+
+	irCode.PrintIR();
 }

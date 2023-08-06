@@ -159,6 +159,10 @@ string IR_Assign::ToString()
 
 IR_Assign::IR_Assign() {}
 IR_Assign::IR_Assign(IR_VarType type, IR_AssignType assignType, int byteSize, IR_Operand dest, IR_Operand source): type(type), assignType(assignType), byteSize(byteSize), dest(dest), source(source) {}
+IR_StatementType IR_Assign::GetType()
+{
+	return _IR_ASSIGN;
+}
 
 IR_VariableInit::IR_VariableInit() {}
 IR_VariableInit::IR_VariableInit(IR_Value value) : dest(value) {}
@@ -167,11 +171,20 @@ string IR_VariableInit::ToString()
 	return "INIT " + varToString(dest);
 }
 
+IR_StatementType IR_VariableInit::GetType()
+{
+	return _IR_VARIABLE_INIT;
+}
+
 string IR_Label::ToString()
 {
 	stringstream ss;
 	ss << "Label #" << label << ":";
 	return ss.str();
+}
+IR_StatementType IR_Label::GetType()
+{
+	return _IR_LABEL;
 }
 IR_Label::IR_Label(int label) : label(label) {}
 
@@ -180,10 +193,18 @@ string IR_ScopeStart::ToString()
 {
 	return "Scope Start";
 }
+IR_StatementType IR_ScopeStart::GetType()
+{
+	return _IR_SCOPE_START;
+}
 
 string IR_ScopeEnd::ToString()
 {
 	return "Scope End";
+}
+IR_StatementType IR_ScopeEnd::GetType()
+{
+	return _IR_SCOPE_END;
 }
 
 string IR_Jump::ToString()
@@ -194,49 +215,62 @@ string IR_Jump::ToString()
 	ss << "J" << conditionToString(condition) << " #" << labelIdx;
 	return ss.str();
 }
+IR_StatementType IR_Jump::GetType()
+{
+	return _IR_JUMP;
+}
 
 IR_Jump::IR_Jump(int labelIdx, IR_FlagResults condition): labelIdx(labelIdx), condition(condition) {}
 
-//string IR_ALUBinOp::ToString()
-//{
-//	return "";
-//}
 
 string IR_FunctionCall::ToString()
 {
 	return "";
 }
-
+IR_StatementType IR_FunctionCall::GetType()
+{
+	return _IR_FUNCTION_CALL;
+}
 
 string IR_RegisterWriteToMemory::ToString()
 {
 	return "WRITE REGISTERS TO MEMORY";
+}
+IR_StatementType IR_RegisterWriteToMemory::GetType()
+{
+	return _IR_REGISTER_WRITE_TO_MEMORY;
 }
 
 string IR_StructInit::ToString()
 {
 	return "";
 }
+IR_StatementType IR_StructInit::GetType()
+{
+	return _IR_STRUCT_INIT;
+}
 
 string IR_FunctionArgAssign::ToString()
 {
 	return "";
+}
+IR_StatementType IR_FunctionArgAssign::GetType()
+{
+	return _IR_FUNCTION_ARG_ASSIGN;
 }
 
 IR_FunctionArgAssign::IR_FunctionArgAssign() {}
 IR_FunctionArgAssign::IR_FunctionArgAssign(int argIdx, IR_Operand value): argIdx(argIdx), value(value) {}
 
 
-//string IR_TypeCast::ToString()
-//{
-//	return "";
-//}
-
 string IR_VariableReload::ToString()
 {
 	return "VARIABLE RELOAD";
 }
-
+IR_StatementType IR_VariableReload::GetType()
+{
+	return _IR_VARIABLE_RELOAD;
+}
 
 IR_Compare::IR_Compare() {}
 IR_Compare::IR_Compare(IR_Operand op1, IR_Operand op2): op1(op1), op2(op2) {}
@@ -244,17 +278,21 @@ IR_Compare::IR_Compare(IR_Operand op1, IR_Operand op2): op1(op1), op2(op2) {}
 string IR_Compare::ToString()
 {
 	stringstream ss;
-	IR_FlagResults flag;
-	//TODO: fix with operand
+
 	ss << "Compare: " << operandToString(op1) << ", " << operandToString(op2);
 	return ss.str();
 }
+IR_StatementType IR_Compare::GetType()
+{
+	return _IR_COMPARE;
+}
 
-//string IR_Assign_From_Flags::ToString()
-//{
-//	stringstream ss;
-//	ss << "Assign from Flags: " << varToString(dest);
-//	return ss.str();
-// }
-//
-//IR_Assign_From_Flags::IR_Assign_From_Flags(IR_Value dest, IR_FlagResults flag) : dest(dest), flag(flag) {}
+string IR_NOP::ToString()
+{
+	return "NOP";
+}
+
+IR_StatementType IR_NOP::GetType()
+{
+	return _IR_NOP;
+}

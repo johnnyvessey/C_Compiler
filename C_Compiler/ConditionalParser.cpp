@@ -35,7 +35,7 @@ void AST::ParseScopeStatements(unique_ptr<StatementGroup>& group)
 unique_ptr<AST_If_Then> AST::ParseIfStatement()
 {
 	unique_ptr<AST_If_Then> ifThenExpr = make_unique<AST_If_Then>(std::move(AST_If_Then()));
-	ParseIfStatement(ifThenExpr, ifThenExpr->Condition, ifThenExpr->ifStatement);
+	ParseIfStatement(ifThenExpr, ifThenExpr->condition, ifThenExpr->ifStatement);
 
 	//parse chain of else ifs
 
