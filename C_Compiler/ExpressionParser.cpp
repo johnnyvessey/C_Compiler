@@ -14,7 +14,7 @@ unique_ptr<Expression> AST::ParseExpression()
 		}
 		else
 		{
-			firstExpr = ParseParentheticalExpression();
+			firstExpr = ParseNonBinaryExpression(ParseParentheticalExpression());
 		}
 
 	}

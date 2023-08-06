@@ -594,7 +594,50 @@ IR_Operand AST_Pointer_Dereference::ConvertExpressionToIR(IR& irState)
 	{
 		expr = (dynamic_cast<AST_Pointer_Dereference*>(expr))->baseExpr.get();
 	}*/
-	IR_Operand baseValue = this->baseExpr->ConvertExpressionToIR(irState);
+
+	IR_Operand baseExprOperand;
+	if (baseExpr->GetExpressionType() == _Pointer_Offset)
+	{
+		AST_Pointer_Offset* pointerOffsetExpr = dynamic_cast<AST_Pointer_Offset*>(baseExpr.get());
+		baseExprOperand = pointerOffsetExpr->expr->ConvertExpressionToIR(irState);
+		IR_Operand offsetOperand = pointerOffsetExpr->index->ConvertExpressionToIR(irState);
+
+		VariableType type = pointerOffsetExpr->type;
+		--type.pointerLevel;
+
+		StructDefinition* structDef = nullptr;
+		int memoryMultiplier = GetMemorySizeForIR(type, structDef);
+
+		if (offsetOperand.value.valueType == IR_LITERAL)
+		{
+			if (type.lValueType == LValueType::STRUCT)
+			{
+				*structDef = irState.state.scope.FindStruct(type.structName);
+			}
+			baseExprOperand.baseOffset += (std::stoi(offsetOperand.value.literalValue) *  memoryMultiplier);
+		}
+		else {
+
+			IR_Operand offsetOperandFinal = offsetOperand.dereference ? CopyDereferenceOfValue(offsetOperand, irState) : offsetOperand;
+
+			if (memoryMultiplier == 1 || memoryMultiplier == 2 || memoryMultiplier == 4 || memoryMultiplier == 8)
+			{
+				baseExprOperand.memoryOffsetMultiplier = memoryMultiplier;
+				baseExprOperand.memoryOffset = offsetOperandFinal.value;
+			}
+			else {
+				IR_Operand offsetFinal(IR_Value(IR_INT, IR_VARIABLE, 4, irState.state.varIndex++, true, "", IR_NONE));
+				irState.IR_statements.push_back(make_shared<IR_Assign>(IR_Assign(IR_INT, IR_COPY, 4, offsetFinal, offsetOperandFinal)));
+				irState.IR_statements.push_back(make_shared<IR_Assign>(IR_Assign(IR_INT, IR_MULTIPLY, 4, offsetFinal, 
+					IR_Operand(IR_Value(IR_INT, IR_LITERAL, 4, 0, true, std::to_string(memoryMultiplier), IR_NONE)))));
+
+				baseExprOperand.memoryOffsetMultiplier = 1;
+				baseExprOperand.memoryOffset = offsetFinal.value;
+			}
+		}
+
+	}
+	IR_Operand baseValue = (baseExpr->GetExpressionType() == _Pointer_Offset) ? baseExprOperand : this->baseExpr->ConvertExpressionToIR(irState);
 	if (baseValue.dereference == false)
 	{
 		baseValue.dereference = true;
@@ -605,6 +648,7 @@ IR_Operand AST_Pointer_Dereference::ConvertExpressionToIR(IR& irState)
 		derefValue.dereference = true;
 		return derefValue;
 	}
+	
 }
 
 ExpressionType AST_Pointer_Dereference::GetExpressionType()

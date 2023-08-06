@@ -64,6 +64,27 @@ namespace VariableNamespace {
 		size_t memorySize;
 	};
 
+	inline int GetMemorySizeForIR(VariableType type, StructDefinition* structDef = nullptr)
+	{
+		if (type.pointerLevel > 0)
+		{
+			return 8;
+		}
+		else if (type.lValueType == LValueType::INT || type.lValueType == LValueType::FLOAT || type.lValueType == LValueType::BOOL)
+		{
+			return 4;
+		}
+		else if (type.lValueType == LValueType::STRUCT)
+		{
+			return structDef->memorySize;
+		}
+		else {
+			//none
+			throw 0;
+		}
+
+
+	}
 	//needs to have access to scopeStack
 	// 
 	//inline size_t GetMemoryFromType(LValueType type, string structName = "")
