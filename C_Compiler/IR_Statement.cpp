@@ -22,6 +22,20 @@ string conditionToString(IR_FlagResults condition)
 string varToString(IR_Value v)
 {
 	stringstream ss;
+
+	string varType = "";
+	if (v.type == IR_STRUCT)
+	{
+		varType = "STRUCT";
+	}
+	else if (v.type == IR_FLOAT)
+	{
+		varType = "FLOAT";
+	}
+	else {
+		varType = "INT";
+	}
+
 	if (v.valueType == IR_LITERAL)
 	{
 		ss << "LITERAL (" << v.literalValue + ")";
@@ -32,10 +46,10 @@ string varToString(IR_Value v)
 	}
 	else if (v.specialVars == IR_RETURN)
 	{
-		ss << "%return (" << (v.type == IR_INT ? "INT" : "FLOAT") << ", " << v.byteSize << ")";
+		ss << "%return (" << varType << ", " << v.byteSize << ")";
 	}
 	else {
-		ss << "%" << (v.isTempValue ? "tmp" : "v") << v.varIndex << "(" << (v.type == IR_INT ? "Int" : "Float")
+		ss << "%" << (v.isTempValue ? "tmp" : "v") << v.varIndex << "(" << varType
 			<< (v.pointerLevel > 0 ? string(v.pointerLevel, '*') : "") << ", " << v.byteSize << ")";
 	}
 
@@ -150,10 +164,13 @@ string IR_Assign::ToString()
 	case IR_FLAG_CONVERT:
 		assignType = "FLAG";
 		break;
+	case IR_STRUCT_COPY:
+		assignType = "STRUCT_COPY";
+		break;
 	}
 	
 	stringstream ss;
-	ss << "Assign " << assignType << " " << operandToString(dest) << ", " << operandToString(source);
+	ss << "Assign (" << byteSize << ") " << assignType << " " << operandToString(dest) << ", " << operandToString(source);
 	return ss.str();
 }
 
@@ -241,11 +258,13 @@ IR_StatementType IR_RegisterWriteToMemory::GetType()
 	return _IR_REGISTER_WRITE_TO_MEMORY;
 }
 
-string IR_StructInit::ToString()
+string IR_ContinuousMemoryInit::ToString()
 {
-	return "";
+	stringstream ss;
+	ss << "Init Continuous Memory: %" << varIdx << " - " << byteNum << " bytes";
+	return ss.str();
 }
-IR_StatementType IR_StructInit::GetType()
+IR_StatementType IR_ContinuousMemoryInit::GetType()
 {
 	return _IR_STRUCT_INIT;
 }

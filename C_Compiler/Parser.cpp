@@ -251,7 +251,7 @@ x + y
 			ex:
 
 			FunctionExpression f_expr;
-			for(size_t i = 0; i < function.numArgs; ++i)
+			for(int i = 0; i < function.numArgs; ++i)
 			{
 				Expression expr = ParseExpression();
 				expr.type = function.returnType;

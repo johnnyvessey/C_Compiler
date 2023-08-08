@@ -18,7 +18,7 @@ AST_Struct_Definition AST::ParseStructDefinition()
 	unordered_map<string, Struct_Variable> structVariables;
 	vector<Struct_Variable> structVariablesVector;
 
-	size_t currentMemoryOffset = 0;
+	int currentMemoryOffset = 0;
 
 	while (GetCurrentToken().type != TokenType::CLOSE_BRACE)
 	{
@@ -61,13 +61,29 @@ AST_Struct_Definition AST::ParseStructDefinition()
 		assert(structVariables.find(v.name) == structVariables.end(), "Variable name " + v.name + " already used in this struct definition", GetCurrentLineNum());
 
 		++currentIndex;
+
+		//parse array
+		if (GetCurrentToken().type == TokenType::OPEN_BRACKET)
+		{
+			++v.type.pointerLevel;
+			++currentIndex;
+			Token& curToken = GetCurrentToken();
+			assert(curToken.type == TokenType::INT_LITERAL, "Must include constant size of array", GetCurrentLineNum());
+
+			v.arraySize = std::stoi(curToken.value);
+			
+			++currentIndex;
+			assert(GetCurrentToken().type == TokenType::CLOSE_BRACKET, "Must have closing bracket for array", GetCurrentLineNum());
+
+			++currentIndex;
+		}
 		assert(GetCurrentToken().type == TokenType::SEMICOLON, "Variable declaration must end with semicolon", GetCurrentLineNum());
 		++currentIndex;
 
 		structVar.memoryOffset = currentMemoryOffset;
 		structVar.v = std::move(v);
 
-		currentMemoryOffset += GetMemorySize(structVar.v.type);
+		currentMemoryOffset += GetMemorySize(structVar.v, structVar.v.arraySize > 0);
 
 		structVariablesVector.push_back(structVar);
 		structVariables[structVar.v.name] = std::move(structVar);
@@ -89,8 +105,15 @@ AST_Struct_Definition AST::ParseStructDefinition()
 
 //}
 
-size_t AST::GetMemorySize(VariableType type)
+int AST::GetMemorySize(Variable v, bool isArray)
 {
+	if (isArray)
+	{
+		--v.type.pointerLevel;
+		return v.arraySize * AST::GetMemorySize(v, false);
+	}
+
+	VariableType type = v.type;
 	if (type.pointerLevel > 0)
 	{
 		return 8;

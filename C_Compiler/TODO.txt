@@ -3,12 +3,15 @@ TODO:
 
 IR TODO:
 
-- IMPORTANT: make sure to add enter and exit scope calls for if statements and loops, as well as curly brace expressions
 
-- add optimization later for IR: optimizing Jump statements and labels
-	-> if always jump to label which is next line, remove the jump statement
-	-> while jumping to a label which immediately afterwards has an absolute jump, continue until to last label which doesn't have immediate absolute jump
-	-> finally, remove all labels which don't have any jumps to them
+- IMPORTANT: Add variable reload and write register to memory IR_Statements at the right places
+	-> add list of specific variables that need to be written to memory / reloaded ???
+	-> always write variables whose address has been taken to memory
+	
+
+
+
+- make sure to add enter and exit scope calls for loops, as well as curly brace expressions
 
 
 

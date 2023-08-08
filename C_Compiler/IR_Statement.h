@@ -46,7 +46,8 @@ enum IR_AssignType
 	IR_LEFT_SHIFT,
 	IR_RIGHT_SHIFT,
 	IR_FUSED_MULTIPLY_ADD,
-	IR_FLAG_CONVERT
+	IR_FLAG_CONVERT,
+	IR_STRUCT_COPY
 };
 
 
@@ -170,9 +171,9 @@ struct IR_Assign : IR_Statement
 	IR_Assign(IR_VarType type, IR_AssignType assignType, int byteSize, IR_Operand dest, IR_Operand source);
 };
 
-struct IR_StructInit : IR_Statement
+struct IR_ContinuousMemoryInit : IR_Statement
 {
-	int structVarIdx;
+	int varIdx;
 	int byteNum;
 
 	virtual string ToString() override;

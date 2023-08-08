@@ -118,7 +118,7 @@ vector<Variable> AST::ParseFunctionParameters()
 unique_ptr<StatementGroup> AST::ParseFunctionStatements(VariableType& returnType)
 {
 	unique_ptr<StatementGroup> statementGroupPtr = make_unique<StatementGroup>();
-	size_t scopeLevel = scopeStack.scope.size();
+	int scopeLevel = scopeStack.scope.size();
 
 	assert(GetCurrentToken().type == TokenType::OPEN_BRACE, "Open brace required for function statement", GetCurrentLineNum());
 	++currentIndex;
@@ -149,7 +149,7 @@ unique_ptr<AST_Function_Expression> AST::ParseFunctionCall(Function& f)
 	funcExpr.argumentInstances.reserve(f.def.arguments.size());
 	funcExpr.functionName = f.def.name;
 
-	size_t argIndex = 0;
+	int argIndex = 0;
 	while (GetCurrentToken().type != TokenType::CLOSE_PAR)
 	{
 		unique_ptr<Expression> arg = ParseExpression();

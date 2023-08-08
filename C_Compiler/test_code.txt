@@ -1,10 +1,14 @@
-int x  = 2;
+struct var {
+	int a;
+	int b[4];
+	float c;
+};
 
-if(x < 3)
-{
-	x = 0;
-}
-else {
-	x = 1;
-}
-x = 2;
+struct var** v1;
+
+struct var* v2;
+
+*v1 = v2;
+
+
+struct var v3 = **v1;

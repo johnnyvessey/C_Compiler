@@ -40,9 +40,9 @@ namespace VariableNamespace {
 	struct Variable {
 		string name;
 		VariableType type;
-		size_t arraySize = 0;
+		int arraySize = 0;
 		bool isConst = false;
-		//size_t IR_varNum;
+		//int IR_varNum;
 	};
 
 	struct FunctionDefinition {
@@ -53,7 +53,7 @@ namespace VariableNamespace {
 
 	struct Struct_Variable {
 		Variable v;
-		size_t memoryOffset;
+		int memoryOffset;
 	};
 
 	struct StructDefinition
@@ -61,7 +61,7 @@ namespace VariableNamespace {
 		string name;
 		unordered_map<string, Struct_Variable> variableMapping;
 		vector<Struct_Variable> variableVector;
-		size_t memorySize;
+		int memorySize;
 	};
 
 	inline int GetMemorySizeForIR(VariableType type, StructDefinition* structDef = nullptr)
@@ -87,7 +87,7 @@ namespace VariableNamespace {
 	}
 	//needs to have access to scopeStack
 	// 
-	//inline size_t GetMemoryFromType(LValueType type, string structName = "")
+	//inline int GetMemoryFromType(LValueType type, string structName = "")
 	//{
 	//	if (type == LValueType::INT || type == LValueType::FLOAT)
 	//	{

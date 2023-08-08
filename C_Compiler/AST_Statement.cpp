@@ -30,8 +30,12 @@ void StatementGroup::ConvertStatementToIR(IR& irState)
 void AST_Initialization::PrintStatementAST(int indentLevel)
 {
 	std::cout << string(indentLevel, '\t') << "Initialize: \n";// << lvalue->name << "; type: " << lvalue->type.lValueType << " ;ptr: " << lvalue->type.pointerLevel << " " << lvalue->type.structName << "\n";
-	std::cout << string(indentLevel + 1, '\t') << "Name: " << lvalue->name << "; type: " << lvalue->type.lValueType << " " 
-		<< lvalue->type.structName << " " << string(lvalue->type.pointerLevel, '*') << "\n";
+	std::cout << string(indentLevel + 1, '\t') << "Name: " << lvalue->name << "; type: " << lvalue->type.lValueType;
+	if (lvalue->arraySize > 0)
+	{
+		std::cout << "[" << lvalue->arraySize << "]";
+	}
+	std::cout << " " << lvalue->type.structName << " " << string(lvalue->type.pointerLevel, '*') << "\n";
 	if (rvalue) {
 		rvalue->PrintExpressionAST(indentLevel + 1);
 	}
@@ -49,12 +53,54 @@ void AST_Initialization::ConvertStatementToIR(IR& irState)
 	{
 		//do struct init here
 		StructDefinition structDef = irState.state.scope.FindStruct(lvalue->type.structName);
-		size_t memorySize = structDef.memorySize;
+		IR_ContinuousMemoryInit structInit;
+		structInit.byteNum = (int)structDef.memorySize;
+		structInit.varIdx = irState.state.varIndex++;
 
-		IR_StructInit structInit;
-		structInit.byteNum = (int)memorySize;
+		irState.IR_statements.push_back(make_shared<IR_ContinuousMemoryInit>(structInit));
+		IR_Value structVal(IR_STRUCT, IR_VARIABLE, structInit.byteNum, structInit.varIdx, false, "", IR_NONE);
+		irState.state.scope.variableMapping.back()[lvalue->name] = structVal;
 
-		//TODO: FINISH THIS AND DETERMINE HOW TO TREAT STRUCTS
+		if (rvalue)
+		{
+			IR_Operand irRValue = rvalue->ConvertExpressionToIR(irState);
+			irState.IR_statements.push_back(make_unique<IR_Assign>(IR_Assign(irRValue.value.type, IR_STRUCT_COPY, structInit.byteNum,IR_Operand(structVal), irRValue)));
+		}
+	}
+	else if (lvalue->arraySize > 0)
+	{
+		IR_ContinuousMemoryInit arrayInit;
+
+		VariableType varType = lvalue->type;
+		--varType.pointerLevel;
+
+		StructDefinition structDef;
+		
+		if (lvalue->type.lValueType == LValueType::STRUCT)
+		{
+			structDef = irState.state.scope.FindStruct(lvalue->type.structName);
+		}
+		arrayInit.byteNum = lvalue->arraySize * GetMemorySizeForIR(varType, &structDef);
+		arrayInit.varIdx = irState.state.varIndex++;
+
+		irState.IR_statements.push_back(make_shared<IR_ContinuousMemoryInit>(arrayInit));
+
+		IR_VarType baseType;
+		if (lvalue->type.lValueType == LValueType::STRUCT)
+		{
+			baseType = IR_STRUCT;
+		}
+		else if (lvalue->type.lValueType == LValueType::FLOAT)
+		{
+			baseType = IR_FLOAT;
+		}
+		else {
+			baseType = IR_INT;
+		}
+		IR_Value arrayVal(IR_INT, IR_VARIABLE, POINTER_SIZE, arrayInit.varIdx, false, "", IR_NONE, lvalue->type.pointerLevel, baseType);
+
+		irState.state.scope.variableMapping.back()[lvalue->name] = arrayVal;
+
 	}
 	else
 	{
@@ -259,7 +305,7 @@ StatementType AST_Function_Definition::GetStatementType()
 
 
 
-AST_Struct_Definition::AST_Struct_Definition(string name, unordered_map<string, Struct_Variable>&& variables, vector<Struct_Variable>&& structVariables, size_t memorySize)
+AST_Struct_Definition::AST_Struct_Definition(string name, unordered_map<string, Struct_Variable>&& variables, vector<Struct_Variable>&& structVariables, int memorySize)
 	
 {
 		//figure out if I need to align struct (to 4 bytes, for example)
@@ -293,7 +339,13 @@ void AST_Struct_Definition::PrintStatementAST(int indentLevel)
 	for (const Struct_Variable& structVar : def.variableVector) //may be out of order
 	{
 		std::cout << string(indentLevel + 1, '\t') << structVar.v.name << ": " << structVar.v.type.lValueType << " " << structVar.v.type.structName
-			<< string(structVar.v.type.pointerLevel, '*') << " (offset: " << structVar.memoryOffset << ")\n";
+			<< string(structVar.v.type.pointerLevel, '*');
+		
+		if (structVar.v.arraySize > 0)
+		{
+			std::cout << "[" << structVar.v.arraySize << "]";
+		}
+		std::cout << " (offset: " << structVar.memoryOffset << ")\n";
 	}
 }
 

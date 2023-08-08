@@ -1,6 +1,6 @@
 #include "Lexer.h"
 
-Token Lexer::ParseToken(const string&& s, size_t& lineNum, size_t& tokenNum)
+Token Lexer::ParseToken(const string&& s, int& lineNum, int& tokenNum)
 {
 	++tokenNum;
 	//check if token
@@ -31,11 +31,11 @@ vector<Token> Lexer::SplitStringByToken(const string& input)
 	const string doubleOps = "!+-&|=<>*/%"; //TODO: move '/' here and figure out what to do about comments
 	const string singleOps = "^[](){}; \t\n,"; //[remove \n for now] //TODO: handle *=, -=, +=, /=, and %= 
 	vector<Token> output;
-	size_t start = 0;
-	size_t lineNum = 1;
-	size_t tokenNum = -1;
+	int start = 0;
+	int lineNum = 1;
+	int tokenNum = -1;
 
-	for (size_t i = 0; i < input.size(); ++i)
+	for (int i = 0; i < input.size(); ++i)
 	{
 		char c = input.at(i);
 		if (doubleOps.find(c) != string::npos)

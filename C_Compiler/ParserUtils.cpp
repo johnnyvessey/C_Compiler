@@ -1,7 +1,7 @@
 #include "Parser.h"
 
 
-size_t AST::GetCurrentLineNum()
+int AST::GetCurrentLineNum()
 {
 	return tokens.at(currentIndex).lineNumber;
 }

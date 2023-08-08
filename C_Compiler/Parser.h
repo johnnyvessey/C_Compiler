@@ -17,7 +17,7 @@ using std::make_unique;
 using namespace AST_Expression;
 using namespace AST_Statement;
 
-inline void assert(bool condition, string message, size_t lineNum, bool active = true)
+inline void assert(bool condition, string message, int lineNum, bool active = true)
 {
 	if (!condition && active)
 	{
@@ -26,7 +26,7 @@ inline void assert(bool condition, string message, size_t lineNum, bool active =
 	}
 }
 
-inline void throwError(string message, size_t lineNum)
+inline void throwError(string message, int lineNum)
 {
 	assert(false, message, lineNum);
 }
@@ -38,12 +38,12 @@ public:
 	vector<Token> tokens;
 	shared_ptr<StatementGroup> group;
 
-	size_t currentIndex = 0;
+	int currentIndex = 0;
 	Scope scopeStack;
 
 	AST(vector<Token>& tokens);
 
-	size_t GetCurrentLineNum();
+	int GetCurrentLineNum();
 
 	Token& GetCurrentToken();
 
@@ -94,7 +94,7 @@ public:
 
 	void AssertMatchingReturnType(VariableType& returnType, unique_ptr<Statement>& statement);
 
-	size_t GetMemorySize(VariableType type);
+	int GetMemorySize(Variable v, bool isArray);
 
 	unique_ptr<AST_Struct_Variable_Access> ParseStructVariableAccess(unique_ptr<Expression>&& expr);
 
@@ -202,7 +202,7 @@ x + y
 			ex:
 
 			FunctionExpression f_expr;
-			for(size_t i = 0; i < function.numArgs; ++i)
+			for(int i = 0; i < function.numArgs; ++i)
 			{
 				Expression expr = ParseExpression();
 				expr.type = function.returnType;

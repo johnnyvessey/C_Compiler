@@ -151,7 +151,7 @@ namespace AST_Statement
 
 		StructDefinition def;
 
-		AST_Struct_Definition(string name, unordered_map<string, Struct_Variable>&& variables, vector<Struct_Variable>&& structVariables, size_t memorySize);
+		AST_Struct_Definition(string name, unordered_map<string, Struct_Variable>&& variables, vector<Struct_Variable>&& structVariables, int memorySize);
 		AST_Struct_Definition();
 
 		virtual void PrintStatementAST(int indentLevel = 0) override;

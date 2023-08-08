@@ -20,7 +20,7 @@ namespace Utils {
 
 	inline bool isFloat(const string& s)
 	{
-		size_t periodCount = 0;
+		int periodCount = 0;
 		bool isFloat = true;
 		for (const char& c : s)
 		{

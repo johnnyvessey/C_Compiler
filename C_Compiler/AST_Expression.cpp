@@ -574,9 +574,44 @@ void AST_Struct_Variable_Access::PrintExpressionAST(int indentLevel)
 	std::cout << string(indentLevel + 1, '\t') << "Access name: " << varName << "\n";
 }
 
+IR_Operand ParseOffset(Expression* expr, IR& irState, int& offset)
+{
+	if (expr->GetExpressionType() == _Struct_Variable_Access)
+	{
+		AST_Struct_Variable_Access* structAccess = dynamic_cast<AST_Struct_Variable_Access*>(expr);
+
+		StructDefinition structDef = irState.state.scope.FindStruct(structAccess->expr->type.structName);
+
+		Struct_Variable structVar = structDef.variableMapping[structAccess->varName];
+		offset += structVar.memoryOffset;
+
+
+		return ParseOffset(structAccess->expr.get(), irState, offset);
+	}
+	else if (expr->GetExpressionType() == _Pointer_Dereference)
+	{
+		//Parse constant array access
+	}
+	else {
+		IR_Operand operand;
+		operand.baseOffset = offset;
+
+		//TODO
+	}
+}
 IR_Operand AST_Struct_Variable_Access::ConvertExpressionToIR(IR& irState)
 {
-	//TODO: Finish this
+
+	/*
+		- have loop that continues to parse expression as long as it's a struct var access or constant array access
+		- TODO: figure out how to continue parsing expression once it stops being a struct access or constant array access
+	*/
+	int memoryOffset = 0;
+	IR_Operand structAccess = ParseOffset(this, irState, memoryOffset);
+
+
+
+	
 	return IR_Operand();
 
 }
@@ -670,12 +705,6 @@ AST_Pointer_Dereference::AST_Pointer_Dereference(unique_ptr<Expression>&& expr) 
 	baseExpr = std::move(expr);
 	type = VariableType(baseExpr->type.lValueType, baseExpr->type.structName, baseExpr->type.pointerLevel - 1);
 }
-
-//AST_Array_Index::AST_Array_Index(unique_ptr<Expression>&& expr): expr(std::move(expr))
-//{
-//	
-//}
-
 
 
 ExpressionType AST_Pointer_Offset::GetExpressionType()
@@ -816,7 +845,7 @@ IR_Operand AST_Assignment_Expression::ConvertExpressionToIR(IR& irState)
 
 	if (rValue.value.specialVars == IR_FLAGS)
 	{
-
+		assign.byteSize = 4;
 		//be careful when copying flag (1 byte) to memory; set it to register first and then copy 4 bytes over
 		//TODO: see if I need to change logic of IR_FLAG_CONVERT, maybe I don't need this check 
 		//and the rest of the managing of registers will be done in x64 translation phase
@@ -828,12 +857,20 @@ IR_Operand AST_Assignment_Expression::ConvertExpressionToIR(IR& irState)
 			assign.source = tempValue;
 		}
 		else {
-			assign.assignType == IR_FLAG_CONVERT;
+			assign.assignType = IR_FLAG_CONVERT;
 			assign.source = rValue;
 		}
 	}
+	else if (lvalue->type.lValueType == LValueType::STRUCT && lvalue->type.pointerLevel == 0)
+	{
+		assign.assignType == IR_STRUCT_COPY;
+		assign.byteSize = irState.state.scope.FindStruct(lvalue->type.structName).memorySize;
+		assign.source = rValue;
+	}
 	else {
 		assign.assignType = GetAssignTypeFromToken(assignmentOperator);
+		assign.byteSize = GetMemorySizeForIR(lvalue->type, nullptr);
+
 		if (lValue.dereference && rValue.dereference)
 		{
 			IR_Operand derefRValue = CopyDereferenceOfValue(rValue, irState);

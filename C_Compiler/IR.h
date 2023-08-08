@@ -53,7 +53,6 @@ struct IR_Scope
 struct IR_State
 {
 	int varIndex = 1;
-	int structVarIndex = 1;
 	IR_Scope scope;
 	int labelIndex = 0;
 	int currentStackPointerOffset = 0; //offset from stack pointer in current scope (for instance, if you have already stored 2 ints in the stack, the offset would be 8)
