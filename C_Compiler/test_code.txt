@@ -1,3 +1,15 @@
-int* x;
+int i = 0;
 
-int* y = x - 6;
+
+while (i < 10)
+{
+	
+	if (i == 8){
+	continue;
+	}
+	i += 1;
+
+	
+}
+
+int z = 7 - i;

@@ -41,6 +41,8 @@ struct IR_Scope
 	vector<unordered_map<string, IR_Value>> variableMapping;
 	vector<unordered_map<string, StructDefinition>> structMapping;
 	unordered_map<string, FunctionDefinition> functionMapping;
+	int currentLoopStartLabelIdx = 0;
+	int currentLoopEndLabelIdx = 0;
 
 	IR_Value FindVariable(string name);
 	StructDefinition FindStruct(string name);
@@ -54,7 +56,7 @@ struct IR_State
 {
 	int varIndex = 1;
 	IR_Scope scope;
-	int labelIndex = 0;
+	int labelIndex = 1;
 	int currentStackPointerOffset = 0; //offset from stack pointer in current scope (for instance, if you have already stored 2 ints in the stack, the offset would be 8)
 	//Scope scopeStack;
 	IR_Value functionReturnValue; //RAX register in x64
@@ -78,6 +80,7 @@ struct IR
 	//structs with the same name
 
 	IR();
+
 };
 
 

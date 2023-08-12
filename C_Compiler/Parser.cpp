@@ -61,11 +61,22 @@ unique_ptr<Statement> AST::ParseStatement()
 	}
 	case TokenType::CONTINUE:
 	{
-		return make_unique<AST_Continue>();
+	
+		unique_ptr<AST_Continue> contStatement = make_unique<AST_Continue>();
+		++currentIndex;
+		assert(GetCurrentToken().type == TokenType::SEMICOLON, "Line must end with semicolon", GetCurrentLineNum());
+		++currentIndex;
+
+		return contStatement;
 	}
 	case TokenType::BREAK:
 	{
-		return make_unique<AST_Break>();
+		unique_ptr<AST_Break> breakStatement = make_unique<AST_Break>();
+		++currentIndex;
+		assert(GetCurrentToken().type == TokenType::SEMICOLON, "Line must end with semicolon", GetCurrentLineNum());
+		++currentIndex;
+
+		return breakStatement;
 	}
 	case TokenType::OPEN_BRACE:
 	{

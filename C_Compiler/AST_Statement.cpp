@@ -64,7 +64,7 @@ void AST_Initialization::ConvertStatementToIR(IR& irState)
 		if (rvalue)
 		{
 			IR_Operand irRValue = rvalue->ConvertExpressionToIR(irState);
-			irState.IR_statements.push_back(make_unique<IR_Assign>(IR_Assign(irRValue.value.type, IR_STRUCT_COPY, structInit.byteNum,IR_Operand(structVal), irRValue)));
+			irState.IR_statements.push_back(make_shared<IR_Assign>(IR_Assign(irRValue.value.type, IR_STRUCT_COPY, structInit.byteNum,IR_Operand(structVal), irRValue)));
 		}
 	}
 	else if (lvalue->arraySize > 0)
@@ -115,7 +115,7 @@ void AST_Initialization::ConvertStatementToIR(IR& irState)
 		value.isTempValue = false;
 		irState.state.scope.variableMapping.back()[lvalue->name] = value; //add to variable dictionary
 		
-		irState.IR_statements.push_back(make_unique<IR_VariableInit>(IR_VariableInit(value)));
+		irState.IR_statements.push_back(make_shared<IR_VariableInit>(IR_VariableInit(value)));
 
 		if (rvalue)
 		{
@@ -123,7 +123,7 @@ void AST_Initialization::ConvertStatementToIR(IR& irState)
 			IR_Operand irRValue = rvalue->ConvertExpressionToIR(irState);
 			if (irRValue.value.specialVars == IR_FLAGS)
 			{
-				irState.IR_statements.push_back(make_unique<IR_Assign>(IR_Assign(irRValue.value.type, IR_FLAG_CONVERT, 4, IR_Operand(value), IR_Operand(irRValue))));
+				irState.IR_statements.push_back(make_shared<IR_Assign>(IR_Assign(irRValue.value.type, IR_FLAG_CONVERT, 4, IR_Operand(value), IR_Operand(irRValue))));
 			}
 			else {
 				IR_Assign assign = IR_Assign(irRValue.value.type, IR_COPY, value.byteSize, IR_Operand(value), IR_Operand(irRValue));
@@ -134,7 +134,7 @@ void AST_Initialization::ConvertStatementToIR(IR& irState)
 					assign.source.value.byteSize = POINTER_SIZE;
 					assign.source.dereference = true;
 				}
-				irState.IR_statements.push_back(make_unique<IR_Assign>(assign));
+				irState.IR_statements.push_back(make_shared<IR_Assign>(assign));
 			}
 		}
 
@@ -241,7 +241,7 @@ void AST_If_Then::ConvertStatementToIR(IR& irState)
 		currentFalseLabel = falseLabelElseIf;
 		irState.IR_statements.push_back(make_shared<IR_Jump>(IR_Jump(endLabelIdx, IR_ALWAYS)));
 	}
-	if (this->elseStatement)
+	if (!this->elseStatement->statements.empty())
 	{
 		irState.IR_statements.push_back(make_shared<IR_Label>(IR_Label(currentFalseLabel)));
 
@@ -435,7 +435,37 @@ StatementType AST_While_Loop::GetStatementType()
 
 void AST_While_Loop::ConvertStatementToIR(IR& irState)
 {
-	//TODO: DEFINE THIS
+	int startLabelIdx = irState.state.labelIndex++;
+	int endLabelIdx = 0;
+	int postConditionLabelIdx = 0;
+
+	//set up start and end labels for break and continue to reference (save previous start and end labels, and restore them at the end)
+	int prevStartLabelIdx = irState.state.scope.currentLoopStartLabelIdx;
+	int prevEndLabelIdx = irState.state.scope.currentLoopEndLabelIdx;
+
+
+	//start of loop
+	irState.EnterScope();
+
+	irState.IR_statements.push_back(make_shared<IR_Label>(IR_Label(startLabelIdx)));
+
+	ParseIfThenCondition(this->Condition.get(), irState, postConditionLabelIdx, endLabelIdx);
+
+	irState.state.scope.currentLoopStartLabelIdx = startLabelIdx;
+	irState.state.scope.currentLoopEndLabelIdx = endLabelIdx;
+
+	//loop body
+	irState.IR_statements.push_back(make_shared<IR_Label>(IR_Label(postConditionLabelIdx)));
+	
+	this->Statements->ConvertStatementToIR(irState);
+	irState.IR_statements.push_back(make_shared<IR_Jump>(IR_Jump(startLabelIdx, IR_ALWAYS)));
+
+	//end of loop
+	irState.IR_statements.push_back(make_shared<IR_Label>(IR_Label(endLabelIdx)));
+	irState.ExitScope();
+
+	irState.state.scope.currentLoopStartLabelIdx = prevStartLabelIdx;
+	irState.state.scope.currentLoopEndLabelIdx = prevEndLabelIdx;
 }
 
 void AST_While_Loop::PrintStatementAST(int indentLevel)
@@ -454,7 +484,12 @@ StatementType AST_Continue::GetStatementType()
 
 void AST_Continue::ConvertStatementToIR(IR& irState)
 {
-	//TODO: DEFINE THIS
+	if (irState.state.scope.currentLoopStartLabelIdx == 0)
+	{
+		std::cout << "Can't use continue outside of a loop\n";
+		throw 0;
+	}
+	irState.IR_statements.push_back(make_shared<IR_Jump>(IR_Jump(irState.state.scope.currentLoopStartLabelIdx, IR_ALWAYS)));
 }
 void AST_Continue::PrintStatementAST(int indentLevel)
 {
@@ -468,7 +503,13 @@ StatementType AST_Break::GetStatementType()
 
 void AST_Break::ConvertStatementToIR(IR& irState)
 {
-	//TODO: DEFINE THIS
+	if (irState.state.scope.currentLoopEndLabelIdx == 0)
+	{
+		std::cout << "Can't use break outside of a loop\n";
+		throw 0;
+	}
+
+	irState.IR_statements.push_back(make_shared<IR_Jump>(IR_Jump(irState.state.scope.currentLoopEndLabelIdx, IR_ALWAYS)));
 }
 
 void AST_Break::PrintStatementAST(int indentLevel)
