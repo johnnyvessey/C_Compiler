@@ -1,4 +1,3 @@
-float x = 8.7;
-float* y = &x;
+int* x;
 
-float z = *y;
+int* y = x - 6;

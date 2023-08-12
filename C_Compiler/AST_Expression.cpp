@@ -764,7 +764,9 @@ ExpressionType AST_Unary_Assignment_Expression::GetExpressionType()
 IR_Operand AST_Unary_Assignment_Expression::ConvertExpressionToIR(IR& irState)
 {
 	//TODO: if lvalue expression is pointer (pointerLevel > 0) or dereference of pointer, then add IR_VariableReload statement afterward
-		//TODO: Finish this
+
+
+	//TODO: if postfix, then create new temp variable, assign it to value; then increment value; return temp variable
 	return IR_Operand();
 
 }

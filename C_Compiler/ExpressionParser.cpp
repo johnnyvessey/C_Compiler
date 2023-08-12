@@ -209,7 +209,7 @@ unique_ptr<Expression> AST::ParseNonBinaryExpression(unique_ptr<Expression> prev
 
 		}
 	}
-	else if (Lexer::IsUnaryOp(token.type)) // !, -, &
+	else if (token.type == TokenType::NOT || token.type == TokenType::ADDRESS_OF)//(Lexer::IsUnaryOp(token.type)) // !, -, &
 	{
 		assert(!prev, "Invalid unary op syntax", token.lineNumber);
 		return ParseUnaryExpression();
@@ -315,7 +315,7 @@ unique_ptr<Expression> AST::ParseNonBinaryExpression(unique_ptr<Expression> prev
 	}
 	else
 	{
-		throwError("Invalid sytnax", GetCurrentLineNum());
+		throwError("Invalid syntax", GetCurrentLineNum());
 	}
 
 }
@@ -345,7 +345,15 @@ unique_ptr<AST_Pointer_Offset> AST::ParsePointerArithmetic(unique_ptr<AST_BinOp>
 	}
 	else
 	{
-		ptrArithExpr->index = make_unique<AST_Negative_Expression>(std::move(binOpExpr->right));
+		if (binOpExpr->right->GetExpressionType() == _Literal_Expression)
+		{
+			AST_Literal_Expression* litExpr = dynamic_cast<AST_Literal_Expression*>(binOpExpr->right.get());
+			litExpr->value = (litExpr->value[0] == '-') ? litExpr->value.substr(1, litExpr->value.size() - 1) : ("-" + litExpr->value);
+			ptrArithExpr->index = std::move(binOpExpr->right);
+		}
+		else {
+			ptrArithExpr->index = make_unique<AST_Negative_Expression>(std::move(binOpExpr->right));
+		}
 	}
 
 	ptrArithExpr->type = ptrArithExpr->expr->type;
