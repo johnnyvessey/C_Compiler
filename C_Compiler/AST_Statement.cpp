@@ -126,7 +126,15 @@ void AST_Initialization::ConvertStatementToIR(IR& irState)
 				irState.IR_statements.push_back(make_unique<IR_Assign>(IR_Assign(irRValue.value.type, IR_FLAG_CONVERT, 4, IR_Operand(value), IR_Operand(irRValue))));
 			}
 			else {
-				irState.IR_statements.push_back(make_unique<IR_Assign>(IR_Assign(irRValue.value.type, IR_COPY, value.byteSize, IR_Operand(value), IR_Operand(irRValue))));
+				IR_Assign assign = IR_Assign(irRValue.value.type, IR_COPY, value.byteSize, IR_Operand(value), IR_Operand(irRValue));
+
+				if (rvalue->GetExpressionType() == _Pointer_Offset)
+				{
+					assign.assignType = IR_LEA;
+					assign.source.value.byteSize = POINTER_SIZE;
+					assign.source.dereference = true;
+				}
+				irState.IR_statements.push_back(make_unique<IR_Assign>(assign));
 			}
 		}
 

@@ -1,14 +1,4 @@
-struct var {
-	int a;
-	int b[4];
-	float c;
-};
+float x = 8.7;
+float* y = &x;
 
-struct var** v1;
-
-struct var* v2;
-
-*v1 = v2;
-
-
-struct var v3 = **v1;
+float z = *y;

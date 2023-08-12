@@ -3,6 +3,9 @@ TODO:
 
 IR TODO:
 
+- IMPORTANT: figure out how to treat assigning pointers within structs (don't always dereference, use lea???)
+	-> figure out how to treat assigning array values in structs so it doesn't dereference twice
+
 
 - IMPORTANT: Add variable reload and write register to memory IR_Statements at the right places
 	-> add list of specific variables that need to be written to memory / reloaded ???

@@ -63,9 +63,9 @@ string operandToString(IR_Operand operand)
 	stringstream ss;
 
 	//set var type and byte size and pointer level based on if it's a derefenced value
-	operand.value.byteSize = operand.GetByteSize();
-	operand.value.type = operand.GetVarType();
-	operand.value.pointerLevel = operand.GetPointerLevel();
+	operand.value.byteSize = operand.value.byteSize;
+	operand.value.type = operand.value.type;
+	operand.value.pointerLevel = operand.value.pointerLevel;
 
 	if (operand.dereference)
 	{
@@ -108,7 +108,7 @@ IR_Value::IR_Value(IR_VarType type, IR_ValueType valueType, int byteSize, int va
 	pointerLevel(pointerLevel), baseType(baseType) {}
 
 IR_Operand::IR_Operand() {}
-IR_Operand::IR_Operand(IR_Value value): value(value) {}
+IR_Operand::IR_Operand(IR_Value value): value(value), baseOffset(0) {}
 
 int IR_Operand::GetPointerLevel()
 {
@@ -166,6 +166,9 @@ string IR_Assign::ToString()
 		break;
 	case IR_STRUCT_COPY:
 		assignType = "STRUCT_COPY";
+		break;
+	case IR_LEA:
+		assignType = "LEA";
 		break;
 	}
 	

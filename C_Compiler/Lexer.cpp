@@ -79,9 +79,12 @@ vector<Token> Lexer::SplitStringByToken(const string& input)
 		else if (c == '.')
 		{
 			string prev = input.substr(start, i - start);
-			if (!std::all_of(prev.begin(), prev.end(), [](char c) {return Utils::isNumeric(c); }))
+			if (prev.size() == 0 || !std::all_of(prev.begin(), prev.end(), [](char c) {return Utils::isNumeric(c); }))
 			{
-				output.push_back(ParseToken(std::move(prev), lineNum, tokenNum));
+				if (prev.size() > 0)
+				{
+					output.push_back(ParseToken(std::move(prev), lineNum, tokenNum));
+				}
 				output.push_back(ParseToken(input.substr(i, 1), lineNum, tokenNum));
 				start = i + 1;
 			}

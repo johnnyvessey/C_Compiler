@@ -574,31 +574,6 @@ void AST_Struct_Variable_Access::PrintExpressionAST(int indentLevel)
 	std::cout << string(indentLevel + 1, '\t') << "Access name: " << varName << "\n";
 }
 
-IR_Operand ParseOffset(Expression* expr, IR& irState, int& offset)
-{
-	if (expr->GetExpressionType() == _Struct_Variable_Access)
-	{
-		AST_Struct_Variable_Access* structAccess = dynamic_cast<AST_Struct_Variable_Access*>(expr);
-
-		StructDefinition structDef = irState.state.scope.FindStruct(structAccess->expr->type.structName);
-
-		Struct_Variable structVar = structDef.variableMapping[structAccess->varName];
-		offset += structVar.memoryOffset;
-
-
-		return ParseOffset(structAccess->expr.get(), irState, offset);
-	}
-	else if (expr->GetExpressionType() == _Pointer_Dereference)
-	{
-		//Parse constant array access
-	}
-	else {
-		IR_Operand operand;
-		operand.baseOffset = offset;
-
-		//TODO
-	}
-}
 IR_Operand AST_Struct_Variable_Access::ConvertExpressionToIR(IR& irState)
 {
 
@@ -607,12 +582,43 @@ IR_Operand AST_Struct_Variable_Access::ConvertExpressionToIR(IR& irState)
 		- TODO: figure out how to continue parsing expression once it stops being a struct access or constant array access
 	*/
 	int memoryOffset = 0;
-	IR_Operand structAccess = ParseOffset(this, irState, memoryOffset);
+	//IR_Operand structAccess = ParseOffset(this, irState, memoryOffset);
 
+	StructDefinition structDef = irState.state.scope.FindStruct(this->expr->type.structName);
+	Struct_Variable structVar = structDef.variableMapping[this->varName];
 
+	/*if (this->expr->GetExpressionType() == _Struct_Variable_Access)
+	{
+		int offset = structVar.memoryOffset;
+		IR_Operand subOp = this->expr->ConvertExpressionToIR(irState);
+		subOp.dereference = true;
+		subOp.baseOffset += offset;
 
-	
-	return IR_Operand();
+		return subOp;
+	}
+	else {*/
+		int offset = structVar.memoryOffset;
+		IR_Operand subOp = this->expr->ConvertExpressionToIR(irState);
+		subOp.dereference = true;
+		subOp.baseOffset += offset;
+
+		subOp.value.pointerLevel = structVar.v.type.pointerLevel + 1;
+		if (structVar.v.type.lValueType == LValueType::STRUCT)
+		{
+			subOp.value.baseType = IR_STRUCT;
+		}
+		else if (structVar.v.type.lValueType == LValueType::FLOAT)
+		{
+			subOp.value.baseType = IR_FLOAT;
+		}
+		else {
+			subOp.value.baseType = IR_INT;
+		}
+
+		subOp.value.type = subOp.value.pointerLevel > 0 ? IR_INT : subOp.value.baseType;
+		subOp.value.byteSize = subOp.value.pointerLevel > 0 ? POINTER_SIZE : 4;
+		return subOp;
+	//}
 
 }
 
@@ -632,53 +638,10 @@ IR_Operand AST_Pointer_Dereference::ConvertExpressionToIR(IR& irState)
 {
 	//TODO: Add IR statement WriteToMemory before adding IR statements for this 
 
-	/*Expression* expr = this->baseExpr.get();
-	while (expr->GetExpressionType() == _Pointer_Dereference)
-	{
-		expr = (dynamic_cast<AST_Pointer_Dereference*>(expr))->baseExpr.get();
-	}*/
-
 	IR_Operand baseExprOperand;
 	if (baseExpr->GetExpressionType() == _Pointer_Offset)
 	{
-		AST_Pointer_Offset* pointerOffsetExpr = dynamic_cast<AST_Pointer_Offset*>(baseExpr.get());
-		baseExprOperand = pointerOffsetExpr->expr->ConvertExpressionToIR(irState);
-		IR_Operand offsetOperand = pointerOffsetExpr->index->ConvertExpressionToIR(irState);
-
-		VariableType type = pointerOffsetExpr->type;
-		--type.pointerLevel;
-
-		StructDefinition* structDef = nullptr;
-		int memoryMultiplier = GetMemorySizeForIR(type, structDef);
-
-		if (offsetOperand.value.valueType == IR_LITERAL)
-		{
-			if (type.lValueType == LValueType::STRUCT)
-			{
-				*structDef = irState.state.scope.FindStruct(type.structName);
-			}
-			baseExprOperand.baseOffset += (std::stoi(offsetOperand.value.literalValue) *  memoryMultiplier);
-		}
-		else {
-
-			IR_Operand offsetOperandFinal = offsetOperand.dereference ? CopyDereferenceOfValue(offsetOperand, irState) : offsetOperand;
-
-			if (memoryMultiplier == 1 || memoryMultiplier == 2 || memoryMultiplier == 4 || memoryMultiplier == 8)
-			{
-				baseExprOperand.memoryOffsetMultiplier = memoryMultiplier;
-				baseExprOperand.memoryOffset = offsetOperandFinal.value;
-			}
-			else {
-				IR_Operand offsetFinal(IR_Value(IR_INT, IR_VARIABLE, 4, irState.state.varIndex++, true, "", IR_NONE));
-				irState.IR_statements.push_back(make_shared<IR_Assign>(IR_Assign(IR_INT, IR_COPY, 4, offsetFinal, offsetOperandFinal)));
-				irState.IR_statements.push_back(make_shared<IR_Assign>(IR_Assign(IR_INT, IR_MULTIPLY, 4, offsetFinal, 
-					IR_Operand(IR_Value(IR_INT, IR_LITERAL, 4, 0, true, std::to_string(memoryMultiplier), IR_NONE)))));
-
-				baseExprOperand.memoryOffsetMultiplier = 1;
-				baseExprOperand.memoryOffset = offsetFinal.value;
-			}
-		}
-
+		baseExprOperand = baseExpr->ConvertExpressionToIR(irState);
 	}
 	IR_Operand baseValue = (baseExpr->GetExpressionType() == _Pointer_Offset) ? baseExprOperand : this->baseExpr->ConvertExpressionToIR(irState);
 	if (baseValue.dereference == false)
@@ -726,8 +689,65 @@ void AST_Pointer_Offset::PrintExpressionAST(int indentLevel)
 
 IR_Operand AST_Pointer_Offset::ConvertExpressionToIR(IR& irState)
 {
-	//TODO: Finish this
-	return IR_Operand();
+	AST_Pointer_Offset* pointerOffsetExpr = this;
+	IR_Operand baseExprOperand = pointerOffsetExpr->expr->ConvertExpressionToIR(irState);
+	IR_Operand offsetOperand = pointerOffsetExpr->index->ConvertExpressionToIR(irState);
+
+	VariableType type = pointerOffsetExpr->type;
+	--type.pointerLevel;
+
+	StructDefinition structDef;
+	if (type.lValueType == LValueType::STRUCT)
+	{
+		structDef = irState.state.scope.FindStruct(type.structName);
+	}
+
+	int memoryMultiplier = GetMemorySizeForIR(type, &structDef);
+
+	if (offsetOperand.value.valueType == IR_LITERAL)
+	{
+		baseExprOperand.baseOffset += (std::stoi(offsetOperand.value.literalValue) * memoryMultiplier);
+	}
+	else {
+
+		IR_Operand offsetOperandFinal = offsetOperand.dereference ? CopyDereferenceOfValue(offsetOperand, irState) : offsetOperand;
+
+		if (baseExprOperand.memoryOffsetMultiplier != 0)
+		{
+			IR_Operand newOp(IR_Value(IR_INT, IR_VARIABLE, POINTER_SIZE, irState.state.varIndex++,
+				true, "", IR_NONE, baseExprOperand.GetPointerLevel(), baseExprOperand.GetVarType()));
+
+			irState.IR_statements.push_back(make_shared<IR_Assign>(IR_Assign(IR_INT, IR_LEA, POINTER_SIZE, newOp, baseExprOperand)));
+
+			baseExprOperand = newOp;
+
+		}
+		if (memoryMultiplier == 1 || memoryMultiplier == 2 || memoryMultiplier == 4 || memoryMultiplier == 8)
+		{
+			baseExprOperand.memoryOffsetMultiplier = memoryMultiplier;
+			offsetOperandFinal.value.byteSize = POINTER_SIZE;
+			baseExprOperand.memoryOffset = offsetOperandFinal.value;
+		}
+		//Note: this only happens when taking offset of struct pointer of level 1
+		else {
+			IR_Operand offsetFinal(IR_Value(IR_INT, IR_VARIABLE, 4, irState.state.varIndex++, true, "", IR_NONE));
+			irState.IR_statements.push_back(make_shared<IR_Assign>(IR_Assign(IR_INT, IR_COPY, 4, offsetFinal, offsetOperandFinal)));
+			irState.IR_statements.push_back(make_shared<IR_Assign>(IR_Assign(IR_INT, IR_MULTIPLY, 4, offsetFinal,
+				IR_Operand(IR_Value(IR_INT, IR_LITERAL, 4, 0, true, std::to_string(memoryMultiplier), IR_NONE)))));
+
+			baseExprOperand.memoryOffsetMultiplier = 1;
+
+			offsetFinal.value.byteSize = POINTER_SIZE;
+			baseExprOperand.memoryOffset = offsetFinal.value;
+			baseExprOperand.dereference = true;
+			//TODO: maybe rework this??? It's kinda awkward and makes the IR look weird when printed
+			IR_Operand dest(IR_Value(IR_STRUCT, IR_VARIABLE, POINTER_SIZE, irState.state.varIndex++, true, "", IR_NONE, 1, IR_STRUCT));
+			irState.IR_statements.push_back(make_shared<IR_Assign>(IR_Assign(IR_STRUCT, IR_LEA, POINTER_SIZE, dest, baseExprOperand)));
+			baseExprOperand = dest;
+		}
+	}
+
+	return baseExprOperand;
 }
 
 void AST_Unary_Assignment_Expression::PrintExpressionAST(int indentLevel)
@@ -780,11 +800,9 @@ void AST_Address_Expression::PrintExpressionAST(int indentLevel)
 
 IR_Operand AST_Address_Expression::ConvertExpressionToIR(IR& irState)
 {
-	//TODO: Finish this
-	return IR_Operand();
-
-
-	
+	IR_Operand operand = this->expr->ConvertExpressionToIR(irState);
+	operand.useMemoryAddress = true;
+	return operand;
 }
 
 ExpressionType AST_Address_Expression::GetExpressionType()
@@ -879,6 +897,12 @@ IR_Operand AST_Assignment_Expression::ConvertExpressionToIR(IR& irState)
 		else {
 			assign.source = rValue;
 		}
+	}
+
+	if (rvalue->GetExpressionType() == _Pointer_Offset)
+	{
+		assign.assignType = IR_LEA;
+		assign.dest.dereference = true;
 	}
 
 
