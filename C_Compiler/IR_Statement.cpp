@@ -66,6 +66,11 @@ string operandToString(IR_Operand operand)
 	operand.value.byteSize = operand.value.byteSize;
 	operand.value.type = operand.value.type;
 	operand.value.pointerLevel = operand.value.pointerLevel;
+	if (operand.dereference && operand.useMemoryAddress)
+	{
+		operand.dereference = false;
+		operand.useMemoryAddress = false;
+	}
 
 	if (operand.dereference)
 	{

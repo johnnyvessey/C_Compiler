@@ -108,7 +108,7 @@ public:
 
 	unique_ptr<AST_Pointer_Offset> ParseArrayIndexExpression(unique_ptr<Expression>&& prev);
 
-	unique_ptr<AST_Type_Cast_Expression> ParseTypeCastExpression();
+	unique_ptr<Expression> ParseTypeCastExpression();
 
 	VariableType ParseVariableType();
 

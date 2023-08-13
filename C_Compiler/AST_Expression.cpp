@@ -1,5 +1,5 @@
 #include "AST_Expression.h"
-
+#include <sstream>
 using namespace AST_Expression;
 
 Expression::Expression() {}
@@ -18,21 +18,6 @@ unordered_map<BinOpType, IR_AssignType> IR_Expression_Utils::irBinOpMapping = {
 	{INT, IR_INT}
 };
 
-//IR_Value ExpressionFunctions::GetValueFromExpression(unique_ptr<Expression>& expr, IR_State& irState)
-//{
-//	IR_Value result;
-//	if (expr->GetExpressionType() == _Literal_Expression)
-//	{
-//		AST_Literal_Expression* literalExpr = ExpressionFunctions::GetSubexpressionPtr<AST_Literal_Expression>(expr);
-//		result = (expr->type.lValueType == INT) ? IR_Utils::ParseLiteral(literalExpr->value, IR_INT) : IR_Utils::ParseLiteral(literalExpr->value, IR_FLOAT);
-//	}
-//	else if (expr->GetExpressionType() == _Function_Expression)
-//	{
-//		//IR_Value variable = irState.scope.FindVariable()
-//
-//	}
-//
-//}
 
  IR_Value Expression::VariableToIR_Value(const Variable& v, IR& irState)
  {
@@ -55,16 +40,17 @@ unordered_map<BinOpType, IR_AssignType> IR_Expression_Utils::irBinOpMapping = {
 }
 
 
- IR_Operand CopyDereferenceOfValue(IR_Operand baseValue, IR& irState)
+ IR_Operand CopyDereferenceOfValue(IR_Operand baseValue, IR& irState, bool useLEA = false)
  {
-	 IR_Operand deref(IR_Value(baseValue.value.type, IR_VARIABLE, baseValue.value.byteSize, irState.state.varIndex++, true, "", IR_NONE));
-	 deref.value.pointerLevel = baseValue.value.pointerLevel - 1;
-	 if (deref.value.pointerLevel == 0)
-	 {
-		 deref.value.type = deref.value.baseType;
-		 deref.value.byteSize = 4; //INT or FLOAT
-	 }
-	 irState.IR_statements.push_back(make_shared<IR_Assign>(IR_Assign(baseValue.value.type, IR_COPY, deref.value.byteSize, deref, baseValue)));
+	 IR_Operand deref(IR_Value(baseValue.GetVarType(), IR_VARIABLE, baseValue.GetByteSize(), irState.state.varIndex++, 
+		 true, "", IR_NONE, baseValue.GetPointerLevel(), baseValue.value.baseType));
+	 //deref.value.pointerLevel = baseValue.value.pointerLevel - 1;
+	 //if (deref.value.pointerLevel == 0)
+	 //{
+		// deref.value.type = deref.value.baseType;
+		// deref.value.byteSize = 4; //INT or FLOAT
+	 //}
+	 irState.IR_statements.push_back(make_shared<IR_Assign>(IR_Assign(baseValue.value.type, useLEA ? IR_LEA : IR_COPY, deref.value.byteSize, deref, baseValue)));
 
 	 return deref;
 
@@ -326,21 +312,95 @@ IR_Operand Expression::ParseBooleanExpression(Expression* expr, IR& irState, boo
 
 }
 
+
+IR_Value EvaluateConstantBinaryExpression(BinOpType op, AST_Literal_Expression* left, AST_Literal_Expression* right)
+{
+	std::stringstream ss;
+	int lInt;
+	int rInt;
+	float lFloat;
+	float rFloat;
+
+	bool isFloat = left->type.lValueType == LValueType::FLOAT;
+
+
+	lFloat = std::stof(left->value);
+	rFloat = std::stof(right->value);
+	lInt = std::stoi(left->value);
+	rInt = std::stoi(right->value);
+	
+	IR_Value litValue(isFloat ? IR_FLOAT : IR_INT, IR_LITERAL, 4, 0, true, "", IR_NONE);
+
+	switch (op)
+	{
+	case BinOpType::ADD:
+		ss << (isFloat ? lFloat + rFloat : lInt + rInt);
+		break;
+	case BinOpType::SUBTRACT:
+		ss << (isFloat ? lFloat - rFloat : lInt - rInt);
+		break;
+	case BinOpType::MULTIPLY:
+		ss << (isFloat ? lFloat * rFloat : lInt * rInt);
+		break;
+	case BinOpType::DIVIDE:
+		ss << (isFloat ? lFloat / rFloat : lInt / rInt);
+		break;
+	case BinOpType::AND:
+		ss << (lFloat != 0 && rFloat != 0 ? "1" : "0");
+		litValue.type = IR_INT;
+		break;
+	case BinOpType::OR:
+		ss << (lFloat != 0 || rFloat != 0 ? "1" : "0");
+		litValue.type = IR_INT;
+		break;
+	case BinOpType::LESS:
+		ss << (isFloat ? (lFloat < rFloat ? "1" : "0") : (lInt < rInt ? "1" : "0"));
+		litValue.type = IR_INT;
+		break;
+	case BinOpType::LESS_EQUAL:
+		ss << (isFloat ? (lFloat <= rFloat ? "1" : "0") : (lInt <= rInt ? "1" : "0"));
+		litValue.type = IR_INT;
+		break;
+	case BinOpType::EQUALS:
+		ss << (isFloat ? (lFloat == rFloat ? "1" : "0") : (lInt == rInt ? "1" : "0"));
+		litValue.type = IR_INT;
+		break;
+	case BinOpType::NOT_EQUALS:
+		ss << (isFloat ? (lFloat != rFloat ? "1" : "0") : (lInt != rInt ? "1" : "0"));
+		litValue.type = IR_INT;
+		break;
+	case BinOpType::GREATER:
+		ss << (isFloat ? (lFloat > rFloat ? "1" : "0") : (lInt > rInt ? "1" : "0"));
+		litValue.type = IR_INT;
+		break;
+	case BinOpType::GREATER_EQUAL:
+		ss << (isFloat ? (lFloat >= rFloat ? "1" : "0") : (lInt >= rInt ? "1" : "0"));
+		litValue.type = IR_INT;
+		break;
+	}
+
+	litValue.literalValue = ss.str();
+	return litValue;
+}
+
 IR_Operand AST_BinOp::ConvertExpressionToIR(IR& irState)
 {
 
-	//all expressions are temp values (for now)
+	//constant folding optimization
+	if (this->left->GetExpressionType() == _Literal_Expression && this->right->GetExpressionType() == _Literal_Expression)
+	{
+		//calculate literal value, store it in dest, and return literal value
+		AST_Literal_Expression* leftLit = dynamic_cast<AST_Literal_Expression*>(this->left.get());
+		AST_Literal_Expression* rightLit = dynamic_cast<AST_Literal_Expression*>(this->right.get());
 
-	//if (leftValue.valueType == IR_LITERAL && rightValue.valueType == IR_LITERAL)
-	//{
-	//	//calculate literal value, store it in dest, and return regular assign
-	//}
+		return IR_Operand(EvaluateConstantBinaryExpression(this->op, leftLit, rightLit));
+	}
 	 
 	if (IR_Expression_Utils::irBinOpMapping.find(op) != IR_Expression_Utils::irBinOpMapping.end())
 	{
 		IR_Operand leftValue = left->ConvertExpressionToIR(irState); //figure out whether there should be a second out parameter referring to return value of expression
 
-		IR_Operand dest(IR_Value(leftValue.value.type, IR_VARIABLE, leftValue.value.byteSize, irState.state.varIndex++, true, "", IR_NONE));
+		IR_Operand dest(IR_Value(leftValue.value.type, IR_VARIABLE, leftValue.GetByteSize(), irState.state.varIndex++, true, "", IR_NONE));
 
 		IR_AssignType binOpAssignType = IR_Expression_Utils::irBinOpMapping.at(op);
 
@@ -384,28 +444,9 @@ IR_Operand AST_BinOp::ConvertExpressionToIR(IR& irState)
 	}
 	else {
 		//pointer arith/ others
+		std::cout << "UNKNOWN OPERATION";
+		throw 0;
 	}
-
-
-	//return dest;
-	
-	
-	//binOpStatement.assignType = IR_Utils::irBinOpMapping.at()
-
-	//binOpStatement.result.isTempValue = true; //Look back at this... but it probably can be temp
-	//if (right->GetExpressionType() == _Literal_Expression)
-	//{
-	//	AST_Literal_Expression* literalExpr = ExpressionFunctions::GetSubexpressionPtr<AST_Literal_Expression>(right);
-	//	binOpStatement.result = (right->type.lValueType == INT) ? IR_Utils::ParseLiteral(literalExpr->value, IR_INT) : IR_Utils::ParseLiteral(literalExpr->value, IR_FLOAT);
-	//}
-	//else
-	//{
-	//	IR_Value variable = irState.state.scope.FindVariable()
-	//}
-	//binOpStatement.result.varIndex = irState.state.varIndex;
-	//binOpStatement.result.type = 
-
-
 
 }
 
@@ -629,49 +670,32 @@ void AST_Struct_Variable_Access::PrintExpressionAST(int indentLevel)
 
 IR_Operand AST_Struct_Variable_Access::ConvertExpressionToIR(IR& irState)
 {
-
-	/*
-		- have loop that continues to parse expression as long as it's a struct var access or constant array access
-		- TODO: figure out how to continue parsing expression once it stops being a struct access or constant array access
-	*/
 	int memoryOffset = 0;
-	//IR_Operand structAccess = ParseOffset(this, irState, memoryOffset);
 
 	StructDefinition structDef = irState.state.scope.FindStruct(this->expr->type.structName);
 	Struct_Variable structVar = structDef.variableMapping[this->varName];
 
-	/*if (this->expr->GetExpressionType() == _Struct_Variable_Access)
+	int offset = structVar.memoryOffset;
+	IR_Operand subOp = this->expr->ConvertExpressionToIR(irState);
+	subOp.dereference = true;
+	subOp.baseOffset += offset;
+
+	subOp.value.pointerLevel = structVar.v.type.pointerLevel + 1;
+	if (structVar.v.type.lValueType == LValueType::STRUCT)
 	{
-		int offset = structVar.memoryOffset;
-		IR_Operand subOp = this->expr->ConvertExpressionToIR(irState);
-		subOp.dereference = true;
-		subOp.baseOffset += offset;
-
-		return subOp;
+		subOp.value.baseType = IR_STRUCT;
 	}
-	else {*/
-		int offset = structVar.memoryOffset;
-		IR_Operand subOp = this->expr->ConvertExpressionToIR(irState);
-		subOp.dereference = true;
-		subOp.baseOffset += offset;
+	else if (structVar.v.type.lValueType == LValueType::FLOAT)
+	{
+		subOp.value.baseType = IR_FLOAT;
+	}
+	else {
+		subOp.value.baseType = IR_INT;
+	}
 
-		subOp.value.pointerLevel = structVar.v.type.pointerLevel + 1;
-		if (structVar.v.type.lValueType == LValueType::STRUCT)
-		{
-			subOp.value.baseType = IR_STRUCT;
-		}
-		else if (structVar.v.type.lValueType == LValueType::FLOAT)
-		{
-			subOp.value.baseType = IR_FLOAT;
-		}
-		else {
-			subOp.value.baseType = IR_INT;
-		}
-
-		subOp.value.type = subOp.value.pointerLevel > 0 ? IR_INT : subOp.value.baseType;
-		subOp.value.byteSize = subOp.value.pointerLevel > 0 ? POINTER_SIZE : 4;
-		return subOp;
-	//}
+	subOp.value.type = subOp.value.pointerLevel > 0 ? IR_INT : subOp.value.baseType;
+	subOp.value.byteSize = subOp.value.pointerLevel > 0 ? POINTER_SIZE : 4;
+	return subOp;
 
 }
 
@@ -746,6 +770,17 @@ IR_Operand AST_Pointer_Offset::ConvertExpressionToIR(IR& irState)
 	IR_Operand baseExprOperand = pointerOffsetExpr->expr->ConvertExpressionToIR(irState);
 	IR_Operand offsetOperand = pointerOffsetExpr->index->ConvertExpressionToIR(irState);
 
+	bool useLEA = false;
+	if (pointerOffsetExpr->expr->GetExpressionType() == _Struct_Variable_Access)
+	{
+		AST_Struct_Variable_Access* structAccess = dynamic_cast<AST_Struct_Variable_Access*>(pointerOffsetExpr->expr.get());
+		StructDefinition def = irState.state.scope.FindStruct(structAccess->expr->type.structName);
+		Struct_Variable& structVar = def.variableMapping.at(structAccess->varName);
+		if (structVar.v.arraySize > 0)
+		{
+			useLEA = true;
+		}
+	}
 	VariableType type = pointerOffsetExpr->type;
 	--type.pointerLevel;
 
@@ -757,6 +792,11 @@ IR_Operand AST_Pointer_Offset::ConvertExpressionToIR(IR& irState)
 
 	int memoryMultiplier = GetMemorySizeForIR(type, &structDef);
 
+	if (baseExprOperand.dereference)
+	{
+		IR_Operand copyOp = CopyDereferenceOfValue(baseExprOperand, irState, useLEA);
+		baseExprOperand = std::move(copyOp);
+	}
 	if (offsetOperand.value.valueType == IR_LITERAL)
 	{
 		baseExprOperand.baseOffset += (std::stoi(offsetOperand.value.literalValue) * memoryMultiplier);
@@ -820,7 +860,35 @@ IR_Operand AST_Unary_Assignment_Expression::ConvertExpressionToIR(IR& irState)
 
 
 	//TODO: if postfix, then create new temp variable, assign it to value; then increment value; return temp variable
-	return IR_Operand();
+	IR_Operand irOp = this->expr->ConvertExpressionToIR(irState);
+
+	string oneLiteralString = "1";
+	if (irOp.GetPointerLevel() > 0)
+	{
+		oneLiteralString = "8";
+	}
+	IR_AssignType assignType = this->opType == PLUS_PLUS ? IR_ADD : IR_SUBTRACT;
+	IR_Value oneLiteral(irOp.value.type, IR_LITERAL, irOp.GetByteSize(), 0, true, oneLiteralString, IR_NONE);
+
+	if (this->isPrefix)
+	{
+		IR_Assign assignOp(irOp.value.type, assignType, irOp.value.byteSize, irOp, IR_Operand(oneLiteral));
+
+		irState.IR_statements.push_back(make_shared<IR_Assign>(std::move(assignOp)));
+		return irOp;
+	}
+	else {
+		IR_Operand copyOp(IR_Value(irOp.GetVarType(), IR_VARIABLE, irOp.GetByteSize(), 
+			irState.state.varIndex++, true, "", IR_NONE, irOp.GetPointerLevel(), irOp.value.baseType));
+		IR_Assign copyAssign(irOp.value.type, IR_COPY, irOp.value.byteSize, copyOp, irOp);
+
+		irState.IR_statements.push_back(make_shared<IR_Assign>(std::move(copyAssign)));
+
+		IR_Assign modifyOp(irOp.value.type, assignType, irOp.value.byteSize, irOp, IR_Operand(oneLiteral));
+		irState.IR_statements.push_back(make_shared<IR_Assign>(std::move(modifyOp)));
+
+		return copyOp;
+	}
 
 }
 
@@ -960,6 +1028,11 @@ IR_Operand AST_Assignment_Expression::ConvertExpressionToIR(IR& irState)
 		assign.dest.dereference = true;
 	}
 
+	if (assign.source.dereference && assign.source.useMemoryAddress)
+	{
+		assign.source.useMemoryAddress = false;
+		assign.assignType = IR_LEA;
+	}
 
 	irState.IR_statements.push_back(make_shared<IR_Assign>(std::move(assign)));
 	return lValue;

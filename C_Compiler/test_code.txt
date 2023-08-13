@@ -1,7 +1,4 @@
-struct var {
-	int c[6];
-};
-
-struct var v;
-
-v.c[3] = 7;
+if (1 + 1)
+{
+	int x = 2;
+}

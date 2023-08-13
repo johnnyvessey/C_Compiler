@@ -134,6 +134,12 @@ void AST_Initialization::ConvertStatementToIR(IR& irState)
 					assign.source.value.byteSize = POINTER_SIZE;
 					assign.source.dereference = true;
 				}
+
+				if (assign.source.dereference && assign.source.useMemoryAddress)
+				{
+					assign.source.useMemoryAddress = false;
+					assign.assignType = IR_LEA;
+				}
 				irState.IR_statements.push_back(make_shared<IR_Assign>(assign));
 			}
 		}
@@ -171,7 +177,8 @@ AST_Else_If::AST_Else_If()
 
 void AST_Else_If::ConvertStatementToIR(IR& irState)
 {
-	//TODO: DEFINE THIS
+	//already parsed in AST_If_Then statement
+	return;
 }
 
 StatementType AST_Else_If::GetStatementType()

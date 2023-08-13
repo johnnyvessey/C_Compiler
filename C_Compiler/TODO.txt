@@ -1,14 +1,20 @@
 TODO:
 
 
+
+IR OPTIMIZATIONS TODO:
+
+- dead code elimination for if statements and loops (when condition is IR_LITERAL)
+	-> this could interact with constant propogation, so maybe have this be a separate step
+	-> in that case, need to know start and end of bounds for if statements (maybe based on scope start and end)
+- removing unused variables
+- constant propagation
+	-> be careful about control flow (if statements, loops)
+	-> play this very safe (only do for variables in top of scope?)
+
+
+
 IR TODO:
-
-
-- IMPORTANT: there is a bug when accessing arrays within structs
-	-> it double dereferences, creating a copy, and then dereferencing again
-	-> i.e. with v.c[3]
-	-> need to treat arrays within structs as different than pointers
-
 
 - IMPORTANT: Add variable reload and write register to memory IR_Statements at the right places
 	-> add list of specific variables that need to be written to memory / reloaded ???

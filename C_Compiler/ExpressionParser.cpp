@@ -114,7 +114,7 @@ unique_ptr<AST_Pointer_Offset> AST::ParseArrayIndexExpression(unique_ptr<Express
 	assert(prev->type.pointerLevel > 0, "Can only index a pointer type variable", GetCurrentLineNum());
 
 	++currentIndex;
-	unique_ptr<Expression> indexExpr = ParseNonBinaryExpression();
+	unique_ptr<Expression> indexExpr = ParseExpression();
 	assert(indexExpr->type.lValueType == LValueType::INT && indexExpr->type.pointerLevel == 0, "Array index must be integer value", GetCurrentLineNum());
 
 	unique_ptr<AST_Pointer_Offset> arrayIndexExpr = make_unique<AST_Pointer_Offset>();
@@ -168,23 +168,47 @@ VariableType AST::ParseVariableType()
 	return type;
 }
 
-unique_ptr<AST_Type_Cast_Expression> AST::ParseTypeCastExpression()
+unique_ptr<Expression> AST::ParseTypeCastExpression()
 {
 	VariableType toType = ParseVariableType();
 	assert(GetCurrentToken().type == TokenType::CLOSE_PAR, "Type cast must end with close parentheses", GetCurrentLineNum());
 	++currentIndex;
 
-	unique_ptr<AST_Type_Cast_Expression> typeCastExpr = make_unique<AST_Type_Cast_Expression>();
-	typeCastExpr->to = toType;
-	typeCastExpr->expr = ParseNonBinaryExpression();
-	typeCastExpr->from = typeCastExpr->expr->type;
+	//do automatic type casts for literals
+	unique_ptr<Expression> baseExpr;
+	if (GetCurrentToken().type == OPEN_PAR)
+	{
+		baseExpr = ParseParentheticalExpression();
+	}
+	else {
+		baseExpr = ParseNonBinaryExpression();
+	}
 
-	typeCastExpr->type = std::move(toType);
+	if (baseExpr->GetExpressionType() == _Literal_Expression)
+	{
+		AST_Literal_Expression* litExpr = dynamic_cast<AST_Literal_Expression*>(baseExpr.get());
+		litExpr->type = toType;
 
-	assert(typeCastExpr->IsValidTypeCast(), "Invalid type cast", GetCurrentLineNum());
+		if (toType.lValueType == LValueType::INT)
+		{
+			litExpr->value = std::to_string(std::stoi(litExpr->value));
+		}
 
-	return typeCastExpr;
+		return baseExpr;
+	}
+	else {
+		unique_ptr<AST_Type_Cast_Expression> typeCastExpr = make_unique<AST_Type_Cast_Expression>();
+		typeCastExpr->to = toType;
+		typeCastExpr->expr = std::move(baseExpr);
+		typeCastExpr->from = typeCastExpr->expr->type;
 
+		typeCastExpr->type = std::move(toType);
+
+		assert(typeCastExpr->IsValidTypeCast(), "Invalid type cast", GetCurrentLineNum());
+
+		return typeCastExpr;
+
+	}
 }
 
 unique_ptr<Expression> AST::ParseNonBinaryExpression(unique_ptr<Expression> prev)
@@ -219,7 +243,6 @@ unique_ptr<Expression> AST::ParseNonBinaryExpression(unique_ptr<Expression> prev
 		unique_ptr<AST_Unary_Assignment_Expression> unaryExpr = make_unique<AST_Unary_Assignment_Expression>();
 		unaryExpr->opType = token.type;
 		++currentIndex;
-
 		if (!prev)
 		{
 			unaryExpr->isPrefix = true;
@@ -232,6 +255,7 @@ unique_ptr<Expression> AST::ParseNonBinaryExpression(unique_ptr<Expression> prev
 			assert(Lexer::IsNonBinaryExpressionTerminalToken(nextToken.type), "Postfix unary operator must be the end of the expression", nextToken.lineNumber);
 		}
 
+		unaryExpr->type = unaryExpr->expr->type;
 		return unaryExpr;
 	}
 	else if (token.type == TokenType::STAR && prev == nullptr) //dereferencing pointer, right-to-left associativity
@@ -319,17 +343,48 @@ unique_ptr<Expression> AST::ParseNonBinaryExpression(unique_ptr<Expression> prev
 
 }
 
+unique_ptr<Expression> CreateTypeCast(unique_ptr<Expression> expr, VariableType to, VariableType from)
+{
+	if (expr->GetExpressionType() == _Literal_Expression)
+	{
+		AST_Literal_Expression* litExpr = dynamic_cast<AST_Literal_Expression*>(expr.get());
+		litExpr->type = to;
+
+		if (to.lValueType == LValueType::INT)
+		{
+			litExpr->value = std::to_string(std::stoi(litExpr->value));
+		}
+
+		return expr;
+	}
+	else {
+		expr = make_unique<AST_Type_Cast_Expression>(std::move(expr), to, from);
+		expr->type = to;
+		return expr;
+	}
+
+}
+
 void AST::PerformImplicitTypeCastBinaryOp(unique_ptr<AST_BinOp>& binOpExpr)
 {
+	VariableType leftType = binOpExpr->left->type;
+	VariableType rightType = binOpExpr->right->type;
 	if (binOpExpr->left->type.lValueType == LValueType::INT && binOpExpr->right->type.lValueType == LValueType::FLOAT 
 		&& binOpExpr->left->type.pointerLevel == 0 && binOpExpr->right->type.pointerLevel == 0)
 	{
-		binOpExpr->left = make_unique<AST_Type_Cast_Expression>(std::move(binOpExpr->left), VariableType(LValueType::INT, "", 0), VariableType(LValueType::FLOAT, "", 0));
+
+		//binOpExpr->left = make_unique<AST_Type_Cast_Expression>(std::move(binOpExpr->left), VariableType(LValueType::INT, "", 0), VariableType(LValueType::FLOAT, "", 0));
+		//binOpExpr->left->type.lValueType = LValueType::FLOAT;
+		binOpExpr->left = CreateTypeCast(std::move(binOpExpr->left), rightType, leftType);
+
 	}
 	else if (binOpExpr->left->type.lValueType == LValueType::FLOAT && binOpExpr->right->type.lValueType == LValueType::INT
 		&& binOpExpr->left->type.pointerLevel == 0 && binOpExpr->right->type.pointerLevel == 0)
 	{
-		binOpExpr->right = make_unique<AST_Type_Cast_Expression>(std::move(binOpExpr->right), VariableType(LValueType::INT, "", 0), VariableType(LValueType::FLOAT, "", 0));
+		//binOpExpr->right = make_unique<AST_Type_Cast_Expression>(std::move(binOpExpr->right), VariableType(LValueType::INT, "", 0), VariableType(LValueType::FLOAT, "", 0));
+		//binOpExpr->right->type.lValueType = LValueType::FLOAT;
+		binOpExpr->right = CreateTypeCast(std::move(binOpExpr->right), leftType, rightType);
+
 	}
 }
 
