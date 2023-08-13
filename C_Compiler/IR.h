@@ -35,18 +35,20 @@ figure out how to represent struct member variables in IR
 //
 //	int memorySize;
 //};
+
 struct IR_Scope
 {
 	int scopeIndex = 1;
 	vector<unordered_map<string, IR_Value>> variableMapping;
 	vector<unordered_map<string, StructDefinition>> structMapping;
-	unordered_map<string, FunctionDefinition> functionMapping;
+	unordered_map<string, IR_FunctionLabel> functionMapping;
 	int currentLoopStartLabelIdx = 0;
 	int currentLoopEndLabelIdx = 0;
+	int functionEndLabel = 0;
 
 	IR_Value FindVariable(string name);
 	StructDefinition FindStruct(string name);
-	FunctionDefinition FindFunction(string name);
+	IR_FunctionLabel FindFunction(string name);
 
 
 	IR_Scope();
@@ -59,7 +61,9 @@ struct IR_State
 	int labelIndex = 1;
 	int currentStackPointerOffset = 0; //offset from stack pointer in current scope (for instance, if you have already stored 2 ints in the stack, the offset would be 8)
 	//Scope scopeStack;
-	IR_Value functionReturnValue; //RAX register in x64
+	const IR_Value functionReturnValueInt; //RAX register in x64
+	const IR_Value functionReturnValueFloat; //XMM0 register
+	const IR_Value functionReturnValueStructPointer; //pointer to struct return (first register passed into function) 
 	IR_Value flags; //flags set based on operations (especially used for boolean values)
 
 	IR_State();
@@ -71,6 +75,9 @@ struct IR
 	vector<shared_ptr<IR_Statement>> IR_statements;
 	void EnterScope();
 	void ExitScope();
+
+	void EnterFunction();
+	void ExitFunction();
 
 	//vector<IR_Statement> Function_Statements;
 	//vector<IR_Statement> Data_Statements;

@@ -72,6 +72,13 @@ vector<Variable> AST::ParseFunctionParameters()
 {
 	vector<Variable> params;
 
+	//parsing function with no arguments
+	if (GetCurrentToken().type == TokenType::CLOSE_PAR)
+	{
+		++currentIndex;
+		return params;
+	}
+
 	while (GetCurrentToken().type != TokenType::CLOSE_PAR)
 	{
 		Variable v;

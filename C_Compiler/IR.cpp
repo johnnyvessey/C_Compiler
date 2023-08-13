@@ -13,7 +13,7 @@ void IR::EnterScope()
 	state.scope.variableMapping.push_back(unordered_map<string, IR_Value>());
 	state.scope.structMapping.push_back(unordered_map<string, StructDefinition>());
 
-	IR_statements.push_back(std::make_unique<IR_ScopeStart>());
+	IR_statements.push_back(std::make_shared<IR_ScopeStart>());
 	
 }
 void IR::ExitScope()
@@ -22,10 +22,20 @@ void IR::ExitScope()
 	state.scope.variableMapping.pop_back();
 	state.scope.structMapping.pop_back();
 
-	IR_statements.push_back(std::make_unique<IR_ScopeEnd>());
+	IR_statements.push_back(std::make_shared<IR_ScopeEnd>());
 
 }
 
+void IR::EnterFunction()
+{
+	IR_statements.push_back(make_shared<IR_FunctionStart>());
+	EnterScope();
+}
+void IR::ExitFunction()
+{
+	ExitScope();
+	IR_statements.push_back(make_shared<IR_FunctionEnd>());
+}
 IR_Scope::IR_Scope()
 {
 	variableMapping.push_back(unordered_map<string, IR_Value>());
@@ -39,10 +49,10 @@ IR::IR()
 }
 
 
-IR_State::IR_State()
+IR_State::IR_State() : functionReturnValueInt(IR_Value(IR_INT, IR_VARIABLE, 8, 0, true, "", IR_RETURN)), 
+	functionReturnValueFloat(IR_Value(IR_FLOAT, IR_VARIABLE, 8, 0, true, "", IR_RETURN)),
+	functionReturnValueStructPointer(IR_Value(IR_INT, IR_VARIABLE, 8, 0, true, "", IR_RETURN, 1, IR_STRUCT))
 {
-	//This is what the RAX or XMM0 register would be in x64
-	functionReturnValue = IR_Value(IR_INT, IR_VARIABLE, 8, 0, true, "", IR_RETURN);
 	flags = IR_Value(IR_INT, IR_VARIABLE, 1, 0, true, "", IR_FLAGS);
 }
 
@@ -67,7 +77,7 @@ StructDefinition IR_Scope::FindStruct(string name)
 		}
 	}
 }
-FunctionDefinition IR_Scope::FindFunction(string name)
+IR_FunctionLabel IR_Scope::FindFunction(string name)
 {
 	return functionMapping.at(name);
 }

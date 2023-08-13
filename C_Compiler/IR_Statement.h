@@ -26,7 +26,12 @@ enum IR_StatementType
 	_IR_VARIABLE_RELOAD,
 	_IR_REGISTER_WRITE_TO_MEMORY,
 	_IR_COMPARE,
-	_IR_NOP
+	_IR_NOP,
+	_IR_LOOP_START,
+	_IR_LOOP_END,
+	_IR_FUNCTION_LABEL,
+	_IR_FUNCTION_START,
+	_IR_FUNCTION_END
 };
 struct IR_Statement
 {
@@ -249,11 +254,12 @@ struct IR_Return : IR_Statement
 struct IR_FunctionCall : IR_Statement
 {
 	string funcName;
-	vector<IR_Value> args;
+	//vector<IR_Value> args;
 
 	virtual string ToString() override;
 	virtual IR_StatementType GetType() override;
 
+	IR_FunctionCall(string funcName);
 };
 
 struct IR_FunctionArgAssign : IR_Statement
@@ -315,14 +321,42 @@ struct IR_NOP : IR_Statement
 	virtual IR_StatementType GetType() override;
 };
 
-//struct IR_Assign_From_Flags : IR_Statement
-//{
-//	IR_Value dest;
-//	IR_FlagResults flag;
-//	virtual string ToString() override;
-//
-//	IR_Assign_From_Flags(IR_Value dest, IR_FlagResults flag);
-//};
+struct IR_LoopStart : IR_Statement
+{
+	virtual string ToString() override;
+	virtual IR_StatementType GetType() override;
+};
+
+struct IR_LoopEnd : IR_Statement
+{
+	virtual string ToString() override;
+	virtual IR_StatementType GetType() override;
+};
+
+struct IR_FunctionLabel : IR_Statement
+{
+	string functionName;
+	vector<IR_Value> args;
+	IR_Value returnValue;
+	int returnValueByteSize;
+
+	virtual string ToString() override;
+	virtual IR_StatementType GetType() override;
+	IR_FunctionLabel(string functionName);
+	IR_FunctionLabel();
+};
+
+struct IR_FunctionStart : IR_Statement
+{
+	virtual string ToString() override;
+	virtual IR_StatementType GetType() override;
+};
+
+struct IR_FunctionEnd : IR_Statement
+{
+	virtual string ToString() override;
+	virtual IR_StatementType GetType() override;
+};
 
 namespace IR_Utils
 {

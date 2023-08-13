@@ -220,7 +220,11 @@ void AST_If_Then::ConvertStatementToIR(IR& irState)
 	irState.EnterScope();
 	ifStatement->ConvertStatementToIR(irState); //convert statements inside if to IR
 	irState.ExitScope();
-	irState.IR_statements.push_back(make_shared<IR_Jump>(IR_Jump(endLabelIdx, IR_ALWAYS)));
+
+	if (!elseIfStatements.empty() || !elseStatement->statements.empty())
+	{
+		irState.IR_statements.push_back(make_shared<IR_Jump>(IR_Jump(endLabelIdx, IR_ALWAYS)));
+	}
 
 	int currentFalseLabel = falseLabelIdx;
 	for (const unique_ptr<AST_Else_If>& elseIf : elseIfStatements)
@@ -241,16 +245,16 @@ void AST_If_Then::ConvertStatementToIR(IR& irState)
 		currentFalseLabel = falseLabelElseIf;
 		irState.IR_statements.push_back(make_shared<IR_Jump>(IR_Jump(endLabelIdx, IR_ALWAYS)));
 	}
+
+	irState.IR_statements.push_back(make_shared<IR_Label>(IR_Label(currentFalseLabel)));
+
 	if (!this->elseStatement->statements.empty())
 	{
-		irState.IR_statements.push_back(make_shared<IR_Label>(IR_Label(currentFalseLabel)));
-
 		irState.EnterScope();
 		elseStatement->ConvertStatementToIR(irState);
 		irState.ExitScope();
 
 		irState.IR_statements.push_back(make_shared<IR_Jump>(IR_Jump(endLabelIdx, IR_ALWAYS)));
-
 	}
 
 	irState.IR_statements.push_back(make_shared<IR_Label>(IR_Label(endLabelIdx)));
@@ -284,9 +288,6 @@ void AST_If_Then::PrintStatementAST(int indentLevel)
 }
 
 
-//AST_Function_Definition::AST_Function_Definition()
-//{
-//}
 void AST_Function_Definition::PrintStatementAST(int indentLevel)
 {
 	std::cout << string(indentLevel, '\t') << "Function definition: name = " << func->def.name << "; type = " << func->def.returnType.lValueType
@@ -303,7 +304,62 @@ void AST_Function_Definition::PrintStatementAST(int indentLevel)
 
 void AST_Function_Definition::ConvertStatementToIR(IR& irState)
 {
-	//TODO: DEFINE THIS
+	shared_ptr<IR_FunctionLabel> funcLabel = make_shared<IR_FunctionLabel>(IR_FunctionLabel(this->func->def.name));
+
+	irState.IR_statements.push_back(funcLabel);
+	irState.EnterFunction();
+
+	Variable returnVar;
+	returnVar.type = this->func->def.returnType;
+	IR_Value retType = Expression::VariableToIR_Value(returnVar, irState);
+
+	IR_Value retValue;
+
+	if (retType.pointerLevel > 0)
+	{
+		retValue = irState.state.functionReturnValueInt;
+		retValue.byteSize = POINTER_SIZE;
+		funcLabel->returnValueByteSize = POINTER_SIZE;
+	}
+	else if (retType.type != IR_STRUCT)
+	{
+		retValue = retType.type == IR_INT ? irState.state.functionReturnValueInt : irState.state.functionReturnValueFloat;
+		retValue.byteSize = 4; //TODO: change this to be based on memory size of variable (not IR variable, because IR_INT can have multiple byte sizes)
+		funcLabel->returnValueByteSize = 4;
+	}
+	else
+	{
+		retValue = irState.state.functionReturnValueStructPointer;
+		retValue.byteSize = POINTER_SIZE;
+		StructDefinition structDef = irState.state.scope.FindStruct(this->func->def.returnType.structName);
+		funcLabel->returnValueByteSize = GetMemorySizeForIR(this->func->def.returnType, &structDef);
+	}
+
+	funcLabel->returnValue = retValue;
+
+	//set up function arguments -> add them to scope dictionary
+	for (const Variable& v : this->func->def.arguments)
+	{
+		IR_Value value = Expression::VariableToIR_Value(v, irState);
+		funcLabel->args.push_back(value);
+
+		//add variables to scope of function
+		irState.state.scope.variableMapping.back()[v.name] = value;
+	}
+
+	irState.state.scope.functionMapping[this->func->def.name] = *funcLabel;
+	int endFuncLabel = irState.state.labelIndex++;
+	irState.state.scope.functionEndLabel = endFuncLabel;
+	
+
+	this->func->statements->ConvertStatementToIR(irState);
+
+	irState.IR_statements.push_back(make_shared<IR_Label>(IR_Label(endFuncLabel)));
+
+	irState.ExitFunction();
+
+	irState.IR_statements.push_back(make_shared<IR_Return>(IR_Return()));
+	irState.state.scope.functionEndLabel = 0; //probably unnecessary
 }
 
 StatementType AST_Function_Definition::GetStatementType()
@@ -385,7 +441,44 @@ void AST_Return_Statement::PrintStatementAST(int indentLevel)
 
 void AST_Return_Statement::ConvertStatementToIR(IR& irState)
 {
-	//TODO: DEFINE THIS
+	if (this->returnExpression)
+	{
+		IR_Operand returnExpression = this->returnExpression->ConvertExpressionToIR(irState);
+
+		if (returnExpression.value.type == IR_INT)
+		{
+			IR_Value returnRegister = irState.state.functionReturnValueInt;
+			returnRegister.byteSize = returnExpression.GetByteSize();
+			returnRegister.pointerLevel = returnExpression.GetPointerLevel();
+			irState.IR_statements.push_back(make_shared<IR_Assign>(IR_Assign(IR_INT, IR_COPY, returnExpression.value.byteSize,
+				IR_Operand(returnRegister), returnExpression)));
+		}
+		else if (returnExpression.value.type == IR_FLOAT)
+		{
+			IR_Value returnRegister = irState.state.functionReturnValueFloat;
+			returnRegister.byteSize = returnExpression.GetByteSize();
+			returnRegister.pointerLevel = returnExpression.GetPointerLevel();
+
+			irState.IR_statements.push_back(make_shared<IR_Assign>(IR_Assign(IR_FLOAT, IR_COPY, returnExpression.value.byteSize,
+				IR_Operand(returnRegister), returnExpression)));
+		}
+		else {
+			//returning struct
+
+			//first argument passed in is pointer to struct
+			IR_Value returnRegister = irState.state.functionReturnValueStructPointer;
+			returnRegister.byteSize = POINTER_SIZE;
+			returnRegister.pointerLevel = returnExpression.GetPointerLevel();
+
+			//TODO: figure out if first operand needs to be dereferenced
+			irState.IR_statements.push_back(make_shared<IR_Assign>(IR_Assign(IR_STRUCT, IR_STRUCT_COPY, returnExpression.value.byteSize,
+				IR_Operand(returnRegister), returnExpression)));
+
+		}
+	}
+	
+	irState.IR_statements.push_back(make_shared<IR_Jump>(IR_Jump(irState.state.scope.functionEndLabel, IR_ALWAYS)));
+
 }
 
 StatementType AST_Return_Statement::GetStatementType()
@@ -400,7 +493,7 @@ StatementType AST_NOP::GetStatementType()
 
 void AST_NOP::ConvertStatementToIR(IR& irState)
 {
-
+	return; //do nothing
 }
 
 void AST_NOP::PrintStatementAST(int indentLevel)
@@ -415,7 +508,47 @@ StatementType AST_For_Loop::GetStatementType()
 
 void AST_For_Loop::ConvertStatementToIR(IR& irState)
 {
-	//TODO: DEFINE THIS
+	int startLabelIdx = irState.state.labelIndex++;
+	int endLabelIdx = 0;
+	int postConditionLabelIdx = 0;
+
+	//set up start and end labels for break and continue to reference (save previous start and end labels, and restore them at the end)
+	int prevStartLabelIdx = irState.state.scope.currentLoopStartLabelIdx;
+	int prevEndLabelIdx = irState.state.scope.currentLoopEndLabelIdx;
+
+	//start of loop
+	irState.IR_statements.push_back(make_shared<IR_LoopStart>(IR_LoopStart()));
+	irState.EnterScope();
+
+	this->First->ConvertStatementToIR(irState);
+
+	int loopBeginIdx = irState.state.labelIndex++;
+	irState.IR_statements.push_back(make_shared<IR_Label>(IR_Label(loopBeginIdx)));
+
+	ParseIfThenCondition(this->Condition.get(), irState, postConditionLabelIdx, endLabelIdx);
+
+	irState.state.scope.currentLoopStartLabelIdx = startLabelIdx;
+	irState.state.scope.currentLoopEndLabelIdx = endLabelIdx;
+
+	//loop body
+	irState.IR_statements.push_back(make_shared<IR_Label>(IR_Label(postConditionLabelIdx)));
+
+	this->Statements->ConvertStatementToIR(irState);
+
+	irState.IR_statements.push_back(make_shared<IR_Label>(IR_Label(startLabelIdx)));
+	this->Third->ConvertExpressionToIR(irState);
+
+	irState.IR_statements.push_back(make_shared<IR_Jump>(IR_Jump(loopBeginIdx, IR_ALWAYS)));
+
+	//end of loop
+	irState.IR_statements.push_back(make_shared<IR_Label>(IR_Label(endLabelIdx)));
+	irState.ExitScope();
+	irState.IR_statements.push_back(make_shared<IR_LoopEnd>(IR_LoopEnd()));
+
+	//reset loop label indices to previous values
+	irState.state.scope.currentLoopStartLabelIdx = prevStartLabelIdx;
+	irState.state.scope.currentLoopEndLabelIdx = prevEndLabelIdx;
+
 }
 
 void AST_For_Loop::PrintStatementAST(int indentLevel)
@@ -455,6 +588,7 @@ void AST_While_Loop::ConvertStatementToIR(IR& irState)
 	irState.state.scope.currentLoopEndLabelIdx = endLabelIdx;
 
 	//loop body
+	irState.IR_statements.push_back(make_shared<IR_LoopStart>(IR_LoopStart()));
 	irState.IR_statements.push_back(make_shared<IR_Label>(IR_Label(postConditionLabelIdx)));
 	
 	this->Statements->ConvertStatementToIR(irState);
@@ -462,6 +596,8 @@ void AST_While_Loop::ConvertStatementToIR(IR& irState)
 
 	//end of loop
 	irState.IR_statements.push_back(make_shared<IR_Label>(IR_Label(endLabelIdx)));
+	irState.IR_statements.push_back(make_shared<IR_LoopEnd>(IR_LoopEnd()));
+
 	irState.ExitScope();
 
 	irState.state.scope.currentLoopStartLabelIdx = prevStartLabelIdx;
@@ -501,6 +637,8 @@ StatementType AST_Break::GetStatementType()
 	return _BREAK;
 }
 
+
+//TODO: figure out if I need to add SCOPE_END right before break statement???
 void AST_Break::ConvertStatementToIR(IR& irState)
 {
 	if (irState.state.scope.currentLoopEndLabelIdx == 0)

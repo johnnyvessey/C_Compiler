@@ -1,15 +1,7 @@
-int i = 0;
+struct var {
+	int c[6];
+};
 
+struct var v;
 
-while (i < 10)
-{
-	
-	if (i == 8){
-	continue;
-	}
-	i += 1;
-
-	
-}
-
-int z = 7 - i;
+v.c[3] = 7;

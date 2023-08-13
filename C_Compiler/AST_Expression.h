@@ -100,6 +100,8 @@ namespace AST_Expression {
 
 		static bool isAndOrExpression(Expression* expr);
 
+		static IR_Value VariableToIR_Value(const Variable& v, IR& irState);
+
 	};
 
 	struct LValueExpression : Expression

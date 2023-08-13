@@ -3,18 +3,17 @@ TODO:
 
 IR TODO:
 
-- IMPORTANT: figure out how to treat assigning pointers within structs (don't always dereference, use lea???)
-	-> figure out how to treat assigning array values in structs so it doesn't dereference twice
+
+- IMPORTANT: there is a bug when accessing arrays within structs
+	-> it double dereferences, creating a copy, and then dereferencing again
+	-> i.e. with v.c[3]
+	-> need to treat arrays within structs as different than pointers
 
 
 - IMPORTANT: Add variable reload and write register to memory IR_Statements at the right places
 	-> add list of specific variables that need to be written to memory / reloaded ???
 	-> always write variables whose address has been taken to memory
 	
-
-
-
-- make sure to add enter and exit scope calls for loops, as well as curly brace expressions
 
 
 

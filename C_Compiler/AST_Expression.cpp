@@ -34,6 +34,27 @@ unordered_map<BinOpType, IR_AssignType> IR_Expression_Utils::irBinOpMapping = {
 //
 //}
 
+ IR_Value Expression::VariableToIR_Value(const Variable& v, IR& irState)
+ {
+	 IR_Value value;
+	 value.byteSize = v.type.pointerLevel > 0 ? POINTER_SIZE : 4;
+	 value.pointerLevel = v.type.pointerLevel;
+	 switch (v.type.lValueType)
+	 {
+	 case LValueType::INT: value.baseType = IR_INT; break;
+	 case LValueType::FLOAT: value.baseType = IR_FLOAT; break;
+	 case LValueType::STRUCT: value.baseType = IR_STRUCT; break;
+	 }
+
+	 value.type = value.pointerLevel > 0 ? IR_INT : value.baseType;
+	 value.isTempValue = false;
+	 value.valueType = IR_VARIABLE;
+	 value.varIndex = irState.state.varIndex++;
+
+	 return value;
+}
+
+
  IR_Operand CopyDereferenceOfValue(IR_Operand baseValue, IR& irState)
  {
 	 IR_Operand deref(IR_Value(baseValue.value.type, IR_VARIABLE, baseValue.value.byteSize, irState.state.varIndex++, true, "", IR_NONE));
@@ -429,12 +450,14 @@ IR_Operand AST_Type_Cast_Expression::ConvertExpressionToIR(IR& irState)
 	if (this->from.lValueType == INT && this->to.lValueType == FLOAT)
 	{
 		dest.byteSize = 4;
+		typeCast.byteSize = 4;
 		dest.valueType = IR_VARIABLE;
 		dest.type = IR_FLOAT;
 	}
 	else if (this->from.lValueType == FLOAT && this->to.lValueType == INT)
 	{
 		dest.byteSize = 4;
+		typeCast.byteSize = 4;
 		dest.valueType = IR_VARIABLE;
 		dest.type = IR_INT;
 	}
@@ -484,14 +507,28 @@ IR_Operand AST_Function_Expression::ConvertExpressionToIR(IR& irState)
 	//save registers to memory before calling function
 	irState.IR_statements.push_back(make_unique<IR_RegisterWriteToMemory>());
 
-	VariableType retType = irState.state.scope.functionMapping.at(this->functionName).returnType;
+	IR_FunctionLabel funcDefIR = irState.state.scope.functionMapping.at(this->functionName);
+	IR_Value retValue = funcDefIR.returnValue;
 
 	int offset = 0;
-	if (retType.lValueType == LValueType::STRUCT && retType.pointerLevel == 0)
+	if (this->type.lValueType == LValueType::STRUCT && this->type.pointerLevel == 0)
 	{
 		//StructDefinition structDef = 
 		//push back IR_Struct init statement (for return object
 		//push back IR_FunctionArgAssign for pointer to struct location
+
+
+		IR_Value structVar(IR_STRUCT, IR_VARIABLE, retValue.byteSize, irState.state.varIndex++, false, "", IR_NONE);
+		IR_ContinuousMemoryInit memoryInit;
+		memoryInit.byteNum = funcDefIR.returnValueByteSize;
+		memoryInit.varIdx = structVar.varIndex;
+
+		irState.IR_statements.push_back(make_shared<IR_ContinuousMemoryInit>(memoryInit));
+
+		IR_Operand structLocation(structVar);
+		structLocation.useMemoryAddress = true;
+
+		irState.IR_statements.push_back(make_shared<IR_FunctionArgAssign>(IR_FunctionArgAssign(0, structLocation)));
 
 		offset = 1;
 	}
@@ -503,22 +540,38 @@ IR_Operand AST_Function_Expression::ConvertExpressionToIR(IR& irState)
 	//reload variables after function call b/c values could have changed inside the function
 	irState.IR_statements.push_back(make_shared<IR_VariableReload>());
 
-	if (retType.pointerLevel > 0)
-	{
-		irState.state.functionReturnValue.byteSize = POINTER_SIZE;
-		irState.state.functionReturnValue.type = IR_INT; //use int registers for pointer
-		return IR_Operand(irState.state.functionReturnValue);
-	}
-	else if (retType.lValueType != LValueType::STRUCT)
-	{
-		irState.state.functionReturnValue.byteSize = 4; //TODO: change this to be based on memory size of variable (not IR variable, because IR_INT can have multiple byte sizes)
-		irState.state.functionReturnValue.type = retType.lValueType == INT ? IR_INT : IR_FLOAT; //assign return value to either RAX or XMM0 
-		return IR_Operand(irState.state.functionReturnValue);
-	}
-	else
-	{
+	//if (retType.pointerLevel > 0)
+	//{
+	//	IR_Value retValue = irState.state.functionReturnValueInt;
+	//	retValue.byteSize = POINTER_SIZE;
+	//	return IR_Operand(retValue);
+	//}
+	//else if (retType.lValueType != LValueType::STRUCT)
+	//{
+	//	IR_Value retValue = retType.lValueType == INT ? irState.state.functionReturnValueInt : irState.state.functionReturnValueFloat;
+	//	retValue.byteSize = 4; //TODO: change this to be based on memory size of variable (not IR variable, because IR_INT can have multiple byte sizes)
+	//	return IR_Operand(retValue);
+	//}
+	//else
+	//{
+	//	return IR_Operand(irState.state.functionReturnValueStructPointer);
+	//}
 
-	}
+	irState.IR_statements.push_back(make_shared<IR_FunctionCall>(IR_FunctionCall(this->functionName)));
+
+	/*
+		Create copy of return value before using it.
+		This is to prevent bugs where the return register could be overwritten if there are consecutive function calls
+	*/
+	IR_Value returnValueCopy = retValue;
+	returnValueCopy.varIndex = irState.state.varIndex++;
+	returnValueCopy.specialVars = IR_NONE;
+
+	irState.IR_statements.push_back(make_shared<IR_Assign>(IR_Assign(returnValueCopy.type, IR_COPY,
+		retValue.byteSize, IR_Operand(returnValueCopy), IR_Operand(retValue))));
+
+	
+	return IR_Operand(returnValueCopy);
 }
 
 
@@ -883,7 +936,7 @@ IR_Operand AST_Assignment_Expression::ConvertExpressionToIR(IR& irState)
 	}
 	else if (lvalue->type.lValueType == LValueType::STRUCT && lvalue->type.pointerLevel == 0)
 	{
-		assign.assignType == IR_STRUCT_COPY;
+		assign.assignType = IR_STRUCT_COPY;
 		assign.byteSize = irState.state.scope.FindStruct(lvalue->type.structName).memorySize;
 		assign.source = rValue;
 	}

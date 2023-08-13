@@ -276,9 +276,8 @@ unique_ptr<Expression> AST::ParseNonBinaryExpression(unique_ptr<Expression> prev
 	}
 	else if (token.type == TokenType::ARROW) //dereference struct pointer
 	{
-		unique_ptr<AST_Pointer_Dereference> ptrDerefExpr = make_unique<AST_Pointer_Dereference>();
-		ptrDerefExpr->baseExpr = std::move(prev);
-		return ParseStructVariableAccess(std::move(ptrDerefExpr));
+		unique_ptr<AST_Pointer_Dereference> ptrDerefExpr = make_unique<AST_Pointer_Dereference>(std::move(prev));
+		return ParseNonBinaryExpression(ParseStructVariableAccess(std::move(ptrDerefExpr)));
 	}
 	else if (token.type == TokenType::OPEN_BRACKET) //accessing array element
 	{

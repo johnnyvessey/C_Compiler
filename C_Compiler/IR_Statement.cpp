@@ -46,7 +46,7 @@ string varToString(IR_Value v)
 	}
 	else if (v.specialVars == IR_RETURN)
 	{
-		ss << "%return (" << varType << ", " << v.byteSize << ")";
+		ss << "%return (" << varType << string(v.pointerLevel, '*') << ", " << v.byteSize << ")";
 	}
 	else {
 		ss << "%" << (v.isTempValue ? "tmp" : "v") << v.varIndex << "(" << varType
@@ -243,9 +243,12 @@ IR_StatementType IR_Jump::GetType()
 IR_Jump::IR_Jump(int labelIdx, IR_FlagResults condition): labelIdx(labelIdx), condition(condition) {}
 
 
+IR_FunctionCall::IR_FunctionCall(string funcName) : funcName(funcName) {}
 string IR_FunctionCall::ToString()
 {
-	return "";
+	stringstream ss;
+	ss << "CALL Function: " << this->funcName;
+	return ss.str();
 }
 IR_StatementType IR_FunctionCall::GetType()
 {
@@ -274,7 +277,9 @@ IR_StatementType IR_ContinuousMemoryInit::GetType()
 
 string IR_FunctionArgAssign::ToString()
 {
-	return "";
+	stringstream ss;
+	ss << "Arg #" << this->argIdx << ": " << operandToString(this->value);
+	return ss.str();
 }
 IR_StatementType IR_FunctionArgAssign::GetType()
 {
@@ -317,4 +322,74 @@ string IR_NOP::ToString()
 IR_StatementType IR_NOP::GetType()
 {
 	return _IR_NOP;
+}
+
+string IR_LoopStart::ToString()
+{
+	return "LOOP START";
+}
+IR_StatementType IR_LoopStart::GetType()
+{
+	return _IR_LOOP_START;
+}
+
+string IR_LoopEnd::ToString()
+{
+	return "LOOP END";
+}
+IR_StatementType IR_LoopEnd::GetType()
+{
+	return _IR_LOOP_END;
+}
+
+string IR_FunctionLabel::ToString()
+{
+	stringstream ss;
+
+	ss << "Function: " << this->functionName << "(";
+
+	for (const IR_Value& value : this->args)
+	{
+		ss << varToString(value) << ", "; //note: this will add extra unnecessary comma (not important b/c this is just for debugging)
+	}
+
+	ss << ") -> ";
+	ss << varToString(this->returnValue) << "(" << this->returnValueByteSize << ")";
+	return ss.str();
+}
+
+IR_StatementType IR_FunctionLabel::GetType()
+{
+	return _IR_FUNCTION_LABEL;
+}
+
+IR_FunctionLabel::IR_FunctionLabel(string functionName) : functionName(functionName) {}
+IR_FunctionLabel::IR_FunctionLabel() {}
+
+string IR_Return::ToString()
+{
+	return "RET";
+}
+
+IR_StatementType IR_Return::GetType()
+{
+	return _IR_RETURN;
+}
+
+string IR_FunctionStart::ToString()
+{
+	return "FUNCTION START";
+}
+IR_StatementType IR_FunctionStart::GetType()
+{
+	return _IR_FUNCTION_START;
+}
+
+string IR_FunctionEnd::ToString()
+{
+	return "FUNCTION END";
+}
+IR_StatementType IR_FunctionEnd::GetType()
+{
+	return _IR_FUNCTION_END;
 }
