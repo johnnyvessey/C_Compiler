@@ -44,9 +44,9 @@ string varToString(IR_Value v)
 	{
 		ss << "%flags: " << conditionToString(v.flag);
 	}
-	else if (v.specialVars == IR_RETURN)
+	else if (v.specialVars == IR_RETURN_INT || v.specialVars == IR_RETURN_FLOAT || v.specialVars == IR_RETURN_STACK)
 	{
-		ss << "%return (" << varType << string(v.pointerLevel, '*') << ", " << v.byteSize << ")";
+		ss << "%return - " << v.specialVars << " (" << varType << string(v.pointerLevel, '*') << ", " << v.byteSize << ")";
 	}
 	else {
 		ss << "%" << (v.isTempValue ? "tmp" : "v") << v.varIndex << "(" << varType
@@ -283,7 +283,19 @@ IR_StatementType IR_ContinuousMemoryInit::GetType()
 string IR_FunctionArgAssign::ToString()
 {
 	stringstream ss;
-	ss << "Arg #" << this->argIdx << ": " << operandToString(this->value);
+	string type;
+	if (this->argType == IR_INT_ARG)
+	{
+		type = "INT";
+	}
+	else if (this->argType == IR_FLOAT_ARG)
+	{
+		type = "FLOAT";
+	}
+	else {
+		type = "STACK";
+	}
+	ss << "Arg " << type << " #" << this->argIdx << "(size: " << this->byteSize << ", offset: " << this->stackArgOffset << ")" << ": " << operandToString(this->value);
 	return ss.str();
 }
 IR_StatementType IR_FunctionArgAssign::GetType()
@@ -292,7 +304,8 @@ IR_StatementType IR_FunctionArgAssign::GetType()
 }
 
 IR_FunctionArgAssign::IR_FunctionArgAssign() {}
-IR_FunctionArgAssign::IR_FunctionArgAssign(int argIdx, IR_Operand value): argIdx(argIdx), value(value) {}
+IR_FunctionArgAssign::IR_FunctionArgAssign(int argIdx, IR_Operand value, IR_FunctionArgType argType, int byteSize, int stackArgOffset): 
+	argIdx(argIdx), value(value), argType(argType), byteSize(byteSize), stackArgOffset(stackArgOffset) {}
 
 
 string IR_VariableReload::ToString()

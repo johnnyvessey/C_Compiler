@@ -13,7 +13,8 @@ void IR::EnterScope()
 	state.scope.variableMapping.push_back(unordered_map<string, IR_Value>());
 	state.scope.structMapping.push_back(unordered_map<string, StructDefinition>());
 
-	IR_statements.push_back(std::make_shared<IR_ScopeStart>());
+	//TODO: see if this is needed
+	//IR_statements.push_back(std::make_shared<IR_ScopeStart>());
 	
 }
 void IR::ExitScope()
@@ -22,7 +23,8 @@ void IR::ExitScope()
 	state.scope.variableMapping.pop_back();
 	state.scope.structMapping.pop_back();
 
-	IR_statements.push_back(std::make_shared<IR_ScopeEnd>());
+	//TODO: see if this is needed
+	//IR_statements.push_back(std::make_shared<IR_ScopeEnd>());
 
 }
 
@@ -49,9 +51,9 @@ IR::IR()
 }
 
 
-IR_State::IR_State() : functionReturnValueInt(IR_Value(IR_INT, IR_VARIABLE, 8, 0, true, "", IR_RETURN)), 
-	functionReturnValueFloat(IR_Value(IR_FLOAT, IR_VARIABLE, 8, 0, true, "", IR_RETURN)),
-	functionReturnValueStructPointer(IR_Value(IR_INT, IR_VARIABLE, 8, 0, true, "", IR_RETURN, 1, IR_STRUCT))
+IR_State::IR_State() : functionReturnValueInt(IR_Value(IR_INT, IR_VARIABLE, 8, 0, true, "", IR_RETURN_INT)), 
+	functionReturnValueFloat(IR_Value(IR_FLOAT, IR_VARIABLE, 8, 0, true, "", IR_RETURN_FLOAT)),
+	functionReturnValueStructPointer(IR_Value(IR_INT, IR_VARIABLE, 8, 0, true, "", IR_RETURN_STACK, 1, IR_STRUCT))
 {
 	flags = IR_Value(IR_INT, IR_VARIABLE, 1, 0, true, "", IR_FLAGS);
 }

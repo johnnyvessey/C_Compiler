@@ -476,10 +476,11 @@ void AST_Return_Statement::ConvertStatementToIR(IR& irState)
 			IR_Value returnRegister = irState.state.functionReturnValueStructPointer;
 			returnRegister.byteSize = POINTER_SIZE;
 			returnRegister.pointerLevel = returnExpression.GetPointerLevel();
-
+			IR_Operand returnOp(returnRegister);
+			returnOp.dereference = true;
 			//TODO: figure out if first operand needs to be dereferenced
 			irState.IR_statements.push_back(make_shared<IR_Assign>(IR_Assign(IR_STRUCT, IR_STRUCT_COPY, returnExpression.value.byteSize,
-				IR_Operand(returnRegister), returnExpression)));
+				returnOp, returnExpression)));
 
 		}
 	}

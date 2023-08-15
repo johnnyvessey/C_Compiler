@@ -167,6 +167,10 @@ unique_ptr<Statement> AST::ParseStatement()
 		{
 			return ParseForLoop();
 		}
+		case TokenType::VOID:
+		{
+			return ParseFunctionDefinition();
+		}
 		default:
 			return ParseExpressionStatement(ParseExpression());
 	}

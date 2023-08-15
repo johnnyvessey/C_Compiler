@@ -1,4 +1,24 @@
-if (1 + 1)
+struct v
 {
-	int x = 2;
+	int a;
+	int b;
+	int c[10];
+};
+
+
+struct v f(int a, float b, struct v c, int d, struct v e)
+{
+	struct v var;
+	var.b = d;
+	return var;
+}
+
+
+int main()
+{
+	struct v var;
+	f(1,1.1, var, 2, var);
+
+
+return 0;
 }

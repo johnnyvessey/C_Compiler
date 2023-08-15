@@ -552,6 +552,12 @@ IR_Operand AST_Function_Expression::ConvertExpressionToIR(IR& irState)
 	IR_Value retValue = funcDefIR.returnValue;
 
 	int offset = 0;
+
+	int intArgCount = 0;
+	int floatArgCount = 0;
+	int stackArgOffset = 0;
+	const int maxIntArgCount = 6;
+	const int maxFloatArgCount = 8;
 	if (this->type.lValueType == LValueType::STRUCT && this->type.pointerLevel == 0)
 	{
 		//StructDefinition structDef = 
@@ -569,13 +575,50 @@ IR_Operand AST_Function_Expression::ConvertExpressionToIR(IR& irState)
 		IR_Operand structLocation(structVar);
 		structLocation.useMemoryAddress = true;
 
-		irState.IR_statements.push_back(make_shared<IR_FunctionArgAssign>(IR_FunctionArgAssign(0, structLocation)));
+		++intArgCount;
+
+		irState.IR_statements.push_back(make_shared<IR_FunctionArgAssign>(IR_FunctionArgAssign(0, structLocation, IR_INT_ARG, POINTER_SIZE, 0)));
 
 		offset = 1;
 	}
 	for (int idx = 0; idx < argumentInstances.size(); ++idx)
 	{
-		irState.IR_statements.push_back(make_shared<IR_FunctionArgAssign>(IR_FunctionArgAssign(idx + offset, argumentInstances.at(idx)->ConvertExpressionToIR(irState))));
+		IR_Operand operand = argumentInstances.at(idx)->ConvertExpressionToIR(irState);
+		IR_FunctionArgType argType;
+
+		VariableType varType = argumentInstances.at(idx)->type;
+		StructDefinition structDef;
+		if (varType.lValueType == LValueType::STRUCT && varType.pointerLevel == 0)
+		{
+			structDef = irState.state.scope.FindStruct(varType.structName);
+		}
+		
+		int byteSize = GetMemorySizeForIR(varType, &structDef);
+		int index = 0;
+		if (operand.GetVarType() == IR_INT && intArgCount < maxIntArgCount)
+		{
+			index = intArgCount;
+			argType = IR_INT_ARG;
+			++intArgCount;
+
+		}
+		else if (operand.GetVarType() == IR_FLOAT && floatArgCount < maxFloatArgCount)
+		{
+			index = floatArgCount;
+			argType = IR_FLOAT_ARG;
+			++floatArgCount;
+		}
+		else {
+			argType = IR_STACK_ARG;
+		}
+
+		int stackOffset = argType == IR_STACK_ARG ? stackArgOffset : 0;
+		irState.IR_statements.push_back(make_shared<IR_FunctionArgAssign>(IR_FunctionArgAssign(index, operand, argType, byteSize, stackArgOffset)));
+
+		if (argType == IR_STACK_ARG)
+		{
+			stackArgOffset += byteSize;
+		}
 	}
 
 	//reload variables after function call b/c values could have changed inside the function

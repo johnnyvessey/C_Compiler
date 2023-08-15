@@ -88,7 +88,9 @@ enum IR_SpecialVars
 {
 	IR_NONE,
 	IR_FLAGS,
-	IR_RETURN
+	IR_RETURN_INT,
+	IR_RETURN_FLOAT,
+	IR_RETURN_STACK
 };
 struct IR_Value
 {
@@ -262,13 +264,22 @@ struct IR_FunctionCall : IR_Statement
 	IR_FunctionCall(string funcName);
 };
 
+enum IR_FunctionArgType
+{
+	IR_INT_ARG,
+	IR_FLOAT_ARG,
+	IR_STACK_ARG
+};
 struct IR_FunctionArgAssign : IR_Statement
 {
 	int argIdx;
 	IR_Operand value;
+	IR_FunctionArgType argType;
+	int byteSize;
+	int stackArgOffset;
 
 	IR_FunctionArgAssign();
-	IR_FunctionArgAssign(int argIdx, IR_Operand value);
+	IR_FunctionArgAssign(int argIdx, IR_Operand value, IR_FunctionArgType argType, int byteSize, int stackArgOffset);
 
 	virtual string ToString() override;
 	virtual IR_StatementType GetType() override;
