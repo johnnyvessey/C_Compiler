@@ -1,7 +1,7 @@
 #pragma once
 #include "Parser.h"
 #include "IR.h"
-
+#include "RegisterAllocator.h"
 
 struct IR_Optimizations
 {
@@ -34,4 +34,5 @@ struct IR_CodeGen
 
 	void Optimize();
 
+	void AllocateRegisters();
 };

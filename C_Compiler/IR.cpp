@@ -30,13 +30,13 @@ void IR::ExitScope()
 
 void IR::EnterFunction()
 {
-	IR_statements.push_back(make_shared<IR_FunctionStart>());
+	add_statement(make_shared<IR_FunctionStart>());
 	EnterScope();
 }
 void IR::ExitFunction()
 {
 	ExitScope();
-	IR_statements.push_back(make_shared<IR_FunctionEnd>());
+	add_statement(make_shared<IR_FunctionEnd>());
 }
 IR_Scope::IR_Scope()
 {
@@ -47,8 +47,10 @@ IR_Scope::IR_Scope()
 
 IR::IR()
 {
-	IR_statements = vector<shared_ptr<IR_Statement>>();
+	//IR_statements = vector<shared_ptr<IR_Statement>>();
 }
+
+IR_Function_Group::IR_Function_Group(string functionName) : functionName(functionName) {}
 
 
 IR_State::IR_State() : functionReturnValueInt(IR_Value(IR_INT, IR_VARIABLE, 8, 0, true, "", IR_RETURN_INT)), 

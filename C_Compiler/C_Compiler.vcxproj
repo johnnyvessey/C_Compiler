@@ -140,6 +140,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Parser.cpp" />
     <ClCompile Include="ParserUtils.cpp" />
+    <ClCompile Include="RegisterAllocator.cpp" />
     <ClCompile Include="Scope.cpp" />
     <ClCompile Include="StructParser.cpp" />
     <ClCompile Include="Utils.h" />
@@ -154,6 +155,7 @@
     <ClInclude Include="IR_Statement.h" />
     <ClInclude Include="Lexer.h" />
     <ClInclude Include="Parser.h" />
+    <ClInclude Include="RegisterAllocator.h" />
     <ClInclude Include="Scope.h" />
     <ClInclude Include="SSA.h" />
     <ClInclude Include="Variable.h" />

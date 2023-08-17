@@ -86,6 +86,36 @@ namespace VariableNamespace {
 
 	}
 
+#define NUM_REGISTERS 24
+	enum REGISTER
+	{
+		RAX,
+		RBX,
+		RCX,
+		RDX,
+		RSI,
+		RDI,
+		RBP,
+		RSP,
+		R8,
+		R9,
+		R10,
+		R11,
+		R12,
+		R13,
+		R14,
+		R15,
+		XMM0,
+		XMM1,
+		XMM2,
+		XMM3,
+		XMM4,
+		XMM5,
+		XMM6,
+		XMM7
+	};
+
+
 	//inline int GetMemorySizeForIR(VariableType type, IR& irState, string structName = "")
 	//{
 	//	if (type.pointerLevel > 0)

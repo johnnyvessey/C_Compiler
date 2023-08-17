@@ -82,6 +82,10 @@ enum IR_FlagResults
 	IR_LESS = -3,
 	IR_EQUALS = 4,
 	IR_NOT_EQUALS = -4,
+	IR_FLOAT_GREATER = 5,
+	IR_FLOAT_LESS_EQUALS = -5,
+	IR_FLOAT_LESS = -6,
+	IR_FLOAT_GREATER_EQUALS = 6
 };
 
 enum IR_SpecialVars
@@ -124,6 +128,7 @@ struct IR_Operand
 	int memoryOffsetMultiplier = 0; //NOTE: this can only be 1,2,4,8
 	IR_Value memoryOffset;
 
+	int globalFloatValue = 0;
 	IR_VarType GetVarType();
 	int GetByteSize();
 	int GetPointerLevel();

@@ -11,9 +11,13 @@ string conditionToString(IR_FlagResults condition)
 	case IR_EQUALS: cs = "E"; break;
 	case IR_NOT_EQUALS: cs = "NE"; break;
 	case IR_GREATER: cs = "GT"; break;
-	case IR_GREATER_EQUALS: cs = "GTE"; break;
+	case IR_GREATER_EQUALS: cs = "GE"; break;
 	case IR_LESS: cs = "LT"; break;
-	case IR_LESS_EQUALS: cs = "LTE"; break;
+	case IR_LESS_EQUALS: cs = "LE"; break;
+	case IR_FLOAT_GREATER: cs = "A"; break;
+	case IR_FLOAT_GREATER_EQUALS: cs = "AE"; break;
+	case IR_FLOAT_LESS: cs = "B"; break;
+	case IR_FLOAT_LESS_EQUALS: cs = "BE"; break;
 	}
 
 	return cs;
@@ -70,6 +74,12 @@ string operandToString(IR_Operand operand)
 	{
 		operand.dereference = false;
 		operand.useMemoryAddress = false;
+	}
+
+	if (operand.globalFloatValue != 0)
+	{
+		ss << "[var #" << operand.globalFloatValue << "]";
+		return ss.str();
 	}
 
 	if (operand.dereference)

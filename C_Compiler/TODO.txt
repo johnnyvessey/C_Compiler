@@ -2,12 +2,23 @@ TODO:
 
 
 
+- EITHER HAVE SIGN EXTEND STUFF (also have to deal with how to go from 64 bit to 32 bit... maybe just never do it and only create
+	temp 64 bit version of variable when the offset is needed???)
+- OR... JUST ONLY USE LONG AND DOUBLE SO THAT FULL 8 bytes are used for every register (except in case of converting flags to value)
+-> need to change every hard-coded version of 4... must be careful with this!!!
+
+- for float division... should i do this in IR or during register allocation???
+
+
+
+
 IR OPTIMIZATIONS TODO:
 
 - dead code elimination for if statements and loops (when condition is IR_LITERAL)
 	-> this could interact with constant propogation, so maybe have this be a separate step
 	-> in that case, need to know start and end of bounds for if statements (maybe based on scope start and end)
 - removing unused variables
+	-> do topological sort on variables??? -> might remove too much
 - constant propagation
 	-> be careful about control flow (if statements, loops)
 	-> play this very safe (only do for variables in top of scope?)
@@ -15,6 +26,9 @@ IR OPTIMIZATIONS TODO:
 
 
 IR TODO:
+
+- Copy to stack function args in reverse order??? -> or just subtract offset from sum of memory for each arg
+
 
 - IMPORTANT: Add variable reload and write register to memory IR_Statements at the right places
 	-> add list of specific variables that need to be written to memory / reloaded ???

@@ -27,4 +27,7 @@ int main()
 	std::cout << "-------------\n\n\n";
 
 	irCode.PrintIR();
+
+	irCode.AllocateRegisters();
+	
 }

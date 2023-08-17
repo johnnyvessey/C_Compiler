@@ -17,16 +17,32 @@ void IR_CodeGen::PrintIR()
 
 	//print regular statements
 
-	for (const shared_ptr<IR_Statement>& statement : irState.IR_statements)
+	std::cout << ".data\n";
+	for (int i = 0; i < irState.floatLiteralGlobals.size(); ++i)
 	{
-		std::cout << statement->ToString() << "\n";
+		std::cout << "\tvar" << (i + 1) << " dw " << irState.floatLiteralGlobals.at(i) << "\n";
 	}
+
+	std::cout << "\n\n.code\n\n";
+
+	for (const IR_Function_Group& function : irState.functions)
+	{
+		for (const shared_ptr<IR_Statement>& statement : function.IR_statements)
+		{
+			std::cout << statement->ToString() << "\n";
+		}
+		std::cout << "-----------\n";
+	}
+
 }
 
 
 void IR_CodeGen::Optimize()
 {
-	optimizationSettings.OptimizeJumps(irState.IR_statements);
+	for (IR_Function_Group& function : irState.functions)
+	{
+		optimizationSettings.OptimizeJumps(function.IR_statements);
+	}
 }
 
 
@@ -127,4 +143,11 @@ void IR_Optimizations::RemoveUnusedLabels(vector<shared_ptr<IR_Statement>>& irSt
 	}
 
 	RemoveNoOps(irStatements);
+}
+
+
+void IR_CodeGen::AllocateRegisters()
+{
+	RegisterAllocator registerAllocator;
+	registerAllocator.AllocateRegisters(irState.functions);
 }

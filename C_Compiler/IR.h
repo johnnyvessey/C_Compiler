@@ -4,6 +4,7 @@
 //#include "Parser.h"
 #include "IR_Statement.h"
 #include "Variable.h"
+#include <iostream>
 
 using std::vector;
 using std::shared_ptr;
@@ -45,7 +46,7 @@ struct IR_Scope
 	int currentLoopStartLabelIdx = 0;
 	int currentLoopEndLabelIdx = 0;
 	int functionEndLabel = 0;
-
+	string currentFunction = "";
 	IR_Value FindVariable(string name);
 	StructDefinition FindStruct(string name);
 	IR_FunctionLabel FindFunction(string name);
@@ -69,10 +70,39 @@ struct IR_State
 	IR_State();
 };
 
+struct IR_Function_Group
+{
+	string functionName;
+	vector<shared_ptr<IR_Statement>> IR_statements;
+
+	IR_Function_Group(string functionName);
+};
+
 struct IR
 {
 	IR_State state;
-	vector<shared_ptr<IR_Statement>> IR_statements;
+	vector<IR_Function_Group> functions;
+	vector<unsigned int> floatLiteralGlobals; //start at 1 rather than 0 for indexing names
+
+	inline void add_statement(shared_ptr<IR_Statement> statement)
+	{
+		if (state.scope.currentFunction == "")
+		{
+			std::cout << "Error: statement not in function";
+			throw 0;
+		}
+
+		functions.back().IR_statements.push_back(statement);
+	}
+
+	inline void add_floatLiteralGlobal(string s)
+	{
+		float f = std::stof(s);
+		unsigned int intVal = *((unsigned int*)&f);
+		floatLiteralGlobals.push_back(intVal);
+	}
+
+	//vector<shared_ptr<IR_Statement>> IR_statements;
 	void EnterScope();
 	void ExitScope();
 
