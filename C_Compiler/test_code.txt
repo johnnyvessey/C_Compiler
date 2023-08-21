@@ -1,13 +1,9 @@
 int main()
 {
 
-float x = 5.5;
-float y = 6.5;
-
-if (x < y)
-{
-	x += 1.1;
-}
-
+int x = 1;
+int y = 2;
+int z = 3;
+int *w = &y;
 return 0;
 }

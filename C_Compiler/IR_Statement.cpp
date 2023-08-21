@@ -3,7 +3,7 @@
 
 using std::stringstream;
 
-string conditionToString(IR_FlagResults condition)
+string conditionToString(FlagResults condition)
 {
 	string cs = "";
 	switch (condition)
@@ -199,6 +199,11 @@ IR_StatementType IR_Assign::GetType()
 	return _IR_ASSIGN;
 }
 
+void IR_Assign::ConvertToX64(x64_State& state)
+{
+	//TODO: Finish
+}
+
 IR_VariableInit::IR_VariableInit() {}
 IR_VariableInit::IR_VariableInit(IR_Value value) : dest(value) {}
 string IR_VariableInit::ToString()
@@ -209,6 +214,10 @@ string IR_VariableInit::ToString()
 IR_StatementType IR_VariableInit::GetType()
 {
 	return _IR_VARIABLE_INIT;
+}
+void IR_VariableInit::ConvertToX64(x64_State& state)
+{
+	//TODO: Finish
 }
 
 string IR_Label::ToString()
@@ -221,6 +230,10 @@ IR_StatementType IR_Label::GetType()
 {
 	return _IR_LABEL;
 }
+void IR_Label::ConvertToX64(x64_State& state)
+{
+	//TODO: Finish
+}
 IR_Label::IR_Label(int label) : label(label) {}
 
 
@@ -232,6 +245,10 @@ IR_StatementType IR_ScopeStart::GetType()
 {
 	return _IR_SCOPE_START;
 }
+void IR_ScopeStart::ConvertToX64(x64_State& state)
+{
+	//TODO: Finish
+}
 
 string IR_ScopeEnd::ToString()
 {
@@ -240,6 +257,10 @@ string IR_ScopeEnd::ToString()
 IR_StatementType IR_ScopeEnd::GetType()
 {
 	return _IR_SCOPE_END;
+}
+void IR_ScopeEnd::ConvertToX64(x64_State& state)
+{
+	//TODO: Finish
 }
 
 string IR_Jump::ToString()
@@ -254,8 +275,12 @@ IR_StatementType IR_Jump::GetType()
 {
 	return _IR_JUMP;
 }
+void IR_Jump::ConvertToX64(x64_State& state)
+{
+	//TODO: Finish
+}
 
-IR_Jump::IR_Jump(int labelIdx, IR_FlagResults condition): labelIdx(labelIdx), condition(condition) {}
+IR_Jump::IR_Jump(int labelIdx, FlagResults condition): labelIdx(labelIdx), condition(condition) {}
 
 
 IR_FunctionCall::IR_FunctionCall(string funcName) : funcName(funcName) {}
@@ -269,15 +294,19 @@ IR_StatementType IR_FunctionCall::GetType()
 {
 	return _IR_FUNCTION_CALL;
 }
+void IR_FunctionCall::ConvertToX64(x64_State& state)
+{
+	//TODO: Finish
+}
 
-string IR_RegisterWriteToMemory::ToString()
-{
-	return "WRITE REGISTERS TO MEMORY";
-}
-IR_StatementType IR_RegisterWriteToMemory::GetType()
-{
-	return _IR_REGISTER_WRITE_TO_MEMORY;
-}
+//string IR_RegisterWriteToMemory::ToString()
+//{
+//	return "WRITE REGISTERS TO MEMORY";
+//}
+//IR_StatementType IR_RegisterWriteToMemory::GetType()
+//{
+//	return _IR_REGISTER_WRITE_TO_MEMORY;
+//}
 
 string IR_ContinuousMemoryInit::ToString()
 {
@@ -287,7 +316,11 @@ string IR_ContinuousMemoryInit::ToString()
 }
 IR_StatementType IR_ContinuousMemoryInit::GetType()
 {
-	return _IR_STRUCT_INIT;
+	return _IR_CONTINUOUS_MEMORY_INIT;
+}
+void IR_ContinuousMemoryInit::ConvertToX64(x64_State& state)
+{
+	//TODO: Finish
 }
 
 string IR_FunctionArgAssign::ToString()
@@ -312,20 +345,24 @@ IR_StatementType IR_FunctionArgAssign::GetType()
 {
 	return _IR_FUNCTION_ARG_ASSIGN;
 }
+void IR_FunctionArgAssign::ConvertToX64(x64_State& state)
+{
+	//TODO: Finish
+}
 
 IR_FunctionArgAssign::IR_FunctionArgAssign() {}
 IR_FunctionArgAssign::IR_FunctionArgAssign(int argIdx, IR_Operand value, IR_FunctionArgType argType, int byteSize, int stackArgOffset): 
 	argIdx(argIdx), value(value), argType(argType), byteSize(byteSize), stackArgOffset(stackArgOffset) {}
 
 
-string IR_VariableReload::ToString()
-{
-	return "VARIABLE RELOAD";
-}
-IR_StatementType IR_VariableReload::GetType()
-{
-	return _IR_VARIABLE_RELOAD;
-}
+//string IR_VariableReload::ToString()
+//{
+//	return "VARIABLE RELOAD";
+//}
+//IR_StatementType IR_VariableReload::GetType()
+//{
+//	return _IR_VARIABLE_RELOAD;
+//}
 
 IR_Compare::IR_Compare() {}
 IR_Compare::IR_Compare(IR_Operand op1, IR_Operand op2): op1(op1), op2(op2) {}
@@ -341,6 +378,10 @@ IR_StatementType IR_Compare::GetType()
 {
 	return _IR_COMPARE;
 }
+void IR_Compare::ConvertToX64(x64_State& state)
+{
+	//TODO: Finish
+}
 
 string IR_NOP::ToString()
 {
@@ -351,6 +392,10 @@ IR_StatementType IR_NOP::GetType()
 {
 	return _IR_NOP;
 }
+void IR_NOP::ConvertToX64(x64_State& state)
+{
+	//TODO: Finish
+}
 
 string IR_LoopStart::ToString()
 {
@@ -360,6 +405,10 @@ IR_StatementType IR_LoopStart::GetType()
 {
 	return _IR_LOOP_START;
 }
+void IR_LoopStart::ConvertToX64(x64_State& state)
+{
+	//TODO: Finish
+}
 
 string IR_LoopEnd::ToString()
 {
@@ -368,6 +417,10 @@ string IR_LoopEnd::ToString()
 IR_StatementType IR_LoopEnd::GetType()
 {
 	return _IR_LOOP_END;
+}
+void IR_LoopEnd::ConvertToX64(x64_State& state)
+{
+	//TODO: Finish
 }
 
 string IR_FunctionLabel::ToString()
@@ -390,6 +443,10 @@ IR_StatementType IR_FunctionLabel::GetType()
 {
 	return _IR_FUNCTION_LABEL;
 }
+void IR_FunctionLabel::ConvertToX64(x64_State& state)
+{
+	//TODO: Finish
+}
 
 IR_FunctionLabel::IR_FunctionLabel(string functionName) : functionName(functionName) {}
 IR_FunctionLabel::IR_FunctionLabel() {}
@@ -403,6 +460,10 @@ IR_StatementType IR_Return::GetType()
 {
 	return _IR_RETURN;
 }
+void IR_Return::ConvertToX64(x64_State& state)
+{
+	//TODO: Finish
+}
 
 string IR_FunctionStart::ToString()
 {
@@ -412,6 +473,11 @@ IR_StatementType IR_FunctionStart::GetType()
 {
 	return _IR_FUNCTION_START;
 }
+void IR_FunctionStart::ConvertToX64(x64_State& state)
+{
+	//TODO: Finish
+	state.registerAllocator.memoryVariableMapping.memoryOffsetMapping.clear();
+}
 
 string IR_FunctionEnd::ToString()
 {
@@ -420,4 +486,8 @@ string IR_FunctionEnd::ToString()
 IR_StatementType IR_FunctionEnd::GetType()
 {
 	return _IR_FUNCTION_END;
+}
+void IR_FunctionEnd::ConvertToX64(x64_State& state)
+{
+	//TODO: Finish
 }

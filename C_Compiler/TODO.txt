@@ -7,7 +7,7 @@ TODO:
 - OR... JUST ONLY USE LONG AND DOUBLE SO THAT FULL 8 bytes are used for every register (except in case of converting flags to value)
 -> need to change every hard-coded version of 4... must be careful with this!!!
 
-- for float division... should i do this in IR or during register allocation???
+- for int division... should i do this in IR or during register allocation???
 
 
 

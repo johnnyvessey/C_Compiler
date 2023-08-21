@@ -145,6 +145,9 @@
     <ClCompile Include="StructParser.cpp" />
     <ClCompile Include="Utils.h" />
     <ClCompile Include="Variable.cpp" />
+    <ClCompile Include="x64_CodeGen.cpp" />
+    <ClCompile Include="x64_State.cpp" />
+    <ClCompile Include="x64_Statement.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ArmStatement.h" />
@@ -159,10 +162,13 @@
     <ClInclude Include="Scope.h" />
     <ClInclude Include="SSA.h" />
     <ClInclude Include="Variable.h" />
+    <ClInclude Include="x64_CodeGen.h" />
+    <ClInclude Include="x64_State.h" />
     <ClInclude Include="x64_Statement.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="IR_Specs.txt" />
+    <Text Include="RegisterAllocationSpecs.txt" />
     <Text Include="test_code.txt" />
     <Text Include="TODO.txt" />
   </ItemGroup>

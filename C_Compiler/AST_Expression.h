@@ -371,7 +371,7 @@ namespace AST_Expression {
 
 		IR_Expression_Utils();
 
-		static IR_FlagResults ConvertExpressionToIRConditional(IR& irState, unique_ptr<Expression>& expr);
+		static FlagResults ConvertExpressionToIRConditional(IR& irState, unique_ptr<Expression>& expr);
 	};
 }
 

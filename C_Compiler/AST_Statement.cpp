@@ -209,7 +209,7 @@ void ParseIfThenCondition(Expression* condition, IR& irState, int& trueLabel, in
 
 	if (!Expression::isAndOrExpression(condition))
 	{
-		irState.add_statement(make_shared<IR_Jump>(IR_Jump(falseLabel, (IR_FlagResults) -irCondition.value.flag)));
+		irState.add_statement(make_shared<IR_Jump>(IR_Jump(falseLabel, (FlagResults) -irCondition.value.flag)));
 		irState.add_statement(make_shared<IR_Jump>(IR_Jump(trueLabel, IR_ALWAYS)));
 
 	}

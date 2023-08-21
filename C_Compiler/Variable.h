@@ -86,7 +86,24 @@ namespace VariableNamespace {
 
 	}
 
-#define NUM_REGISTERS 24
+	enum FlagResults
+	{
+		IR_NO_FLAGS = 0,
+		IR_ALWAYS = 1,
+		IR_NEVER = -1,
+		IR_GREATER = 2,
+		IR_LESS_EQUALS = -2,
+		IR_GREATER_EQUALS = 3,
+		IR_LESS = -3,
+		IR_EQUALS = 4,
+		IR_NOT_EQUALS = -4,
+		IR_FLOAT_GREATER = 5,
+		IR_FLOAT_LESS_EQUALS = -5,
+		IR_FLOAT_LESS = -6,
+		IR_FLOAT_GREATER_EQUALS = 6
+	};
+
+#define NUM_REGISTERS 32
 	enum REGISTER
 	{
 		RAX,
@@ -112,8 +129,18 @@ namespace VariableNamespace {
 		XMM4,
 		XMM5,
 		XMM6,
-		XMM7
+		XMM7,
+		XMM8,
+		XMM9,
+		XMM10,
+		XMM11,
+		XMM12,
+		XMM13,
+		XMM14,
+		XMM15
 	};
+
+	const static vector<string> REGISTER_STRING;
 
 
 	//inline int GetMemorySizeForIR(VariableType type, IR& irState, string structName = "")

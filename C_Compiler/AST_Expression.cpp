@@ -143,7 +143,7 @@ IR_Value ParseAndOrNoReturnVar(AST_BinOp* binOpExpr, IR& irState, int& trueLabel
 
 		}
 		else {
-			irState.add_statement(make_shared<IR_Jump>(IR_Jump(outerFalseLabelIdx, (IR_FlagResults)-leftValue.value.flag)));
+			irState.add_statement(make_shared<IR_Jump>(IR_Jump(outerFalseLabelIdx, (FlagResults)-leftValue.value.flag)));
 			//irState.add_statement(make_shared<IR_Jump>(IR_Jump(outerTrueLabelIdx, IR_ALWAYS)));
 		}
 
@@ -170,7 +170,7 @@ IR_Value ParseAndOrNoReturnVar(AST_BinOp* binOpExpr, IR& irState, int& trueLabel
 			rightValue.value.flag = IR_NOT_EQUALS;
 		}
 
-		irState.add_statement(make_shared<IR_Jump>(IR_Jump(falseLabelIdx, (IR_FlagResults) -rightValue.value.flag)));
+		irState.add_statement(make_shared<IR_Jump>(IR_Jump(falseLabelIdx, (FlagResults) -rightValue.value.flag)));
 		irState.add_statement(make_shared<IR_Jump>(IR_Jump(trueLabelIdx, IR_ALWAYS)));
 	}
 
@@ -268,23 +268,23 @@ IR_Operand Expression::ParseBooleanExpression(Expression* expr, IR& irState, boo
 			//set flag results to use in later boolean expressions without having to convert it to another variable
 			switch (binOpExpr->op)
 			{
-			case BinOpType::NOT_EQUALS: flagValue.flag = IR_FlagResults::IR_NOT_EQUALS; break;
-			case BinOpType::EQUALS: flagValue.flag = IR_FlagResults::IR_EQUALS; break;
+			case BinOpType::NOT_EQUALS: flagValue.flag = FlagResults::IR_NOT_EQUALS; break;
+			case BinOpType::EQUALS: flagValue.flag = FlagResults::IR_EQUALS; break;
 			case BinOpType::GREATER: 
-				flagValue.flag = isIntOp ? IR_FlagResults::IR_GREATER : IR_FlagResults::IR_FLOAT_GREATER; 
+				flagValue.flag = isIntOp ? FlagResults::IR_GREATER : FlagResults::IR_FLOAT_GREATER; 
 				break;
 			case BinOpType::GREATER_EQUAL: 
-				flagValue.flag = isIntOp ? IR_FlagResults::IR_GREATER_EQUALS : IR_FlagResults::IR_FLOAT_GREATER_EQUALS; 
+				flagValue.flag = isIntOp ? FlagResults::IR_GREATER_EQUALS : FlagResults::IR_FLOAT_GREATER_EQUALS; 
 				break;
 			case BinOpType::LESS: 
-				flagValue.flag = isIntOp ? IR_FlagResults::IR_LESS : IR_FlagResults::IR_FLOAT_LESS; 
+				flagValue.flag = isIntOp ? FlagResults::IR_LESS : FlagResults::IR_FLOAT_LESS; 
 				break;
 			case BinOpType::LESS_EQUAL: 
-				flagValue.flag = isIntOp ? IR_FlagResults::IR_LESS_EQUALS : IR_FlagResults::IR_FLOAT_LESS_EQUALS; 
+				flagValue.flag = isIntOp ? FlagResults::IR_LESS_EQUALS : FlagResults::IR_FLOAT_LESS_EQUALS; 
 				break;
 			}
 
-			flagValue.flag = invertResult ? (IR_FlagResults) -flagValue.flag : flagValue.flag;
+			flagValue.flag = invertResult ? (FlagResults) -flagValue.flag : flagValue.flag;
 
 			return ConvertFlagsToTempVarConditionally(flagValue, irState, returnVar);
 
@@ -559,7 +559,7 @@ ExpressionType AST_Function_Expression::GetExpressionType()
 IR_Operand AST_Function_Expression::ConvertExpressionToIR(IR& irState)
 {
 	//save registers to memory before calling function
-	irState.add_statement(make_unique<IR_RegisterWriteToMemory>());
+	//irState.add_statement(make_unique<IR_RegisterWriteToMemory>());
 
 	IR_FunctionLabel funcDefIR = irState.state.scope.functionMapping.at(this->functionName);
 	IR_Value retValue = funcDefIR.returnValue;

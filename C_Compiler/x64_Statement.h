@@ -1,9 +1,13 @@
 #pragma once
 #include <string>
 #include <vector>
+#include "Variable.h"
+#include <sstream>
+
+using std::stringstream;
 using std::string;
 using std::vector;
-
+using namespace VariableNamespace;
 
 enum RegisterSize
 {
@@ -13,17 +17,77 @@ enum RegisterSize
 	QWORD
 };
 
-struct x64_Register
+struct RegisterAsm
 {
-	int registerIndex; //figure out how to treat special registers differently (i.e. rsp, rbp, rax, etc...)
+	REGISTER regIndex; //figure out how to treat special registers differently (i.e. rsp, rbp, rax, etc...)
 	RegisterSize size;
-
 };
 
-struct x64_Statement
+enum OperandTypeAsm
 {
+	ASM_REG,
+	ASM_INT_LITERAL,
+	ASM_GLOBAL_MEMORY
+};
+struct OperandAsm
+{
+	OperandTypeAsm type;
+	RegisterAsm reg;
+	bool dereference;
+	int baseOffset;
+	RegisterAsm regOffset;
+	bool useRegOffset;
+};
+
+enum StatementAsmType
+{
+	//formatting of x64 script
+	x64_DATA_SECTION,
+	x64_CODE_SECTION,
+	x64_FUNCTION_PROC,
+	x64_FUNCTION_END,
+	x64_CODE_END,
+	x64_GLOBAL_VARIABLE,
+
+	//actual x64 instructions
+	x64_MOV,
+	x64_ADD,
+	x64_SUB,
+	x64_IMUL,
+	x64_IDIV, //TODO: figure out how to deal with register allocation with DIV
+	x64_NEG, //TODO: figure out NEG for float
+	x64_ADDS,
+	x64_SUBS,
+	x64_MULS,
+	x64_DIVS,
+	x64_JMP,
+	x64_LABEL,
+	x64_LEA,
+	x64_CMP,
+	x64_RET,
+	x64_CALL,
+	x64_SET,
+	x64_FLOAT_TO_INT,
+	x64_INT_TO_FLOAT,
+	x64_PUSH,
+	x64_POP,
+	x64_CQO //used before IDIV instruction (converts RAX to RDX:RAX)
+};
+struct StatementAsm
+{
+	StatementAsmType type;
+	OperandAsm firstOperand;
+	OperandAsm secondOperand;
+
+	string name;
+	FlagResults flags;
+
+	string ToString() const;
+	StatementAsm(StatementAsmType type);
+	StatementAsm(StatementAsmType type, string name);
 
 };
+
 
 
 /*

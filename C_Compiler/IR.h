@@ -5,10 +5,13 @@
 #include "IR_Statement.h"
 #include "Variable.h"
 #include <iostream>
+#include <unordered_set>
 
 using std::vector;
 using std::shared_ptr;
 using std::make_shared;
+using std::unordered_set;
+
 using namespace VariableNamespace;
 /*
 TODO:
@@ -109,6 +112,8 @@ struct IR
 	void EnterFunction();
 	void ExitFunction();
 
+	void DetermineRegisterStatusOfOperand(IR_Operand& op, unordered_set<int>& set);
+	unordered_set<int> FindNonRegisterVariables();
 	//vector<IR_Statement> Function_Statements;
 	//vector<IR_Statement> Data_Statements;
 

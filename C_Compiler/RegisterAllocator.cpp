@@ -36,18 +36,18 @@ bool RegisterMapping::FindRegisterOfVariable(int variable, int& reg)
 
 
 
-void RegisterAllocator::AllocateRegisters(vector<IR_Function_Group>& functions)
-{
-	for (IR_Function_Group& function : functions)
-	{
-		AllocateRegistersForFunction(function);
-	}
-}
-
-void RegisterAllocator::AllocateRegistersForFunction(IR_Function_Group& function)
-{
-	//set up mapping to match input arguments to registers and memory locations
-}
+//void RegisterAllocator::AllocateRegisters(vector<IR_Function_Group>& functions)
+//{
+//	for (IR_Function_Group& function : functions)
+//	{
+//		AllocateRegistersForFunction(function);
+//	}
+//}
+//
+//void RegisterAllocator::AllocateRegistersForFunction(IR_Function_Group& function)
+//{
+//	//set up mapping to match input arguments to registers and memory locations
+//}
 
 
 

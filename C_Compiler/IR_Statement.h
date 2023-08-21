@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include "x64_State.h"
 
 using std::vector;
 using std::string;
@@ -17,7 +18,7 @@ enum IR_StatementType
 	_IR_VARIABLE_INIT,
 	_IR_JUMP,
 	_IR_LABEL,
-	_IR_STRUCT_INIT,
+	_IR_CONTINUOUS_MEMORY_INIT,
 	_IR_FUNCTION_CALL,
 	_IR_SCOPE_START,
 	_IR_SCOPE_END,
@@ -37,6 +38,7 @@ struct IR_Statement
 {
 	virtual string ToString() = 0;
 	virtual IR_StatementType GetType() = 0;
+	virtual void ConvertToX64(x64_State& state) = 0;
 };
 
 enum IR_AssignType
@@ -71,22 +73,6 @@ enum IR_ValueType
 	IR_VARIABLE
 };
 
-enum IR_FlagResults
-{
-	IR_NO_FLAGS = 0,
-	IR_ALWAYS = 1,
-	IR_NEVER = -1,
-	IR_GREATER = 2,
-	IR_LESS_EQUALS = -2,
-	IR_GREATER_EQUALS = 3,
-	IR_LESS = -3,
-	IR_EQUALS = 4,
-	IR_NOT_EQUALS = -4,
-	IR_FLOAT_GREATER = 5,
-	IR_FLOAT_LESS_EQUALS = -5,
-	IR_FLOAT_LESS = -6,
-	IR_FLOAT_GREATER_EQUALS = 6
-};
 
 enum IR_SpecialVars
 {
@@ -104,9 +90,10 @@ struct IR_Value
 	int byteSize;
 	int varIndex;
 	bool isTempValue; //temp value in middle of expression (only needs to be in registers, won't be stored on the stack)
+
 	string literalValue;
 	IR_SpecialVars specialVars = IR_NONE;
-	IR_FlagResults flag = IR_NO_FLAGS;
+	FlagResults flag = IR_NO_FLAGS;
 
 	int pointerLevel = 0;
 	IR_VarType baseType; //this is for pointers to know what the base type it is
@@ -165,6 +152,7 @@ struct IR_VariableInit : IR_Statement {
 
 	virtual string ToString() override;
 	virtual IR_StatementType GetType() override;
+	virtual void ConvertToX64(x64_State& state) override;
 };
 
 struct IR_Assign : IR_Statement
@@ -179,6 +167,7 @@ struct IR_Assign : IR_Statement
 
 	virtual string ToString() override;
 	virtual IR_StatementType GetType() override;
+	virtual void ConvertToX64(x64_State& state) override;
 
 	IR_Assign();
 	IR_Assign(IR_VarType type, IR_AssignType assignType, int byteSize, IR_Operand dest, IR_Operand source);
@@ -188,9 +177,11 @@ struct IR_ContinuousMemoryInit : IR_Statement
 {
 	int varIdx;
 	int byteNum;
+	bool isStruct;
 
 	virtual string ToString() override;
 	virtual IR_StatementType GetType() override;
+	virtual void ConvertToX64(x64_State& state) override;
 
 };
 
@@ -200,7 +191,7 @@ struct IR_Label : IR_Statement
 
 	virtual string ToString() override;
 	virtual IR_StatementType GetType() override;
-
+	virtual void ConvertToX64(x64_State& state) override;
 
 	IR_Label(int label);
 
@@ -208,42 +199,35 @@ struct IR_Label : IR_Statement
 
 struct IR_ScopeStart : IR_Statement
 {
-
-
 	virtual string ToString() override;
 	virtual IR_StatementType GetType() override;
-
-
+	virtual void ConvertToX64(x64_State& state) override;
 };
 
 struct IR_ScopeEnd : IR_Statement
 {
-
-
-
 	virtual string ToString() override;
 	virtual IR_StatementType GetType() override;
-
+	virtual void ConvertToX64(x64_State& state) override;
 };
 
 struct IR_Jump : IR_Statement
 {
 	int labelIdx;
-	IR_FlagResults condition = IR_ALWAYS;
+	FlagResults condition = IR_ALWAYS;
 
 	virtual string ToString() override;
 	virtual IR_StatementType GetType() override;
+	virtual void ConvertToX64(x64_State& state) override;
 
-	IR_Jump(int labelIdx, IR_FlagResults condition = IR_ALWAYS);
-
+	IR_Jump(int labelIdx, FlagResults condition = IR_ALWAYS);
 };
 
 struct IR_Return : IR_Statement
 {
 	virtual string ToString() override;
 	virtual IR_StatementType GetType() override;
-
-
+	virtual void ConvertToX64(x64_State& state) override;
 };
 
 //struct IR_ALUBinOp : IR_Statement
@@ -265,6 +249,7 @@ struct IR_FunctionCall : IR_Statement
 
 	virtual string ToString() override;
 	virtual IR_StatementType GetType() override;
+	virtual void ConvertToX64(x64_State& state) override;
 
 	IR_FunctionCall(string funcName);
 };
@@ -285,6 +270,7 @@ struct IR_FunctionArgAssign : IR_Statement
 
 	IR_FunctionArgAssign();
 	IR_FunctionArgAssign(int argIdx, IR_Operand value, IR_FunctionArgType argType, int byteSize, int stackArgOffset);
+	virtual void ConvertToX64(x64_State& state) override;
 
 	virtual string ToString() override;
 	virtual IR_StatementType GetType() override;
@@ -300,23 +286,20 @@ struct IR_FunctionArgAssign : IR_Statement
 	need to reload if there is register spilling)
 
 */
-struct IR_VariableReload : IR_Statement
-{
-
-
-	virtual string ToString() override;
-	virtual IR_StatementType GetType() override;
-
-};
-
-//called any time pointer value is read
-struct IR_RegisterWriteToMemory : IR_Statement
-{
-	virtual string ToString() override;
-	virtual IR_StatementType GetType() override;
-
-
-};
+//struct IR_VariableReload : IR_Statement
+//{
+//	virtual string ToString() override;
+//	virtual IR_StatementType GetType() override;
+//	virtual void ConvertToX64(x64_State& state) override;
+//};
+//
+////called any time pointer value is read
+//struct IR_RegisterWriteToMemory : IR_Statement
+//{
+//	virtual string ToString() override;
+//	virtual IR_StatementType GetType() override;
+//	virtual void ConvertToX64(x64_State& state) override;
+//};
 
 struct IR_Compare : IR_Statement
 {
@@ -325,7 +308,7 @@ struct IR_Compare : IR_Statement
 
 	virtual string ToString() override;
 	virtual IR_StatementType GetType() override;
-
+	virtual void ConvertToX64(x64_State& state) override;
 
 	IR_Compare();
 	IR_Compare(IR_Operand op1, IR_Operand op2);
@@ -335,18 +318,21 @@ struct IR_NOP : IR_Statement
 {
 	virtual string ToString() override;
 	virtual IR_StatementType GetType() override;
+	virtual void ConvertToX64(x64_State& state) override;
 };
 
 struct IR_LoopStart : IR_Statement
 {
 	virtual string ToString() override;
 	virtual IR_StatementType GetType() override;
+	virtual void ConvertToX64(x64_State& state) override;
 };
 
 struct IR_LoopEnd : IR_Statement
 {
 	virtual string ToString() override;
 	virtual IR_StatementType GetType() override;
+	virtual void ConvertToX64(x64_State& state) override;
 };
 
 struct IR_FunctionLabel : IR_Statement
@@ -358,6 +344,8 @@ struct IR_FunctionLabel : IR_Statement
 
 	virtual string ToString() override;
 	virtual IR_StatementType GetType() override;
+	virtual void ConvertToX64(x64_State& state) override;
+
 	IR_FunctionLabel(string functionName);
 	IR_FunctionLabel();
 };
@@ -366,12 +354,14 @@ struct IR_FunctionStart : IR_Statement
 {
 	virtual string ToString() override;
 	virtual IR_StatementType GetType() override;
+	virtual void ConvertToX64(x64_State& state) override;
 };
 
 struct IR_FunctionEnd : IR_Statement
 {
 	virtual string ToString() override;
 	virtual IR_StatementType GetType() override;
+	virtual void ConvertToX64(x64_State& state) override;
 };
 
 namespace IR_Utils

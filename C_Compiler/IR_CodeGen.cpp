@@ -149,5 +149,5 @@ void IR_Optimizations::RemoveUnusedLabels(vector<shared_ptr<IR_Statement>>& irSt
 void IR_CodeGen::AllocateRegisters()
 {
 	RegisterAllocator registerAllocator;
-	registerAllocator.AllocateRegisters(irState.functions);
+	//registerAllocator.AllocateRegisters(irState.functions);
 }

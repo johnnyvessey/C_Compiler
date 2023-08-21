@@ -69,6 +69,15 @@
     <ClCompile Include="RegisterAllocator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="x64_CodeGen.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="x64_Statement.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="x64_State.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Lexer.h">
@@ -110,10 +119,17 @@
     <ClInclude Include="RegisterAllocator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="x64_CodeGen.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="x64_State.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="TODO.txt" />
     <Text Include="test_code.txt" />
     <Text Include="IR_Specs.txt" />
+    <Text Include="RegisterAllocationSpecs.txt" />
   </ItemGroup>
 </Project>

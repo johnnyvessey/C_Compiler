@@ -1,5 +1,6 @@
 #include "Parser.h"
 #include "IR_CodeGen.h"
+#include "x64_CodeGen.h"
 
 int main()
 {
@@ -21,13 +22,20 @@ int main()
 	IR_CodeGen irCode(ast.group);
 	irCode.ConvertToIR();
 	irCode.PrintIR();
-	//Convert IR to x64
-	irCode.Optimize();
 
 	std::cout << "-------------\n\n\n";
 
+	//Optimize IR
+	irCode.Optimize();
 	irCode.PrintIR();
 
-	irCode.AllocateRegisters();
+	std::cout << "-------------\n\n\n";
+
+	//Convert IR to x64
+	x64_CodeGen x64CodeGen(irCode.irState);
+
+	x64CodeGen.GenerateCode();
+	string output = x64CodeGen.CodeToString();
 	
+	//Write output to file
 }

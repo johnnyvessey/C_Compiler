@@ -50,6 +50,60 @@ IR::IR()
 	//IR_statements = vector<shared_ptr<IR_Statement>>();
 }
 
+void IR::DetermineRegisterStatusOfOperand(IR_Operand& op, unordered_set<int>& set)
+{
+	if (op.useMemoryAddress || op.value.baseType == IR_STRUCT)
+	{
+		set.insert(op.value.varIndex);
+	}
+}
+
+unordered_set<int> IR::FindNonRegisterVariables()
+{
+	unordered_set<int> set;
+
+	for (auto& func : this->functions)
+	{
+		for (auto& statement : func.IR_statements)
+		{
+			IR_StatementType statementType = statement->GetType();
+
+			switch (statementType)
+			{
+				case _IR_ASSIGN:
+				{
+					IR_Assign* assign = dynamic_cast<IR_Assign*>(statement.get());
+					DetermineRegisterStatusOfOperand(assign->dest, set);
+					DetermineRegisterStatusOfOperand(assign->source, set);
+					break;
+				}
+				case _IR_FUNCTION_ARG_ASSIGN:
+				{
+					IR_FunctionArgAssign* funcArgAssign = dynamic_cast<IR_FunctionArgAssign*>(statement.get());
+					DetermineRegisterStatusOfOperand(funcArgAssign->value, set);
+					break;
+				}
+				case _IR_COMPARE:
+				{
+					IR_Compare* compare = dynamic_cast<IR_Compare*>(statement.get());
+					DetermineRegisterStatusOfOperand(compare->op1, set);
+					DetermineRegisterStatusOfOperand(compare->op2, set);
+					break;
+				}
+				case _IR_CONTINUOUS_MEMORY_INIT:
+				{
+					IR_ContinuousMemoryInit* memoryInit = dynamic_cast<IR_ContinuousMemoryInit*>(statement.get());
+					set.insert(memoryInit->varIdx);
+					break;
+				}					
+
+			}
+		}
+	}
+
+	return set;
+}
+
 IR_Function_Group::IR_Function_Group(string functionName) : functionName(functionName) {}
 
 

@@ -1,17 +1,19 @@
 #pragma once
-#include "IR.h"
 #include <vector>
+#include "Variable.h"
+
 using std::vector;
 
 struct RegisterVariableGroup
 {
 	//REGISTER reg;
-	int variableIndex;
+	int variableIndex = 0;
 	bool isModified = false;
 
 	//TODO: figure out if register size is necessary (i.e. RAX, EAX, AL...)
 	RegisterVariableGroup();
 };
+
 struct RegisterMapping
 {
 	vector<RegisterVariableGroup> mapping;
@@ -22,14 +24,12 @@ struct RegisterMapping
 
 struct MemoryVariableMapping
 {
+	//TODO: clear this at start of every function
 	unordered_map<int, int> memoryOffsetMapping; //maps varIndex to offset from RSP pointer (positive for arguments, negative for local variables)
 };
 
 struct RegisterAllocator
 {
-	void AllocateRegisters(vector<IR_Function_Group>& functions);
-	void AllocateRegistersForFunction(IR_Function_Group& function);
-
 	RegisterMapping registerMapping;
 	MemoryVariableMapping memoryVariableMapping;
 	int currentStackPointerOffset;
