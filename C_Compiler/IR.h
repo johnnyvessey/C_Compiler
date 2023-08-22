@@ -6,39 +6,16 @@
 #include "Variable.h"
 #include <iostream>
 #include <unordered_set>
+#include <unordered_map>
+#include <algorithm>
 
 using std::vector;
 using std::shared_ptr;
 using std::make_shared;
 using std::unordered_set;
+using std::unordered_map;
 
 using namespace VariableNamespace;
-/*
-TODO:
-figure out how to represent struct member variables in IR
-	- for example:
-	struct var v;
-	v.x = 1; //how do we represent v.x in IR? Is it its own variable? Is is just a pointer to the struct variable with an offset?
-
-	
-*/
-
-//struct IRStructVariable 
-//{
-//	IR_VarType type;
-//	bool isArray;
-//	string structName;
-//	int arrayLength = 0;
-//};
-//
-//struct IRStructDefinition
-//{
-//	string name;
-//
-//	vector<IRStructVariable> variables;
-//
-//	int memorySize;
-//};
 
 struct IR_Scope
 {
@@ -113,7 +90,8 @@ struct IR
 	void ExitFunction();
 
 	void DetermineRegisterStatusOfOperand(IR_Operand& op, unordered_set<int>& set);
-	unordered_set<int> FindNonRegisterVariables();
+
+	IR_VariableData ComputeIRVariableData();
 	//vector<IR_Statement> Function_Statements;
 	//vector<IR_Statement> Data_Statements;
 

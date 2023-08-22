@@ -9,8 +9,6 @@ using std::vector;
 using std::string;
 using std::unordered_map;
 
-#define POINTER_SIZE 8
-
 
 enum IR_StatementType
 {
@@ -41,88 +39,7 @@ struct IR_Statement
 	virtual void ConvertToX64(x64_State& state) = 0;
 };
 
-enum IR_AssignType
-{
-	IR_COPY,
-	IR_TYPE_CAST,
-	IR_NEGATIVE,
-	IR_ADD,
-	IR_SUBTRACT,
-	IR_MULTIPLY,
-	IR_DIVIDE, //divide in x64 is tricky because it uses eax, edx registers (look into this more)
-	IR_LEFT_SHIFT,
-	IR_RIGHT_SHIFT,
-	IR_FUSED_MULTIPLY_ADD,
-	IR_FLAG_CONVERT,
-	IR_STRUCT_COPY,
-	IR_LEA
-};
 
-
-enum IR_VarType
-{
-	IR_INT,
-	IR_FLOAT,
-	IR_STRUCT
-};
-
-
-enum IR_ValueType
-{
-	IR_LITERAL,
-	IR_VARIABLE
-};
-
-
-enum IR_SpecialVars
-{
-	IR_NONE,
-	IR_FLAGS,
-	IR_RETURN_INT,
-	IR_RETURN_FLOAT,
-	IR_RETURN_STACK
-};
-struct IR_Value
-{
-	IR_VarType type;
-	IR_ValueType valueType;
-
-	int byteSize;
-	int varIndex;
-	bool isTempValue; //temp value in middle of expression (only needs to be in registers, won't be stored on the stack)
-
-	string literalValue;
-	IR_SpecialVars specialVars = IR_NONE;
-	FlagResults flag = IR_NO_FLAGS;
-
-	int pointerLevel = 0;
-	IR_VarType baseType; //this is for pointers to know what the base type it is
-
-	IR_Value();
-	IR_Value(IR_VarType type, IR_ValueType valueType, int byteSize, int varIndex, bool isTempValue = true, string literalValue = "", IR_SpecialVars specialVars = IR_NONE);
-	IR_Value(IR_VarType type, IR_ValueType valueType, int byteSize, int varIndex, bool isTempValue, string literalValue, IR_SpecialVars specialVars, int pointerLevel, IR_VarType baseType);
-};
-
-struct IR_Operand
-{
-	IR_Value value;
-	bool dereference = false; 
-
-	bool useMemoryAddress = false;
-
-	int baseOffset = 0;
-
-	int memoryOffsetMultiplier = 0; //NOTE: this can only be 1,2,4,8
-	IR_Value memoryOffset;
-
-	int globalFloatValue = 0;
-	IR_VarType GetVarType();
-	int GetByteSize();
-	int GetPointerLevel();
-
-	IR_Operand();
-	IR_Operand(IR_Value value);
-};
 
 
 //struct IR_SructVariable : IR_Variable 

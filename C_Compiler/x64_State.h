@@ -4,13 +4,12 @@
 #include "x64_Statement.h"
 #include <unordered_set>
 #include <algorithm>
-using std::unordered_set;
+#include <unordered_map>
 
-struct IR_VariableData
-{
-	unordered_set<int> nonRegisterVariables;
-	//variables ranges also
-};
+using std::unordered_set;
+using std::unordered_map;
+using std::pair;
+
 struct x64_State
 {
 	int lineNum = 0;
@@ -19,6 +18,8 @@ struct x64_State
 	vector<StatementAsm> statements;
 
 	const static vector<REGISTER> _calleeSavedRegisters;
+	const static vector<REGISTER> _usableIntCalleeSavedRegisters;
+	const static vector<REGISTER> _usableFloatCalleeSavedRegisters;
 
 	inline static bool isIntRegister(REGISTER reg)
 	{
@@ -28,4 +29,8 @@ struct x64_State
 	{
 		return std::find(_calleeSavedRegisters.begin(), _calleeSavedRegisters.end(), reg) != _calleeSavedRegisters.end();
 	}
+
+	OperandAsm AllocateRegister(IR_Value value, REGISTER specificRegister = _NONE);
+
+	void ExpireOldIntervals();
 };

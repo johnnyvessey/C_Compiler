@@ -12,6 +12,7 @@ struct RegisterVariableGroup
 
 	//TODO: figure out if register size is necessary (i.e. RAX, EAX, AL...)
 	RegisterVariableGroup();
+	RegisterVariableGroup(int varIndex);
 };
 
 struct RegisterMapping
@@ -26,6 +27,8 @@ struct MemoryVariableMapping
 {
 	//TODO: clear this at start of every function
 	unordered_map<int, int> memoryOffsetMapping; //maps varIndex to offset from RSP pointer (positive for arguments, negative for local variables)
+	unordered_map<int, int> memoryOffsetMappingSpilledRegisters; //maps varIndex to offset from RSP pointer (positive for arguments, negative for local variables)
+
 };
 
 struct RegisterAllocator

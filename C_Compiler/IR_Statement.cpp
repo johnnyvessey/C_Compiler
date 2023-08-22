@@ -112,34 +112,6 @@ string operandToString(IR_Operand operand)
 	return ss.str();
 }
 
-IR_Value::IR_Value() {}
-IR_Value::IR_Value(IR_VarType type, IR_ValueType valueType, int byteSize, int varIndex, bool isTempValue, string literalValue, IR_SpecialVars specialVars) :
-	type(type), valueType(valueType), byteSize(byteSize), varIndex(varIndex), isTempValue(isTempValue), literalValue(literalValue), specialVars(specialVars),
-	baseType(type) {} 
-
-IR_Value::IR_Value(IR_VarType type, IR_ValueType valueType, int byteSize, int varIndex, bool isTempValue, string literalValue, IR_SpecialVars specialVars, 
-	int pointerLevel, IR_VarType baseType) :
-	type(type), valueType(valueType), byteSize(byteSize), varIndex(varIndex), isTempValue(isTempValue), literalValue(literalValue), specialVars(specialVars),
-	pointerLevel(pointerLevel), baseType(baseType) {}
-
-IR_Operand::IR_Operand() {}
-IR_Operand::IR_Operand(IR_Value value): value(value), baseOffset(0) {}
-
-int IR_Operand::GetPointerLevel()
-{
-	int pointerLevelOffset = dereference ? -1 : 0;
-	int refOffset = useMemoryAddress ? 1 : 0;
-
-	return value.pointerLevel + pointerLevelOffset + refOffset;
-}
-IR_VarType IR_Operand::GetVarType()
-{
-	return GetPointerLevel() > 0 ? IR_VarType::IR_INT : this->value.baseType;
-}
-int IR_Operand::GetByteSize()
-{
-	return GetPointerLevel() > 0 ? POINTER_SIZE : 4;
-}
 
 string IR_Assign::ToString()
 {

@@ -1,0 +1,23 @@
+Register Allocation:
+
+Rules for RegisterMapping:
+- If a variable wont' be used again, evict it from RegisterMapping
+- If a specific register (such as RAX/RDX for division or RAX for return) is needed, 
+	first try moving it to another open register
+	 -> maybe try assigning these "special" registers last???
+- Have designated registers (maybe R15 (or R10) and XMM15) for bringing memory-based variables into registers and then immediately
+	writing them back to memory (wouldn't want to have to shuffle around registers to do this)
+- If adding register to mapping and there is no open space:
+	-> add to memory (spill) [this is the linear scan algorithm]
+- If calling function:
+	-> save all modified non-callee-saved registers, then clear them from RegisterMapping
+	-> need to set RegisterMapping to exact mapping that the function is expecting
+- If in function:
+	-> push any non-callee-saved registers at start of function (if it is used in function), then pop them right before RET of function
+
+Control Flow:
+-> at jump, append current register mapping to the list of mappings on the label you're jumping to
+-> at a given label, take intersection of all mappings to get the common mapping for that label
+-> before jumping to that label, save any modified registers that aren't in the common mapping
+
+-> be careful about loops b/c of back-edge

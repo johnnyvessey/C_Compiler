@@ -28,8 +28,9 @@ void x64_CodeGen::PrintCurrentRegisterMapping()
 void x64_CodeGen::GenerateCode()
 {
 	//get info about IR variables to use in register allocation algorithm
-	this->state.irVariableData.nonRegisterVariables = irState.FindNonRegisterVariables();
+	this->state.irVariableData = irState.ComputeIRVariableData();
 	this->PrintNonRegisterIRVariables();
+	this->PrintVariableRanges();
 
 	std::cout << "------\n\n\n\n";
 
@@ -46,6 +47,7 @@ void x64_CodeGen::GenerateCode()
 
 	for (const auto& func : this->irState.functions)
 	{
+		this->state.irVariableData.currentFunctionVariableRanges = &(this->state.irVariableData.variableRanges.at(func.functionName));
 		this->state.statements.push_back(StatementAsm(x64_FUNCTION_PROC, func.functionName));
 
 		//function body
@@ -54,12 +56,12 @@ void x64_CodeGen::GenerateCode()
 			state.lineNum = i;
 			func.IR_statements.at(i)->ConvertToX64(state);
 			std::cout << func.IR_statements.at(i)->ToString() << "\n";
-			PrintCurrentRegisterMapping();
-			
+
+			this->state.ExpireOldIntervals();
+			PrintCurrentRegisterMapping();	
 		}
 
 		this->state.statements.push_back(StatementAsm(x64_FUNCTION_END, func.functionName));
-
 	}
 
 	this->state.statements.push_back(StatementAsm(x64_CODE_END));

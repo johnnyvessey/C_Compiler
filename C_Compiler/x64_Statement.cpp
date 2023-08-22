@@ -41,6 +41,20 @@ string StatementAsm::ToString() const
 	return ss.str();
 }
 
+RegisterAsm::RegisterAsm() {}
+RegisterAsm::RegisterAsm(REGISTER reg) : reg(reg) {}
+
+
+OperandAsm OperandAsm::CreateRSPOffsetOperand(int offset)
+{
+	OperandAsm op;
+	op.dereference = true;
+	op.baseOffset = offset;
+	op.reg = RegisterAsm(RSP);
+
+	return op;
+
+}
 
 StatementAsm::StatementAsm(StatementAsmType type): type(type) {}
 StatementAsm::StatementAsm(StatementAsmType type, string name) : type(type), name(name) {}

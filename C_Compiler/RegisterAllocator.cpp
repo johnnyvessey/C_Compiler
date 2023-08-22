@@ -1,11 +1,8 @@
 #include "RegisterAllocator.h"
 
 
-RegisterVariableGroup::RegisterVariableGroup()
-{
-	variableIndex = 0; //no variable
-	isModified = false;
-}
+RegisterVariableGroup::RegisterVariableGroup() : variableIndex(0), isModified(false) {}
+RegisterVariableGroup::RegisterVariableGroup(int varIndex) : variableIndex(varIndex), isModified(false) {}
 
 RegisterMapping::RegisterMapping()
 {

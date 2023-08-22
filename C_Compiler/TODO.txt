@@ -1,5 +1,15 @@
 TODO:
 
+Register Allocation:
+- Tentatively spill variables that won't be used within loop
+-> if there if no spilling in loop, then don't spill those variables
+-> however, if there would be spilling, first check if there are tentatively spilled variables, then use the freed registers
+-> be careful about nested loops. Maybe use deque for storing tentatively spilled variables
+	-> iterate from left to right when finding variable to spill (want to spill in lowest loop level as possible)
+	-> pop from right when exiting loop 
+
+
+
 
 
 - EITHER HAVE SIGN EXTEND STUFF (also have to deal with how to go from 64 bit to 32 bit... maybe just never do it and only create
@@ -22,6 +32,7 @@ IR OPTIMIZATIONS TODO:
 - constant propagation
 	-> be careful about control flow (if statements, loops)
 	-> play this very safe (only do for variables in top of scope?)
+	-> only do this for variables whose reference was never taken
 
 
 

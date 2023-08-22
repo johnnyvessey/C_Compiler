@@ -58,14 +58,18 @@ void IR::DetermineRegisterStatusOfOperand(IR_Operand& op, unordered_set<int>& se
 	}
 }
 
-unordered_set<int> IR::FindNonRegisterVariables()
+IR_VariableData IR::ComputeIRVariableData()
 {
+	IR_VariableData varData;
 	unordered_set<int> set;
 
 	for (auto& func : this->functions)
 	{
-		for (auto& statement : func.IR_statements)
+		unordered_map<int, int> lastVariableOccurence;
+
+		for (int lineNum = 0; lineNum < func.IR_statements.size(); ++lineNum)
 		{
+			const auto& statement = func.IR_statements.at(lineNum);
 			IR_StatementType statementType = statement->GetType();
 
 			switch (statementType)
@@ -75,12 +79,17 @@ unordered_set<int> IR::FindNonRegisterVariables()
 					IR_Assign* assign = dynamic_cast<IR_Assign*>(statement.get());
 					DetermineRegisterStatusOfOperand(assign->dest, set);
 					DetermineRegisterStatusOfOperand(assign->source, set);
+
+					lastVariableOccurence[assign->dest.value.varIndex] = lineNum;
+					lastVariableOccurence[assign->source.value.varIndex] = lineNum;
 					break;
 				}
 				case _IR_FUNCTION_ARG_ASSIGN:
 				{
 					IR_FunctionArgAssign* funcArgAssign = dynamic_cast<IR_FunctionArgAssign*>(statement.get());
 					DetermineRegisterStatusOfOperand(funcArgAssign->value, set);
+
+					lastVariableOccurence[funcArgAssign->value.value.varIndex] = lineNum;
 					break;
 				}
 				case _IR_COMPARE:
@@ -88,6 +97,10 @@ unordered_set<int> IR::FindNonRegisterVariables()
 					IR_Compare* compare = dynamic_cast<IR_Compare*>(statement.get());
 					DetermineRegisterStatusOfOperand(compare->op1, set);
 					DetermineRegisterStatusOfOperand(compare->op2, set);
+
+					lastVariableOccurence[compare->op1.value.varIndex] = lineNum;
+					lastVariableOccurence[compare->op2.value.varIndex] = lineNum;
+
 					break;
 				}
 				case _IR_CONTINUOUS_MEMORY_INIT:
@@ -99,10 +112,30 @@ unordered_set<int> IR::FindNonRegisterVariables()
 
 			}
 		}
+
+		//erase var index of 0 which is special vars
+		lastVariableOccurence.erase(0);
+
+		vector<pair<int, int>> variableRanges;
+		variableRanges.reserve(lastVariableOccurence.size());
+
+		for (const auto& pair : lastVariableOccurence)
+		{
+			variableRanges.push_back(pair);
+		}
+		//sort based on last occurrence
+		std::sort(variableRanges.begin(), variableRanges.end(), [](const pair<int, int>& a, const pair<int, int>& b) {return a.second < b.second; });
+		varData.variableRanges[func.functionName] = variableRanges;
 	}
 
-	return set;
+
+
+	varData.nonRegisterVariables = set;
+
+	return varData;
+
 }
+
 
 IR_Function_Group::IR_Function_Group(string functionName) : functionName(functionName) {}
 

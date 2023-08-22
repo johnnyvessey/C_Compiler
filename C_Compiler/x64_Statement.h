@@ -9,18 +9,21 @@ using std::string;
 using std::vector;
 using namespace VariableNamespace;
 
-enum RegisterSize
-{
-	BYTE,
-	WORD,
-	DWORD,
-	QWORD
-};
+//enum RegisterSize
+//{
+//	BYTE,
+//	WORD,
+//	DWORD,
+//	QWORD
+//};
 
 struct RegisterAsm
 {
-	REGISTER regIndex; //figure out how to treat special registers differently (i.e. rsp, rbp, rax, etc...)
-	RegisterSize size;
+	REGISTER reg; //figure out how to treat special registers differently (i.e. rsp, rbp, rax, etc...)
+	int size = REGISTER_SIZE;
+
+	RegisterAsm();
+	RegisterAsm(REGISTER reg);
 };
 
 enum OperandTypeAsm
@@ -33,10 +36,12 @@ struct OperandAsm
 {
 	OperandTypeAsm type;
 	RegisterAsm reg;
-	bool dereference;
-	int baseOffset;
+	bool dereference = false;
+	int baseOffset = 0;
 	RegisterAsm regOffset;
-	bool useRegOffset;
+	bool useRegOffset = false;
+
+	static OperandAsm CreateRSPOffsetOperand(int offset);
 };
 
 enum StatementAsmType
