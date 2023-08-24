@@ -14,7 +14,7 @@ void IR::EnterScope()
 	state.scope.structMapping.push_back(unordered_map<string, StructDefinition>());
 
 	//TODO: see if this is needed
-	//IR_statements.push_back(std::make_shared<IR_ScopeStart>());
+	add_statement(std::make_shared<IR_ScopeStart>());
 	
 }
 void IR::ExitScope()
@@ -24,7 +24,7 @@ void IR::ExitScope()
 	state.scope.structMapping.pop_back();
 
 	//TODO: see if this is needed
-	//IR_statements.push_back(std::make_shared<IR_ScopeEnd>());
+	add_statement(std::make_shared<IR_ScopeEnd>());
 
 }
 
@@ -50,23 +50,71 @@ IR::IR()
 	//IR_statements = vector<shared_ptr<IR_Statement>>();
 }
 
-void IR::DetermineRegisterStatusOfOperand(IR_Operand& op, unordered_set<int>& set)
+void IR::DetermineRegisterStatusOfOperand(IR_Operand& op, unordered_map<int, int>& nonRegisterVariableMap)
 {
-	if (op.useMemoryAddress || op.value.baseType == IR_STRUCT)
+	if (op.useMemoryAddress)
 	{
-		set.insert(op.value.varIndex);
+		nonRegisterVariableMap[op.value.varIndex] = op.value.byteSize;
 	}
 }
+
+
+struct StatementVariableUse
+{
+	int lineNum = -1;
+	int varIdx = 0;
+	bool copy = false;
+
+	StatementVariableUse(int lineNum, int varIdx) : lineNum(lineNum), varIdx(varIdx) {}
+};
+
+//This function doubles the statements within loops so that when trying to find the next line num of a variable
+//it can look behind itself (if inside a loop)
+void RecursivelyDoubleLoops(vector<StatementVariableUse>& out, vector<StatementVariableUse>& v, int& i)
+{
+	if (i >= v.size())
+	{
+		return;
+	}
+
+	int varIdx = v.at(i).varIdx;
+	if (varIdx == 0)
+	{
+		RecursivelyDoubleLoops(out, v, ++i);
+	}
+	else if (varIdx > 0)
+	{
+		out.push_back(v.at(i));
+		RecursivelyDoubleLoops(out, v, ++i);
+	}
+	else if (varIdx == -1)
+	{
+		vector<StatementVariableUse> doubledVector;
+		RecursivelyDoubleLoops(doubledVector, v, ++i);
+		out.insert(out.end(), doubledVector.begin(), doubledVector.end());
+		out.insert(out.end(), doubledVector.begin(), doubledVector.end());
+
+		RecursivelyDoubleLoops(out, v, i);
+	}
+	else
+	{
+		++i;
+	}
+
+}
+
+
 
 IR_VariableData IR::ComputeIRVariableData()
 {
 	IR_VariableData varData;
-	unordered_set<int> set;
+	unordered_map<int, int> nonRegisterVariableMap;
 
 	for (auto& func : this->functions)
 	{
-		unordered_map<int, int> lastVariableOccurence;
+		//unordered_map<int, int> lastVariableOccurence;
 
+		vector<StatementVariableUse> variableUses;
 		for (int lineNum = 0; lineNum < func.IR_statements.size(); ++lineNum)
 		{
 			const auto& statement = func.IR_statements.at(lineNum);
@@ -77,60 +125,99 @@ IR_VariableData IR::ComputeIRVariableData()
 				case _IR_ASSIGN:
 				{
 					IR_Assign* assign = dynamic_cast<IR_Assign*>(statement.get());
-					DetermineRegisterStatusOfOperand(assign->dest, set);
-					DetermineRegisterStatusOfOperand(assign->source, set);
+					DetermineRegisterStatusOfOperand(assign->dest, nonRegisterVariableMap);
+					DetermineRegisterStatusOfOperand(assign->source, nonRegisterVariableMap);
 
-					lastVariableOccurence[assign->dest.value.varIndex] = lineNum;
-					lastVariableOccurence[assign->source.value.varIndex] = lineNum;
+					variableUses.push_back(StatementVariableUse(lineNum, assign->dest.value.varIndex));
+					variableUses.push_back(StatementVariableUse(lineNum, assign->source.value.varIndex));
+
 					break;
 				}
 				case _IR_FUNCTION_ARG_ASSIGN:
 				{
 					IR_FunctionArgAssign* funcArgAssign = dynamic_cast<IR_FunctionArgAssign*>(statement.get());
-					DetermineRegisterStatusOfOperand(funcArgAssign->value, set);
+					DetermineRegisterStatusOfOperand(funcArgAssign->value, nonRegisterVariableMap);
 
-					lastVariableOccurence[funcArgAssign->value.value.varIndex] = lineNum;
+					variableUses.push_back(StatementVariableUse(lineNum, funcArgAssign->value.value.varIndex));
+
 					break;
 				}
 				case _IR_COMPARE:
 				{
 					IR_Compare* compare = dynamic_cast<IR_Compare*>(statement.get());
-					DetermineRegisterStatusOfOperand(compare->op1, set);
-					DetermineRegisterStatusOfOperand(compare->op2, set);
+					DetermineRegisterStatusOfOperand(compare->op1, nonRegisterVariableMap);
+					DetermineRegisterStatusOfOperand(compare->op2, nonRegisterVariableMap);
 
-					lastVariableOccurence[compare->op1.value.varIndex] = lineNum;
-					lastVariableOccurence[compare->op2.value.varIndex] = lineNum;
+					variableUses.push_back(StatementVariableUse(lineNum, compare->op1.value.varIndex));
+					variableUses.push_back(StatementVariableUse(lineNum, compare->op2.value.varIndex));
 
 					break;
 				}
 				case _IR_CONTINUOUS_MEMORY_INIT:
 				{
 					IR_ContinuousMemoryInit* memoryInit = dynamic_cast<IR_ContinuousMemoryInit*>(statement.get());
-					set.insert(memoryInit->varIdx);
+					nonRegisterVariableMap[memoryInit->varIdx] = memoryInit->byteNum;
 					break;
-				}					
+				}
+				case _IR_LOOP_START:
+				{
+					variableUses.push_back(StatementVariableUse(lineNum, -1));
+					break;
+				}
+				case _IR_LOOP_END:
+				{
+					variableUses.push_back(StatementVariableUse(lineNum, -2));
+					break;
+				}
 
 			}
 		}
 
-		//erase var index of 0 which is special vars
-		lastVariableOccurence.erase(0);
+		vector<StatementVariableUse> out;
 
-		vector<pair<int, int>> variableRanges;
-		variableRanges.reserve(lastVariableOccurence.size());
 
-		for (const auto& pair : lastVariableOccurence)
+		for (auto v : variableUses)
 		{
-			variableRanges.push_back(pair);
+			std::cout << v.varIdx << ", ";
 		}
-		//sort based on last occurrence
-		std::sort(variableRanges.begin(), variableRanges.end(), [](const pair<int, int>& a, const pair<int, int>& b) {return a.second < b.second; });
-		varData.variableRanges[func.functionName] = variableRanges;
+		std::cout << "\n______________\n";
+
+		int l = 0;
+		RecursivelyDoubleLoops(out, variableUses, l);
+
+		for (auto v : out)
+		{
+			std::cout << v.varIdx << ", ";
+		}
+
+		unordered_map<int, vector<int>> variableLineMapping;
+		unordered_map<int, int> normalIndexToDoubledIndexMapping;
+
+		for (int i = 0; i < out.size(); ++i)
+		{
+			StatementVariableUse& var = out.at(i);
+
+			variableLineMapping[var.varIdx].push_back(i);
+
+			if (normalIndexToDoubledIndexMapping.find(var.lineNum) == normalIndexToDoubledIndexMapping.end())
+			{
+				normalIndexToDoubledIndexMapping[var.lineNum] = i;
+			}
+		}
+
+		//reverse line mapping so you can just pop from end when the current index is greater than the back index
+		for (auto& pair : variableLineMapping)
+		{
+			std::reverse(pair.second.begin(), pair.second.end());
+		}
+
+		varData.normalIndexToDoubledIndexMapping[func.functionName] = std::move(normalIndexToDoubledIndexMapping);
+		varData.variableLineMapping[func.functionName] = std::move(variableLineMapping);
 	}
 
 
 
-	varData.nonRegisterVariables = set;
+	varData.nonRegisterVariables = nonRegisterVariableMap;
 
 	return varData;
 

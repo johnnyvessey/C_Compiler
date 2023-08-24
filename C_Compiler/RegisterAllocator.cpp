@@ -1,36 +1,6 @@
 #include "RegisterAllocator.h"
 
 
-RegisterVariableGroup::RegisterVariableGroup() : variableIndex(0), isModified(false) {}
-RegisterVariableGroup::RegisterVariableGroup(int varIndex) : variableIndex(varIndex), isModified(false) {}
-
-RegisterMapping::RegisterMapping()
-{
-	mapping = vector<RegisterVariableGroup>(NUM_REGISTERS, RegisterVariableGroup());
-}
-
-void RegisterMapping::SetRegister(int reg, int variable)
-{
-	RegisterVariableGroup var;
-	var.variableIndex = variable;
-
-	mapping[reg] = var;
-}
-
-bool RegisterMapping::FindRegisterOfVariable(int variable, int& reg)
-{
-	for (int i = 0; i < NUM_REGISTERS; ++i)
-	{
-		if (mapping[i].variableIndex == variable)
-		{
-			reg = i;
-			return true;
-		}
-	}
-
-	return false;
-}
-
 
 
 //void RegisterAllocator::AllocateRegisters(vector<IR_Function_Group>& functions)

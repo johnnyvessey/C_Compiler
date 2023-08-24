@@ -53,8 +53,17 @@ OperandAsm OperandAsm::CreateRSPOffsetOperand(int offset)
 	op.reg = RegisterAsm(RSP);
 
 	return op;
-
 }
+
+OperandAsm OperandAsm::CreateRegisterOperand(REGISTER reg)
+{
+	OperandAsm operand;
+	operand.reg = RegisterAsm(reg);
+	operand.type = ASM_REG;
+
+	return operand;
+}
+
 
 StatementAsm::StatementAsm(StatementAsmType type): type(type) {}
 StatementAsm::StatementAsm(StatementAsmType type, string name) : type(type), name(name) {}

@@ -1,5 +1,28 @@
 TODO:
 
+
+
+- Greedy algorithm for assigning registers
+- keep track of register mapping at each label
+
+
+Taking intersection of register mappings:
+- skip adding mapping to label if instruction right before label was unconditional jump to other label,
+	otherwise set the initialRegisterMapping with the current mapping
+- be careful about loops
+- think about how to reduce spilling inside loops (tentative spilling of variables that aren't used in loop???)
+- figure out how to get reference to labels to add mappings to them
+- figure out how to get references to jumps
+	-> maybe just have dictionary and then insert the all the extra instructions at the very end
+
+
+- Maybe add back enter and exit scope, as well as stack which stores the variables in a given scope, so that stack memory can be reused
+
+
+
+
+
+
 Register Allocation:
 - Tentatively spill variables that won't be used within loop
 -> if there if no spilling in loop, then don't spill those variables

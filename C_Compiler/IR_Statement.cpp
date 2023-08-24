@@ -219,7 +219,7 @@ IR_StatementType IR_ScopeStart::GetType()
 }
 void IR_ScopeStart::ConvertToX64(x64_State& state)
 {
-	//TODO: Finish
+	state.irVariableData.irScopeStack.push_back(vector<int>());
 }
 
 string IR_ScopeEnd::ToString()
@@ -232,7 +232,19 @@ IR_StatementType IR_ScopeEnd::GetType()
 }
 void IR_ScopeEnd::ConvertToX64(x64_State& state)
 {
-	//TODO: Finish
+	for (const int x : state.irVariableData.irScopeStack.back())
+	{
+		//find way to get size of all variables
+		//don't just subtract because not variables will be spilled
+		//only subtract for spilled variables
+		if (state.irVariableData.nonRegisterVariables.find(x) != state.irVariableData.nonRegisterVariables.end())
+		{
+			state.registerAllocator.currentStackPointerOffset -= state.irVariableData.nonRegisterVariables.at(x);
+		}
+
+		//TODO: subtract spilled variables
+	}
+	state.irVariableData.irScopeStack.pop_back();
 }
 
 string IR_Jump::ToString()
@@ -249,7 +261,15 @@ IR_StatementType IR_Jump::GetType()
 }
 void IR_Jump::ConvertToX64(x64_State& state)
 {
-	//TODO: Finish
+	//add current register mapping to the vector of mappings at the label it's jumping to
+	state.registerAllocator.labelRegisterMapping[this->labelIdx].jumpMappings.push_back(state.registerAllocator.registerMapping);
+	
+
+	StatementAsm jumpStatement(x64_JMP);
+	jumpStatement.flags = this->condition;
+	jumpStatement.name = "label_" + std::to_string(this->labelIdx);
+
+	state.statements.push_back(jumpStatement);
 }
 
 IR_Jump::IR_Jump(int labelIdx, FlagResults condition): labelIdx(labelIdx), condition(condition) {}

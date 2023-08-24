@@ -89,9 +89,10 @@ struct IR
 	void EnterFunction();
 	void ExitFunction();
 
-	void DetermineRegisterStatusOfOperand(IR_Operand& op, unordered_set<int>& set);
+	void DetermineRegisterStatusOfOperand(IR_Operand& op, unordered_map<int, int>& nonRegisterVariableMap);
 
 	IR_VariableData ComputeIRVariableData();
+
 	//vector<IR_Statement> Function_Statements;
 	//vector<IR_Statement> Data_Statements;
 

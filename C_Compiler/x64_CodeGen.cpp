@@ -2,6 +2,43 @@
 
 x64_CodeGen::x64_CodeGen(IR& irState): irState(irState) {}
 
+void x64_CodeGen::PrintNonRegisterIRVariables()
+{
+	std::cout << "Non register variables: \n{";
+	for (const auto& pair : state.irVariableData.nonRegisterVariables)
+	{
+		std::cout << "%" << pair.first << ": " << pair.second << " bytes, ";
+	}
+	std::cout << "}\n";
+
+}
+
+void x64_CodeGen::PrintVariableRanges()
+{
+	std::cout << "Variable Ranges: \n";
+
+	for (const auto& funcNameLineMappingPair : state.irVariableData.variableLineMapping)
+	{
+		std::cout << funcNameLineMappingPair.first << ":\n{";
+		for (const auto& pair : state.irVariableData.normalIndexToDoubledIndexMapping.at(funcNameLineMappingPair.first))
+		{
+			std::cout << pair.first << ": " << pair.second << ", ";
+		}
+
+		std::cout << "}\n\n";
+		for (const auto& varIdxRangePair : funcNameLineMappingPair.second)
+		{
+			std::cout << "%" << varIdxRangePair.first << ": {";
+			for (const auto& v : varIdxRangePair.second)
+			{
+				std::cout << v << ", ";
+			}
+			std::cout << "}\n";
+		}
+		std::cout << "-----\n";
+	}
+}
+
 void x64_CodeGen::PrintCurrentRegisterMapping()
 {
 	//print registers
@@ -29,6 +66,10 @@ void x64_CodeGen::GenerateCode()
 {
 	//get info about IR variables to use in register allocation algorithm
 	this->state.irVariableData = irState.ComputeIRVariableData();
+
+	//initialize scope stack
+	this->state.irVariableData.irScopeStack.push_back(vector<int>());
+
 	this->PrintNonRegisterIRVariables();
 	this->PrintVariableRanges();
 
@@ -47,7 +88,13 @@ void x64_CodeGen::GenerateCode()
 
 	for (const auto& func : this->irState.functions)
 	{
-		this->state.irVariableData.currentFunctionVariableRanges = &(this->state.irVariableData.variableRanges.at(func.functionName));
+		//set up address variables on stack
+		
+
+		//set current line and index mappings to use for register allocation
+		this->state.irVariableData.currentLineMapping = &(this->state.irVariableData.variableLineMapping).at(func.functionName);
+		this->state.irVariableData.currentNormalIndexToDoubledIndexMapping = &(this->state.irVariableData.normalIndexToDoubledIndexMapping.at(func.functionName));
+
 		this->state.statements.push_back(StatementAsm(x64_FUNCTION_PROC, func.functionName));
 
 		//function body
@@ -55,10 +102,10 @@ void x64_CodeGen::GenerateCode()
 		{
 			state.lineNum = i;
 			func.IR_statements.at(i)->ConvertToX64(state);
-			std::cout << func.IR_statements.at(i)->ToString() << "\n";
+			//std::cout << func.IR_statements.at(i)->ToString() << "\n";
 
-			this->state.ExpireOldIntervals();
-			PrintCurrentRegisterMapping();	
+			this->state.EvictExpiredVariables();
+			//PrintCurrentRegisterMapping();	
 		}
 
 		this->state.statements.push_back(StatementAsm(x64_FUNCTION_END, func.functionName));

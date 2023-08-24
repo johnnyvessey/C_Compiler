@@ -32,5 +32,7 @@ struct x64_State
 
 	OperandAsm AllocateRegister(IR_Value value, REGISTER specificRegister = _NONE);
 
-	void ExpireOldIntervals();
+	void EvictExpiredVariables();
+
+	REGISTER FindFurthestAwayRegisterInMappingUsed();
 };

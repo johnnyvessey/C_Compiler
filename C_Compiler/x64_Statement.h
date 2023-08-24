@@ -42,6 +42,7 @@ struct OperandAsm
 	bool useRegOffset = false;
 
 	static OperandAsm CreateRSPOffsetOperand(int offset);
+	static OperandAsm CreateRegisterOperand(REGISTER reg);
 };
 
 enum StatementAsmType
@@ -86,6 +87,10 @@ struct StatementAsm
 
 	string name;
 	FlagResults flags;
+
+	vector<StatementAsm> preStatements;
+	vector<StatementAsm> postStatements;
+
 
 	string ToString() const;
 	StatementAsm(StatementAsmType type);

@@ -235,11 +235,49 @@ namespace VariableNamespace {
 
 	struct IR_VariableData
 	{
-		unordered_set<int> nonRegisterVariables;
-		//unordered_map<int, int> variableLastOccurrence;
-		unordered_map<string, vector<pair<int, int>>> variableRanges;
-		vector<pair<int, int>>* currentFunctionVariableRanges;
-		int currentVariableRangeIndex = 0;
+		unordered_map<int, int> nonRegisterVariables;
+		unordered_map<string, unordered_map<int, vector<int>>> variableLineMapping;
+		unordered_map<string, unordered_map<int, int>> normalIndexToDoubledIndexMapping;
+
+		unordered_map<int, vector<int>>* currentLineMapping;
+		unordered_map<int, int>* currentNormalIndexToDoubledIndexMapping;
+
+		vector<vector<int>> irScopeStack;
+
+	};
+
+
+	struct RegisterVariableGroup
+	{
+		//REGISTER reg;
+		int variableIndex = 0;
+		bool isModified = true;
+
+		//TODO: figure out if register size is necessary (i.e. RAX, EAX, AL...)
+		RegisterVariableGroup();
+		RegisterVariableGroup(int varIndex);
+	};
+
+	struct RegisterMapping
+	{
+		vector<RegisterVariableGroup> mapping;
+		RegisterMapping();
+		void SetRegister(int reg, int variable);
+		bool FindRegisterOfVariable(int variable, int& reg);
+	};
+
+	struct LabelRegisterMaps
+	{
+		RegisterMapping initialMapping;
+		vector<RegisterMapping> jumpMappings;
+	};
+
+	struct MemoryVariableMapping
+	{
+		//TODO: clear this at start of every function
+		unordered_map<int, int> memoryOffsetMapping; //maps varIndex to offset from RSP pointer (positive for arguments, negative for local variables)
+		unordered_map<int, int> memoryOffsetMappingSpilledRegisters; //maps varIndex to offset from RSP pointer (positive for arguments, negative for local variables)
+
 	};
 
 	//inline int GetMemorySizeForIR(VariableType type, IR& irState, string structName = "")
