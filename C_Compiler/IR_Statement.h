@@ -37,6 +37,8 @@ struct IR_Statement
 	virtual string ToString() = 0;
 	virtual IR_StatementType GetType() = 0;
 	virtual void ConvertToX64(x64_State& state) = 0;
+
+	static OperandAsm ConvertIrOperandToOperandAsm(IR_Operand& op, x64_State& state);
 };
 
 

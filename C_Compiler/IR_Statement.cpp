@@ -3,6 +3,56 @@
 
 using std::stringstream;
 
+
+
+OperandAsm IR_Statement::ConvertIrOperandToOperandAsm(IR_Operand& op, x64_State& state)
+{
+	OperandAsm opAsm;
+
+	if (op.value.valueType == IR_LITERAL)
+	{
+		opAsm.type = ASM_INT_LITERAL;
+		opAsm.literalIntValue = std::stoi(op.value.literalValue);
+
+	}
+	else if (op.value.specialVars == IR_RETURN_INT)
+	{
+		return OperandAsm::CreateRegisterOperand(state.AllocateRegister(op.value, RAX));
+	}
+	else if (op.value.specialVars == IR_RETURN_FLOAT)
+	{
+		return OperandAsm::CreateRegisterOperand(state.AllocateRegister(op.value, XMM0));
+	}
+	else if (op.value.specialVars == IR_RETURN_STACK)
+	{
+		return OperandAsm::CreateRegisterOperand(state.AllocateRegister(op.value, RDI));
+	}
+	else if (state.registerAllocator.memoryVariableMapping.memoryOffsetMapping.find(op.value.varIndex) !=
+		state.registerAllocator.memoryVariableMapping.memoryOffsetMapping.end())
+	{
+		opAsm.reg = RegisterAsm(RSP);
+		opAsm.baseOffset = state.registerAllocator.memoryVariableMapping.memoryOffsetMapping.at(op.value.varIndex);
+		opAsm.dereference = true;
+
+		//TODO: figure out what to do if using memory address
+
+	}
+	else {
+		opAsm.dereference = op.dereference;
+		opAsm.baseOffset = op.baseOffset;
+		opAsm.reg = RegisterAsm(state.AllocateRegister(op.value));
+		if (op.memoryOffsetMultiplier != 0)
+		{
+			opAsm.useRegOffset = true;
+			opAsm.regOffsetMultiplier = op.memoryOffsetMultiplier;
+			opAsm.regOffset = RegisterAsm(state.AllocateRegister(op.memoryOffset));
+		}
+
+	}
+
+	return opAsm;
+}
+
 string conditionToString(FlagResults condition)
 {
 	string cs = "";
@@ -10,9 +60,9 @@ string conditionToString(FlagResults condition)
 	{
 	case IR_EQUALS: cs = "E"; break;
 	case IR_NOT_EQUALS: cs = "NE"; break;
-	case IR_GREATER: cs = "GT"; break;
+	case IR_GREATER: cs = "G"; break;
 	case IR_GREATER_EQUALS: cs = "GE"; break;
-	case IR_LESS: cs = "LT"; break;
+	case IR_LESS: cs = "L"; break;
 	case IR_LESS_EQUALS: cs = "LE"; break;
 	case IR_FLOAT_GREATER: cs = "A"; break;
 	case IR_FLOAT_GREATER_EQUALS: cs = "AE"; break;
@@ -173,7 +223,73 @@ IR_StatementType IR_Assign::GetType()
 
 void IR_Assign::ConvertToX64(x64_State& state)
 {
-	//TODO: Finish
+
+	//deal with special cases first: int division, setting variable based on flag, 
+	if (this->assignType == IR_DIVIDE && this->dest.GetVarType() == IR_INT)
+	{
+		//TODO: figure out int division
+	}
+	else if (this->assignType == IR_FLAG_CONVERT)
+	{
+
+	}
+	else if (this->assignType == IR_STRUCT_COPY)
+	{
+
+	}
+	StatementAsm assignStatement;
+	
+	assignStatement.firstOperand = IR_Statement::ConvertIrOperandToOperandAsm(this->dest, state);
+	assignStatement.secondOperand = IR_Statement::ConvertIrOperandToOperandAsm(this->source, state);
+
+	bool isFloat = this->dest.GetVarType() == IR_FLOAT;
+	switch (this->assignType)
+	{
+	case IR_COPY:
+	{
+		assignStatement.type = isFloat ? x64_MOVS : x64_MOV;
+		break;
+	}
+	case IR_ADD:
+	{
+		assignStatement.type = isFloat ? x64_ADDS : x64_ADD;
+		break;
+	}
+	case IR_SUBTRACT:
+	{
+		assignStatement.type = isFloat ? x64_SUBS : x64_SUB;
+		break;
+	}
+	case IR_MULTIPLY:
+	{
+		assignStatement.type = isFloat ? x64_IMUL : x64_MULS;
+		break;
+	}
+	case IR_DIVIDE:
+	{
+		assignStatement.type = x64_DIVS; //int division is special case that's already been taken care of above
+		break;
+	}
+	case IR_LEA:
+	{
+		assignStatement.type = x64_LEA;
+		break;
+	}
+	case IR_TYPE_CAST:
+	{
+		//isFloat is whether dest is float
+		assignStatement.type = isFloat ? x64_CVTSI2SD : x64_CVTTSD2SI;
+		break;
+	}
+	case IR_NEGATIVE:
+	{
+		//figure out negative of floats...
+		break;
+	}	
+	}
+
+	state.statements.push_back(std::move(assignStatement));
+
 }
 
 IR_VariableInit::IR_VariableInit() {}
@@ -204,7 +320,11 @@ IR_StatementType IR_Label::GetType()
 }
 void IR_Label::ConvertToX64(x64_State& state)
 {
-	//TODO: Finish
+	StatementAsm labelStatement(x64_LABEL);
+
+	labelStatement.name = "label_" + std::to_string(this->label);
+
+	state.statements.push_back(std::move(labelStatement));
 }
 IR_Label::IR_Label(int label) : label(label) {}
 
@@ -237,10 +357,10 @@ void IR_ScopeEnd::ConvertToX64(x64_State& state)
 		//find way to get size of all variables
 		//don't just subtract because not variables will be spilled
 		//only subtract for spilled variables
-		if (state.irVariableData.nonRegisterVariables.find(x) != state.irVariableData.nonRegisterVariables.end())
+	/*	if (state.irVariableData.nonRegisterVariables.find(x) != state.irVariableData.nonRegisterVariables.end())
 		{
 			state.registerAllocator.currentStackPointerOffset -= state.irVariableData.nonRegisterVariables.at(x);
-		}
+		}*/
 
 		//TODO: subtract spilled variables
 	}

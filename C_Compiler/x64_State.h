@@ -5,6 +5,7 @@
 #include <unordered_set>
 #include <algorithm>
 #include <unordered_map>
+#include <iostream>
 
 using std::unordered_set;
 using std::unordered_map;
@@ -30,9 +31,15 @@ struct x64_State
 		return std::find(_calleeSavedRegisters.begin(), _calleeSavedRegisters.end(), reg) != _calleeSavedRegisters.end();
 	}
 
-	OperandAsm AllocateRegister(IR_Value value, REGISTER specificRegister = _NONE);
+	REGISTER AllocateRegister(IR_Value value, REGISTER specificRegister = _NONE);
 
 	void EvictExpiredVariables();
 
 	REGISTER FindFurthestAwayRegisterInMappingUsed();
+
+	void CreateStackSpaceForVariables(const string& funcName);
+
+	void SpillRegister(REGISTER reg);
+
+	void SetUpFunctionVariableMappings(const string& functionName);
 };

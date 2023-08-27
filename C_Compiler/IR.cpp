@@ -108,11 +108,12 @@ void RecursivelyDoubleLoops(vector<StatementVariableUse>& out, vector<StatementV
 IR_VariableData IR::ComputeIRVariableData()
 {
 	IR_VariableData varData;
-	unordered_map<int, int> nonRegisterVariableMap;
+	//unordered_map<int, int> nonRegisterVariableMap;
 
 	for (auto& func : this->functions)
 	{
-		//unordered_map<int, int> lastVariableOccurence;
+		varData.nonRegisterVariables[func.functionName] = unordered_map<int, int>();
+		varData.functionArguments[func.functionName] = vector<IR_Value>();
 
 		vector<StatementVariableUse> variableUses;
 		for (int lineNum = 0; lineNum < func.IR_statements.size(); ++lineNum)
@@ -125,8 +126,8 @@ IR_VariableData IR::ComputeIRVariableData()
 				case _IR_ASSIGN:
 				{
 					IR_Assign* assign = dynamic_cast<IR_Assign*>(statement.get());
-					DetermineRegisterStatusOfOperand(assign->dest, nonRegisterVariableMap);
-					DetermineRegisterStatusOfOperand(assign->source, nonRegisterVariableMap);
+					DetermineRegisterStatusOfOperand(assign->dest, varData.nonRegisterVariables.at(func.functionName));
+					DetermineRegisterStatusOfOperand(assign->source, varData.nonRegisterVariables.at(func.functionName));
 
 					variableUses.push_back(StatementVariableUse(lineNum, assign->dest.value.varIndex));
 					variableUses.push_back(StatementVariableUse(lineNum, assign->source.value.varIndex));
@@ -136,7 +137,7 @@ IR_VariableData IR::ComputeIRVariableData()
 				case _IR_FUNCTION_ARG_ASSIGN:
 				{
 					IR_FunctionArgAssign* funcArgAssign = dynamic_cast<IR_FunctionArgAssign*>(statement.get());
-					DetermineRegisterStatusOfOperand(funcArgAssign->value, nonRegisterVariableMap);
+					DetermineRegisterStatusOfOperand(funcArgAssign->value, varData.nonRegisterVariables.at(func.functionName));
 
 					variableUses.push_back(StatementVariableUse(lineNum, funcArgAssign->value.value.varIndex));
 
@@ -145,8 +146,8 @@ IR_VariableData IR::ComputeIRVariableData()
 				case _IR_COMPARE:
 				{
 					IR_Compare* compare = dynamic_cast<IR_Compare*>(statement.get());
-					DetermineRegisterStatusOfOperand(compare->op1, nonRegisterVariableMap);
-					DetermineRegisterStatusOfOperand(compare->op2, nonRegisterVariableMap);
+					DetermineRegisterStatusOfOperand(compare->op1, varData.nonRegisterVariables.at(func.functionName));
+					DetermineRegisterStatusOfOperand(compare->op2, varData.nonRegisterVariables.at(func.functionName));
 
 					variableUses.push_back(StatementVariableUse(lineNum, compare->op1.value.varIndex));
 					variableUses.push_back(StatementVariableUse(lineNum, compare->op2.value.varIndex));
@@ -156,7 +157,7 @@ IR_VariableData IR::ComputeIRVariableData()
 				case _IR_CONTINUOUS_MEMORY_INIT:
 				{
 					IR_ContinuousMemoryInit* memoryInit = dynamic_cast<IR_ContinuousMemoryInit*>(statement.get());
-					nonRegisterVariableMap[memoryInit->varIdx] = memoryInit->byteNum;
+					varData.nonRegisterVariables.at(func.functionName)[memoryInit->varIdx] = memoryInit->byteNum;
 					break;
 				}
 				case _IR_LOOP_START:
@@ -168,6 +169,11 @@ IR_VariableData IR::ComputeIRVariableData()
 				{
 					variableUses.push_back(StatementVariableUse(lineNum, -2));
 					break;
+				}
+				case _IR_FUNCTION_LABEL:
+				{
+					IR_FunctionLabel* functionLabel = dynamic_cast<IR_FunctionLabel*>(statement.get());
+					varData.functionArguments[functionLabel->functionName] = functionLabel->args;
 				}
 
 			}
@@ -214,10 +220,6 @@ IR_VariableData IR::ComputeIRVariableData()
 		varData.normalIndexToDoubledIndexMapping[func.functionName] = std::move(normalIndexToDoubledIndexMapping);
 		varData.variableLineMapping[func.functionName] = std::move(variableLineMapping);
 	}
-
-
-
-	varData.nonRegisterVariables = nonRegisterVariableMap;
 
 	return varData;
 

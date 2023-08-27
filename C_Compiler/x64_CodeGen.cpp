@@ -5,9 +5,14 @@ x64_CodeGen::x64_CodeGen(IR& irState): irState(irState) {}
 void x64_CodeGen::PrintNonRegisterIRVariables()
 {
 	std::cout << "Non register variables: \n{";
-	for (const auto& pair : state.irVariableData.nonRegisterVariables)
+
+	//loop through each function name
+	for (const auto& funcPair : state.irVariableData.functionArguments)
 	{
-		std::cout << "%" << pair.first << ": " << pair.second << " bytes, ";
+		for (const auto& pair : state.irVariableData.nonRegisterVariables.at(funcPair.first))
+		{
+			std::cout << "%" << pair.first << ": " << pair.second << " bytes, ";
+		}
 	}
 	std::cout << "}\n";
 
@@ -48,7 +53,7 @@ void x64_CodeGen::PrintCurrentRegisterMapping()
 		const int varIndex = this->state.registerAllocator.registerMapping.mapping.at(i).variableIndex;
 		if (varIndex != 0)
 		{
-			std::cout << REGISTER_STRING.at(i) << ": %" << varIndex << ", ";
+			std::cout << RegisterString::registerStringMapping.at(i) << ": %" << varIndex << ", ";
 		}
 	}
 	std::cout << "}\n";
@@ -89,8 +94,10 @@ void x64_CodeGen::GenerateCode()
 	for (const auto& func : this->irState.functions)
 	{
 		//set up address variables on stack
-		
+		this->state.CreateStackSpaceForVariables(func.functionName);
 
+		this->state.SetUpFunctionVariableMappings(func.functionName);
+		
 		//set current line and index mappings to use for register allocation
 		this->state.irVariableData.currentLineMapping = &(this->state.irVariableData.variableLineMapping).at(func.functionName);
 		this->state.irVariableData.currentNormalIndexToDoubledIndexMapping = &(this->state.irVariableData.normalIndexToDoubledIndexMapping.at(func.functionName));

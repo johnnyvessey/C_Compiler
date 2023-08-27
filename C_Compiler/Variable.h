@@ -147,7 +147,11 @@ namespace VariableNamespace {
 		XMM15
 	};
 
-	const static vector<string> REGISTER_STRING;
+	struct RegisterString
+	{
+		const static vector<string> registerStringMapping;
+
+	};
 
 
 	enum IR_AssignType
@@ -235,12 +239,14 @@ namespace VariableNamespace {
 
 	struct IR_VariableData
 	{
-		unordered_map<int, int> nonRegisterVariables;
+		unordered_map<string, unordered_map<int, int>> nonRegisterVariables;
 		unordered_map<string, unordered_map<int, vector<int>>> variableLineMapping;
 		unordered_map<string, unordered_map<int, int>> normalIndexToDoubledIndexMapping;
 
 		unordered_map<int, vector<int>>* currentLineMapping;
 		unordered_map<int, int>* currentNormalIndexToDoubledIndexMapping;
+
+		unordered_map<string, vector<IR_Value>> functionArguments;
 
 		vector<vector<int>> irScopeStack;
 
@@ -255,7 +261,7 @@ namespace VariableNamespace {
 
 		//TODO: figure out if register size is necessary (i.e. RAX, EAX, AL...)
 		RegisterVariableGroup();
-		RegisterVariableGroup(int varIndex);
+		RegisterVariableGroup(int varIndex, bool isModified);
 	};
 
 	struct RegisterMapping

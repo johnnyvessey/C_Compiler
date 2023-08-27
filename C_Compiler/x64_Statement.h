@@ -34,19 +34,25 @@ enum OperandTypeAsm
 };
 struct OperandAsm
 {
-	OperandTypeAsm type;
-	RegisterAsm reg;
+	OperandTypeAsm type = ASM_REG;
+	RegisterAsm reg = RegisterAsm(_NONE);
 	bool dereference = false;
 	int baseOffset = 0;
 	RegisterAsm regOffset;
 	bool useRegOffset = false;
+	int regOffsetMultiplier = 0;
+
+	int literalIntValue = 0;
 
 	static OperandAsm CreateRSPOffsetOperand(int offset);
 	static OperandAsm CreateRegisterOperand(REGISTER reg);
+
+	string ToString() const;
 };
 
 enum StatementAsmType
 {
+	x64_NONE,
 	//formatting of x64 script
 	x64_DATA_SECTION,
 	x64_CODE_SECTION,
@@ -57,6 +63,7 @@ enum StatementAsmType
 
 	//actual x64 instructions
 	x64_MOV,
+	x64_MOVS,
 	x64_ADD,
 	x64_SUB,
 	x64_IMUL,
@@ -77,7 +84,9 @@ enum StatementAsmType
 	x64_INT_TO_FLOAT,
 	x64_PUSH,
 	x64_POP,
-	x64_CQO //used before IDIV instruction (converts RAX to RDX:RAX)
+	x64_CQO, //used before IDIV instruction (converts RAX to RDX:RAX)
+	x64_CVTSI2SD, //long to double
+	x64_CVTTSD2SI //double to long
 };
 struct StatementAsm
 {
@@ -93,6 +102,7 @@ struct StatementAsm
 
 
 	string ToString() const;
+	StatementAsm();
 	StatementAsm(StatementAsmType type);
 	StatementAsm(StatementAsmType type, string name);
 

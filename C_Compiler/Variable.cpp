@@ -16,10 +16,11 @@ bool VariableType::operator==(const VariableType& rhs)
 }
 
 
-const vector<string> REGISTER_MAPPING = {
+const vector<string> RegisterString::registerStringMapping = {
 		"RAX",
 		"RBX",
 		"RCX",
+		"RDX",
 		"RSI",
 		"RDI",
 		"RBP",
@@ -80,7 +81,7 @@ int IR_Operand::GetByteSize()
 }
 
 RegisterVariableGroup::RegisterVariableGroup() : variableIndex(0), isModified(true) {}
-RegisterVariableGroup::RegisterVariableGroup(int varIndex) : variableIndex(varIndex), isModified(true) {}
+RegisterVariableGroup::RegisterVariableGroup(int varIndex, bool isModified) : variableIndex(varIndex), isModified(isModified) {}
 
 RegisterMapping::RegisterMapping()
 {

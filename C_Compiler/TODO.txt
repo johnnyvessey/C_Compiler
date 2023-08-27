@@ -1,6 +1,36 @@
 TODO:
 
 
+x64 todo:
+- write code to set up the register and stack mappings for each function when it is called based on the arguments
+	-> see if i can share logic with the arg_assign code
+
+- figure out register allocation for control flow:
+	-> if statments first
+	-> then do loops
+
+- global variables at some point???
+
+- figure out how RAX and XMM0 are used for returns -> is it correct? especially if there is control flow
+
+- figure out subtracting from RSP at start of function and adding it back at the end
+
+- struct copying???
+	-> maybe do this on IR side???
+	-> or just loop from 0 to memorysize / 8 (maybe from 0 to memorysize / 16 and then one extra 8 byte iteration if size isn't divisible by 16)
+	-> inside loop, allocate a register; do a mov statement; then clear the register from the mapping.
+	-> only allocate float registers; copy 16 bytes at a time (may need new MOVAPS ?? instruction)
+
+- idea: to reduce dependencies and to improve pipelining, cycle registers:
+	-> every time you allocate a register, move that register to the back of the list of potential registers
+	-> keep RAX (maybe RDX too), XMM0 in separate list (or just hardcode them)
+	-> this will be especially useful in increasing performance of struct copying
+	-> does this only need to be done for float registers???
+
+- change all memory size to 8 instead of 4 for ints and floats
+
+
+
 
 - Greedy algorithm for assigning registers
 - keep track of register mapping at each label
