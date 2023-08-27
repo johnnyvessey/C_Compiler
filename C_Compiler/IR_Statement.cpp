@@ -580,7 +580,13 @@ IR_StatementType IR_Return::GetType()
 }
 void IR_Return::ConvertToX64(x64_State& state)
 {
-	//TODO: Finish
+	//TODO: need to add offset back to RSP based on variable stack space
+
+	StatementAsm popRBP(x64_POP);
+	popRBP.firstOperand = OperandAsm::CreateRegisterOperand(RBP);
+
+	state.statements.push_back(std::move(popRBP));
+	state.statements.push_back(StatementAsm(x64_RET));
 }
 
 string IR_FunctionStart::ToString()
@@ -593,7 +599,18 @@ IR_StatementType IR_FunctionStart::GetType()
 }
 void IR_FunctionStart::ConvertToX64(x64_State& state)
 {
-	//TODO: Finish
+	//TODO: Add subtraction of RSP based on variables
+
+	StatementAsm pushRBP(x64_PUSH);
+	pushRBP.firstOperand = OperandAsm::CreateRegisterOperand(RBP);
+	state.statements.push_back(std::move(pushRBP));
+
+	StatementAsm movRSPtoRBP(x64_MOV);
+	movRSPtoRBP.firstOperand = OperandAsm::CreateRegisterOperand(RBP);
+	movRSPtoRBP.secondOperand = OperandAsm::CreateRegisterOperand(RSP);
+
+	state.statements.push_back(std::move(movRSPtoRBP));
+
 }
 
 string IR_FunctionEnd::ToString()
