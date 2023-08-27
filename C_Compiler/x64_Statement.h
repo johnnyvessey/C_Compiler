@@ -45,6 +45,9 @@ struct OperandAsm
 	int literalIntValue = 0;
 
 	static OperandAsm CreateRSPOffsetOperand(int offset);
+	static OperandAsm CreateRBPOffsetOperand(int offset);
+	static OperandAsm CreateOffsetOperand(memoryOffset offset);
+
 	static OperandAsm CreateRegisterOperand(REGISTER reg);
 
 	string ToString() const;

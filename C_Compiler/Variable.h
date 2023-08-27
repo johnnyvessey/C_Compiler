@@ -237,6 +237,13 @@ namespace VariableNamespace {
 		IR_Operand(IR_Value value);
 	};
 
+	struct IR_FunctionDef
+	{
+		vector<IR_Value> args;
+		string functionName;
+		IR_Value returnVar;
+	};
+
 	struct IR_VariableData
 	{
 		unordered_map<string, unordered_map<int, int>> nonRegisterVariables;
@@ -246,7 +253,7 @@ namespace VariableNamespace {
 		unordered_map<int, vector<int>>* currentLineMapping;
 		unordered_map<int, int>* currentNormalIndexToDoubledIndexMapping;
 
-		unordered_map<string, vector<IR_Value>> functionArguments;
+		unordered_map<string, IR_FunctionDef> functionDefinitions;
 
 		vector<vector<int>> irScopeStack;
 
@@ -278,11 +285,20 @@ namespace VariableNamespace {
 		vector<RegisterMapping> jumpMappings;
 	};
 
+	struct memoryOffset
+	{
+		int offset;
+		bool isRsp = true;
+
+		memoryOffset(int offset, bool isRsp = true);
+		memoryOffset();
+	};
+
 	struct MemoryVariableMapping
 	{
 		//TODO: clear this at start of every function
 		unordered_map<int, int> memoryOffsetMapping; //maps varIndex to offset from RSP pointer (positive for arguments, negative for local variables)
-		unordered_map<int, int> memoryOffsetMappingSpilledRegisters; //maps varIndex to offset from RSP pointer (positive for arguments, negative for local variables)
+		unordered_map<int, memoryOffset> memoryOffsetMappingSpilledRegisters; //maps varIndex to offset from RSP pointer (positive for arguments, negative for local variables)
 
 	};
 

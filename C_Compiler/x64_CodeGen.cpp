@@ -7,7 +7,7 @@ void x64_CodeGen::PrintNonRegisterIRVariables()
 	std::cout << "Non register variables: \n{";
 
 	//loop through each function name
-	for (const auto& funcPair : state.irVariableData.functionArguments)
+	for (const auto& funcPair : state.irVariableData.functionDefinitions)
 	{
 		for (const auto& pair : state.irVariableData.nonRegisterVariables.at(funcPair.first))
 		{
@@ -93,9 +93,13 @@ void x64_CodeGen::GenerateCode()
 
 	for (const auto& func : this->irState.functions)
 	{
+		//reset all register allocation and stored variables
+		this->state.registerAllocator.Reset();
+
 		//set up address variables on stack
 		this->state.CreateStackSpaceForVariables(func.functionName);
 
+		//assign registers and stack space based on function arguments
 		this->state.SetUpFunctionVariableMappings(func.functionName);
 		
 		//set current line and index mappings to use for register allocation

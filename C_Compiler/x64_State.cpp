@@ -5,6 +5,8 @@ const vector<REGISTER> x64_State::_calleeSavedRegisters({ R12, R13, R14, R15, RB
 //reserve R15 and XMM15 for bringing spilled registers back to register temporarily
 const vector<REGISTER> x64_State::_usableIntCalleeSavedRegisters({RDI, RSI, RCX, R8, R9, R10, R11, R12, R13, R14, RDX, RAX});
 const vector<REGISTER> x64_State::_usableFloatCalleeSavedRegisters({XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7, XMM8, XMM9, XMM10, XMM11, XMM12, XMM13, XMM14, XMM0});
+const vector<REGISTER> x64_State::_functionIntArguments({RDI, RSI, RDX, RCX, R8, R9});
+const vector<REGISTER> x64_State::_functionFloatArguments({XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7});
 
 //TODO: figure out how this function should work
 //should it be called on IR_Operands and allocate registers if needed
@@ -56,11 +58,10 @@ const vector<REGISTER> x64_State::_usableFloatCalleeSavedRegisters({XMM1, XMM2, 
 
 void x64_State::CreateStackSpaceForVariables(const string& funcName)
 {
-	registerAllocator.currentStackPointerOffset = 0;
 	for (const auto& pair : irVariableData.nonRegisterVariables.at(funcName))
 	{
-		registerAllocator.memoryVariableMapping.memoryOffsetMapping[pair.first] = registerAllocator.currentStackPointerOffset;
 		registerAllocator.currentStackPointerOffset += pair.second;
+		registerAllocator.memoryVariableMapping.memoryOffsetMapping[pair.first] = registerAllocator.currentStackPointerOffset;
 	}
 }
 
@@ -77,12 +78,12 @@ void x64_State::SpillRegister(REGISTER reg)
 	if (registerAllocator.memoryVariableMapping.memoryOffsetMappingSpilledRegisters.find(var.variableIndex) == 
 		registerAllocator.memoryVariableMapping.memoryOffsetMappingSpilledRegisters.end())
 	{
-		registerAllocator.memoryVariableMapping.memoryOffsetMappingSpilledRegisters[var.variableIndex] = registerAllocator.currentStackPointerOffset;
+		registerAllocator.memoryVariableMapping.memoryOffsetMappingSpilledRegisters[var.variableIndex] = memoryOffset(registerAllocator.currentStackPointerOffset, true);
 		registerAllocator.currentStackPointerOffset += REGISTER_SIZE;
 	}
 
 	StatementAsm storeStatement(x64_MOV);
-	storeStatement.firstOperand = OperandAsm::CreateRSPOffsetOperand(registerAllocator.memoryVariableMapping.memoryOffsetMappingSpilledRegisters.at(var.variableIndex));
+	storeStatement.firstOperand = OperandAsm::CreateOffsetOperand(registerAllocator.memoryVariableMapping.memoryOffsetMappingSpilledRegisters.at(var.variableIndex));
 	storeStatement.secondOperand = OperandAsm::CreateRegisterOperand(reg);
 
 	this->statements.push_back(std::move(storeStatement));
@@ -91,10 +92,32 @@ void x64_State::SpillRegister(REGISTER reg)
 void x64_State::SetUpFunctionVariableMappings(const string& functionName)
 {
 	//set up register mapping and stack space above SP with extra function params
-	for (const IR_Value& value : this->irVariableData.functionArguments.at(functionName))
-	{
+	IR_FunctionDef funcDef = irVariableData.functionDefinitions.at(functionName);
 
+	int offset = 0;
+	int intArgCount = 0;
+	int floatArgCount = 0;
+
+	for (const IR_Value& value : funcDef.args)
+	{
+		
+		if (value.type == IR_INT && intArgCount < _functionIntArguments.size())
+		{
+			registerAllocator.registerMapping.SetRegister(_functionIntArguments.at(intArgCount), value.varIndex);
+			++intArgCount;
+		}
+		else if (value.type == IR_FLOAT && floatArgCount < _functionFloatArguments.size())
+		{
+			registerAllocator.registerMapping.SetRegister(_functionFloatArguments.at(intArgCount), value.varIndex);
+			++floatArgCount;
+		}
+		else {
+			offset += value.byteSize;
+			registerAllocator.memoryVariableMapping.memoryOffsetMappingSpilledRegisters[value.varIndex] = memoryOffset(offset, false); //offset from RBP
+		}
 	}
+
+
 }
 
 
@@ -107,6 +130,12 @@ void x64_State::EvictExpiredVariables()
 		int varIdx = this->registerAllocator.registerMapping.mapping.at(reg).variableIndex;
 		if (varIdx != 0)
 		{
+			//continue if there are no variables used on this line
+			if (this->irVariableData.currentNormalIndexToDoubledIndexMapping->find(this->lineNum) ==
+				this->irVariableData.currentNormalIndexToDoubledIndexMapping->end())
+			{
+				continue;
+			}
 			int lineNumInDoubledIndices = this->irVariableData.currentNormalIndexToDoubledIndexMapping->at(this->lineNum);
 			while (this->irVariableData.currentLineMapping->at(varIdx).size() > 0 &&
 				lineNumInDoubledIndices >= this->irVariableData.currentLineMapping->at(varIdx).back())
@@ -158,46 +187,53 @@ REGISTER x64_State::AllocateRegister(IR_Value value, REGISTER specificRegister)
 		bool notYetSpilled = (registerAllocator.memoryVariableMapping.memoryOffsetMappingSpilledRegisters.find(value.varIndex) ==
 			registerAllocator.memoryVariableMapping.memoryOffsetMappingSpilledRegisters.end());
 
-			const vector<REGISTER>& availableRegisters = value.type == IR_INT ? _usableIntCalleeSavedRegisters : _usableFloatCalleeSavedRegisters;
-			for (const REGISTER& reg : availableRegisters)
-			{
-				if (this->registerAllocator.registerMapping.mapping.at((int)reg).variableIndex == 0)
-				{
-					//if register had been spilled to memory already, it is not modified
+		//if variable is already assigned to a register, return it
+		int endReg;
+		if (this->registerAllocator.registerMapping.FindRegisterOfVariable(value.varIndex, endReg))
+		{
+			return (REGISTER)endReg;
+		}
 
-					this->registerAllocator.registerMapping.mapping.at((int)reg) = RegisterVariableGroup(value.varIndex, notYetSpilled);
+		const vector<REGISTER>& availableRegisters = value.type == IR_INT ? _usableIntCalleeSavedRegisters : _usableFloatCalleeSavedRegisters;
+		for (const REGISTER& reg : availableRegisters)
+		{
+			if (this->registerAllocator.registerMapping.mapping.at((int)reg).variableIndex == 0)
+			{
+				//if register had been spilled to memory already, it is not modified
+
+				this->registerAllocator.registerMapping.mapping.at((int)reg) = RegisterVariableGroup(value.varIndex, notYetSpilled);
 
 				
-					//return OperandAsm::CreateRegisterOperand(reg);
-					return reg;
-				}
+				//return OperandAsm::CreateRegisterOperand(reg);
+				return reg;
 			}
+		}
 
 			//TODO: make sure to set register mapping as not-modified after setting value in memory
 
 
 			//spill register: one that will be used the farthest away
-			REGISTER spilledRegister = FindFurthestAwayRegisterInMappingUsed();
+		REGISTER spilledRegister = FindFurthestAwayRegisterInMappingUsed();
 
 			//if (this->registerAllocator.registerMapping.mapping.at((int)spilledRegister).isModified)
 			//{
 			//	//write back to its memory location
 			//}
 
-			SpillRegister(spilledRegister);
+		SpillRegister(spilledRegister);
 
-			if (!notYetSpilled)
-			{
-				StatementAsm loadRegister(x64_MOV);
-				loadRegister.firstOperand = OperandAsm::CreateRegisterOperand(spilledRegister);
-				loadRegister.secondOperand = OperandAsm::CreateRSPOffsetOperand(this->registerAllocator.memoryVariableMapping.
-					memoryOffsetMappingSpilledRegisters.at(value.varIndex));
-			}
+		if (!notYetSpilled)
+		{
+			StatementAsm loadRegister(x64_MOV);
+			loadRegister.firstOperand = OperandAsm::CreateRegisterOperand(spilledRegister);
+			loadRegister.secondOperand = OperandAsm::CreateOffsetOperand(this->registerAllocator.memoryVariableMapping.
+				memoryOffsetMappingSpilledRegisters.at(value.varIndex));
+		}
 
-			this->registerAllocator.registerMapping.mapping.at((int)spilledRegister) = RegisterVariableGroup(value.varIndex, notYetSpilled);
+		this->registerAllocator.registerMapping.mapping.at((int)spilledRegister) = RegisterVariableGroup(value.varIndex, notYetSpilled);
 
-			//return OperandAsm::CreateRegisterOperand(spilledRegister);
-			return spilledRegister;
+		//return OperandAsm::CreateRegisterOperand(spilledRegister);
+		return spilledRegister;
 		
 	}
 	else { 

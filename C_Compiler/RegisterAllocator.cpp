@@ -1,6 +1,23 @@
 #include "RegisterAllocator.h"
 
 
+void RegisterAllocator::SetRegister(REGISTER reg, int varIdx)
+{
+	registerMapping.mapping.at((int)reg) = RegisterVariableGroup(varIdx, true);
+}
+
+void RegisterAllocator::Reset()
+{
+	//clear register mapping
+	for (int i = 0; i < REGISTER_SIZE; ++i)
+	{
+		registerMapping.mapping.at(i).variableIndex = 0;
+	}
+
+	memoryVariableMapping.memoryOffsetMapping.clear();
+	memoryVariableMapping.memoryOffsetMappingSpilledRegisters.clear();
+	currentStackPointerOffset = 0;
+}
 
 
 //void RegisterAllocator::AllocateRegisters(vector<IR_Function_Group>& functions)

@@ -113,7 +113,7 @@ IR_VariableData IR::ComputeIRVariableData()
 	for (auto& func : this->functions)
 	{
 		varData.nonRegisterVariables[func.functionName] = unordered_map<int, int>();
-		varData.functionArguments[func.functionName] = vector<IR_Value>();
+		varData.functionDefinitions[func.functionName] = IR_FunctionDef();
 
 		vector<StatementVariableUse> variableUses;
 		for (int lineNum = 0; lineNum < func.IR_statements.size(); ++lineNum)
@@ -173,7 +173,19 @@ IR_VariableData IR::ComputeIRVariableData()
 				case _IR_FUNCTION_LABEL:
 				{
 					IR_FunctionLabel* functionLabel = dynamic_cast<IR_FunctionLabel*>(statement.get());
-					varData.functionArguments[functionLabel->functionName] = functionLabel->args;
+
+					IR_FunctionDef funcDef;
+					funcDef.args = functionLabel->args;
+					funcDef.functionName = func.functionName;
+					funcDef.returnVar = functionLabel->returnValue;
+
+					for (const IR_Value& arg : funcDef.args)
+					{
+						variableUses.push_back(StatementVariableUse(lineNum, arg.varIndex));
+					}
+					varData.functionDefinitions[functionLabel->functionName] = std::move(funcDef);
+
+					
 				}
 
 			}

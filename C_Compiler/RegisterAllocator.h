@@ -13,4 +13,7 @@ struct RegisterAllocator
 	MemoryVariableMapping memoryVariableMapping;
 	unordered_map<int, LabelRegisterMaps> labelRegisterMapping;
 	int currentStackPointerOffset;
+
+	void SetRegister(REGISTER reg, int varIdx);
+	void Reset();
 };

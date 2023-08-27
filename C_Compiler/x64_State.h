@@ -22,6 +22,9 @@ struct x64_State
 	const static vector<REGISTER> _usableIntCalleeSavedRegisters;
 	const static vector<REGISTER> _usableFloatCalleeSavedRegisters;
 
+	const static vector<REGISTER> _functionIntArguments;
+	const static vector<REGISTER> _functionFloatArguments;
+
 	inline static bool isIntRegister(REGISTER reg)
 	{
 		return (int)reg < (int)XMM0;

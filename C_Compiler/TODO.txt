@@ -2,8 +2,13 @@ TODO:
 
 
 x64 todo:
-- write code to set up the register and stack mappings for each function when it is called based on the arguments
-	-> see if i can share logic with the arg_assign code
+
+- IMPORTANT: for variables that are in memory (their address was taken), add code to pull their value into R15 or XMM15, and then write back
+if there are 2 values in memory (or with IMUL or float operations)
+ -> maybe reserve XMM14 too?? -> float operations don't take memory operands
+
+ - to test out spilling, temporarily reduce the registers in the availableRegisters vector
+
 
 - figure out register allocation for control flow:
 	-> if statments first

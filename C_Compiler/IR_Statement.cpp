@@ -240,6 +240,12 @@ void IR_Assign::ConvertToX64(x64_State& state)
 	StatementAsm assignStatement;
 	
 	assignStatement.firstOperand = IR_Statement::ConvertIrOperandToOperandAsm(this->dest, state);
+
+	//set the destination register as modified for assign statement
+	if (!assignStatement.firstOperand.dereference)
+	{
+		state.registerAllocator.registerMapping.mapping.at((int)(assignStatement.firstOperand.reg.reg)).isModified = true;
+	}
 	assignStatement.secondOperand = IR_Statement::ConvertIrOperandToOperandAsm(this->source, state);
 
 	bool isFloat = this->dest.GetVarType() == IR_FLOAT;
@@ -262,7 +268,7 @@ void IR_Assign::ConvertToX64(x64_State& state)
 	}
 	case IR_MULTIPLY:
 	{
-		assignStatement.type = isFloat ? x64_IMUL : x64_MULS;
+		assignStatement.type = isFloat ? x64_MULS : x64_IMUL;
 		break;
 	}
 	case IR_DIVIDE:
@@ -588,7 +594,6 @@ IR_StatementType IR_FunctionStart::GetType()
 void IR_FunctionStart::ConvertToX64(x64_State& state)
 {
 	//TODO: Finish
-	state.registerAllocator.memoryVariableMapping.memoryOffsetMapping.clear();
 }
 
 string IR_FunctionEnd::ToString()

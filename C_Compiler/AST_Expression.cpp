@@ -1089,9 +1089,9 @@ IR_Operand AST_Assignment_Expression::ConvertExpressionToIR(IR& irState)
 		assign.dest.dereference = true;
 	}
 
-	if (assign.source.dereference && assign.source.useMemoryAddress)
+	if (assign.source.useMemoryAddress)
 	{
-		assign.source.useMemoryAddress = false;
+		assign.source.useMemoryAddress = !assign.source.dereference;
 		assign.assignType = IR_LEA;
 	}
 

@@ -15,6 +15,8 @@ bool VariableType::operator==(const VariableType& rhs)
 	return this->lValueType == rhs.lValueType && this->structName == rhs.structName && this->pointerLevel == rhs.pointerLevel;
 }
 
+memoryOffset::memoryOffset(int offset, bool isRsp) : offset(offset), isRsp(isRsp) {}
+memoryOffset::memoryOffset() {}
 
 const vector<string> RegisterString::registerStringMapping = {
 		"RAX",

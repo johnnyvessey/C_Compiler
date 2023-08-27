@@ -136,9 +136,9 @@ void AST_Initialization::ConvertStatementToIR(IR& irState)
 					assign.source.dereference = true;
 				}
 
-				if (assign.source.dereference && assign.source.useMemoryAddress)
+				if (assign.source.useMemoryAddress)
 				{
-					assign.source.useMemoryAddress = false;
+					assign.source.useMemoryAddress = !assign.source.dereference;
 					assign.assignType = IR_LEA;
 				}
 				irState.add_statement(make_shared<IR_Assign>(assign));

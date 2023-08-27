@@ -253,6 +253,28 @@ OperandAsm OperandAsm::CreateRSPOffsetOperand(int offset)
 	return op;
 }
 
+OperandAsm OperandAsm::CreateRBPOffsetOperand(int offset)
+{
+	OperandAsm op;
+	op.dereference = true;
+	op.baseOffset = offset;
+	op.reg = RegisterAsm(RBP);
+
+	return op;
+}
+
+OperandAsm OperandAsm::CreateOffsetOperand(memoryOffset offset)
+{
+	if (offset.isRsp)
+	{
+		return OperandAsm::CreateRSPOffsetOperand(offset.offset);
+	}
+	else {
+		return OperandAsm::CreateRBPOffsetOperand(offset.offset);
+	}
+}
+
+
 OperandAsm OperandAsm::CreateRegisterOperand(REGISTER reg)
 {
 	OperandAsm operand;
