@@ -1073,7 +1073,7 @@ IR_Operand AST_Assignment_Expression::ConvertExpressionToIR(IR& irState)
 			assign.dest = derefLValue;
 			assign.source = rValue;
 		}
-		else if (lValue.dereference && rValue.dereference)
+		else if ((lValue.dereference && rValue.dereference) || (rValue.dereference && (lValue.GetVarType() == IR_FLOAT || assign.assignType == IR_MULTIPLY)))
 		{
 			IR_Operand derefRValue = CopyDereferenceOfValue(rValue, irState);
 			assign.source = derefRValue;

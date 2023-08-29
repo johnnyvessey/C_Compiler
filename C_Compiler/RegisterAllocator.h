@@ -14,6 +14,8 @@ struct RegisterAllocator
 	unordered_map<int, LabelRegisterMaps> labelRegisterMapping;
 	int currentStackPointerOffset;
 
+	int startFunctionStackPointerSubtractIndex = -1;
+
 	void SetRegister(REGISTER reg, int varIdx);
 	void Reset();
 };

@@ -3,22 +3,20 @@ TODO:
 
 x64 todo:
 
-- IMPORTANT: for variables that are in memory (their address was taken), add code to pull their value into R15 or XMM15, and then write back
-if there are 2 values in memory (or with IMUL or float operations)
- -> maybe reserve XMM14 too?? -> float operations don't take memory operands
+- Need Float Compare x64 Statement
+
+- Add vector of pointers to x64 Jump statements in label. After taking intersection of register mappings,
+	go back to each jump statement and add store statements as part of precursor statements
 
  - to test out spilling, temporarily reduce the registers in the availableRegisters vector
 
-
 - figure out register allocation for control flow:
-	-> if statments first
+	-> if statements first
 	-> then do loops
 
 - global variables at some point???
 
 - figure out how RAX and XMM0 are used for returns -> is it correct? especially if there is control flow
-
-- figure out subtracting from RSP at start of function and adding it back at the end
 
 - struct copying???
 	-> maybe do this on IR side???

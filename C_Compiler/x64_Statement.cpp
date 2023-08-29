@@ -3,8 +3,6 @@
 
 string OperandAsm::ToString() const
 {
-	
-
 	stringstream ss;
 	if (this->type == ASM_INT_LITERAL)
 	{
@@ -18,7 +16,7 @@ string OperandAsm::ToString() const
 	{
 		if (this->dereference)
 		{
-			ss << "[";
+			ss << "QWORD PTR [";
 		}
 
 		ss << RegisterString::registerStringMapping.at((int)this->reg.reg);
@@ -129,7 +127,7 @@ string StatementAsm::ToString() const
 	}
 	case x64_MOVS:
 	{
-		ss << "MOVS " << doubleOpEnd;
+		ss << "MOVSD " << doubleOpEnd;
 		break;
 	}
 	case x64_ADD:
@@ -139,7 +137,7 @@ string StatementAsm::ToString() const
 	}
 	case x64_ADDS:
 	{
-		ss << "ADDS " << doubleOpEnd;
+		ss << "ADDSD " << doubleOpEnd;
 		break;
 	}
 	case x64_SUB:
@@ -149,7 +147,7 @@ string StatementAsm::ToString() const
 	}
 	case x64_SUBS:
 	{
-		ss << "SUBS " << doubleOpEnd;
+		ss << "SUBSD " << doubleOpEnd;
 		break;
 	}
 	case x64_IMUL:
@@ -159,7 +157,7 @@ string StatementAsm::ToString() const
 	}
 	case x64_MULS:
 	{
-		ss << "MULS " << doubleOpEnd;
+		ss << "MULSD " << doubleOpEnd;
 		break;
 	}
 	case x64_IDIV:
@@ -169,7 +167,7 @@ string StatementAsm::ToString() const
 	}
 	case x64_DIVS:
 	{
-		ss << "DIVS " << doubleOpEnd;
+		ss << "DIVSD " << doubleOpEnd;
 		break;
 	}
 	case x64_CMP:
@@ -234,6 +232,7 @@ string StatementAsm::ToString() const
 		//TODO: figure this out!!
 		break;
 	}
+	case x64_NOP: break; //do nothing
 	}
 
 	return ss.str();
@@ -283,6 +282,17 @@ OperandAsm OperandAsm::CreateRegisterOperand(REGISTER reg)
 
 	return operand;
 }
+
+OperandAsm OperandAsm::CreateIntLiteralOperand(int value)
+{
+	OperandAsm operand;
+	operand.literalIntValue = value;
+	operand.type = ASM_INT_LITERAL;
+
+	return operand;
+
+}
+
 
 StatementAsm::StatementAsm() : type(x64_NONE) {}
 StatementAsm::StatementAsm(StatementAsmType type): type(type) {}

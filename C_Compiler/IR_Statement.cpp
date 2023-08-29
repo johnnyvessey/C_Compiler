@@ -238,7 +238,7 @@ void IR_Assign::ConvertToX64(x64_State& state)
 
 	}
 	StatementAsm assignStatement;
-	
+
 	assignStatement.firstOperand = IR_Statement::ConvertIrOperandToOperandAsm(this->dest, state);
 
 	//set the destination register as modified for assign statement
@@ -291,11 +291,63 @@ void IR_Assign::ConvertToX64(x64_State& state)
 	{
 		//figure out negative of floats...
 		break;
-	}	
 	}
+	}
+
+	bool isArithmeticOperation = (this->assignType == IR_ADD || this->assignType == IR_SUBTRACT ||
+		this->assignType == IR_MULTIPLY || this->assignType == IR_DIVIDE);
+	bool replaceSourceOperand = isFloat && isArithmeticOperation && 
+		state.registerAllocator.memoryVariableMapping.memoryOffsetMapping.find(this->source.value.varIndex) !=
+		state.registerAllocator.memoryVariableMapping.memoryOffsetMapping.end();
+
+	bool replaceDestOperand = ((isFloat && isArithmeticOperation) || assignStatement.type == x64_IMUL) && state.registerAllocator.memoryVariableMapping.memoryOffsetMapping.find(this->dest.value.varIndex) !=
+		state.registerAllocator.memoryVariableMapping.memoryOffsetMapping.end();
+
+	if (replaceSourceOperand)
+	{
+		REGISTER tempReg = state.AllocateRegister(this->source.value);
+		StatementAsm tempAssignStatement(x64_MOVS);
+		tempAssignStatement.firstOperand = OperandAsm::CreateRegisterOperand(tempReg);
+		tempAssignStatement.secondOperand = OperandAsm::CreateRSPOffsetOperand(state.registerAllocator.memoryVariableMapping
+			.memoryOffsetMapping.at(this->source.value.varIndex));
+		state.statements.push_back(std::move(tempAssignStatement));
+
+		assignStatement.secondOperand = OperandAsm::CreateRegisterOperand(tempReg);
+
+		//clear register
+		state.registerAllocator.registerMapping.mapping.at((int)tempReg).variableIndex = 0;
+	}
+
+	REGISTER replaceDestRegister;
+	if (replaceDestOperand)
+	{
+		replaceDestRegister = state.AllocateRegister(this->dest.value);
+		StatementAsm tempAssignStatement(x64_MOVS);
+		tempAssignStatement.firstOperand = OperandAsm::CreateRegisterOperand(replaceDestRegister);
+		tempAssignStatement.secondOperand = OperandAsm::CreateRSPOffsetOperand(state.registerAllocator.memoryVariableMapping
+			.memoryOffsetMapping.at(this->dest.value.varIndex));
+		state.statements.push_back(std::move(tempAssignStatement));
+
+		assignStatement.secondOperand = OperandAsm::CreateRegisterOperand(replaceDestRegister);
+	}
+	
 
 	state.statements.push_back(std::move(assignStatement));
 
+	if (replaceDestOperand)
+	{
+		StatementAsm writeBackMov(isFloat ? x64_MOVS : x64_MOV);
+		writeBackMov.firstOperand = OperandAsm::CreateRSPOffsetOperand(state.registerAllocator.memoryVariableMapping
+			.memoryOffsetMapping.at(this->dest.value.varIndex));
+
+		writeBackMov.secondOperand = OperandAsm::CreateRegisterOperand(replaceDestRegister);
+
+		state.statements.push_back(std::move(writeBackMov));
+
+		//clear register
+		state.registerAllocator.registerMapping.mapping.at((int)replaceDestRegister).variableIndex = 0;
+	}
+	
 }
 
 IR_VariableInit::IR_VariableInit() {}
@@ -580,13 +632,32 @@ IR_StatementType IR_Return::GetType()
 }
 void IR_Return::ConvertToX64(x64_State& state)
 {
-	//TODO: need to add offset back to RSP based on variable stack space
+
+	int functionStackSpace = 16 * ((state.registerAllocator.currentStackPointerOffset + 15) / 16); //round up to multiple of 16
+
+	if (functionStackSpace == 0)
+	{
+		state.statements.at(state.registerAllocator.startFunctionStackPointerSubtractIndex).type = x64_NOP;
+	}
+	else {
+		StatementAsm addRSP(x64_ADD);
+		addRSP.firstOperand = OperandAsm::CreateRegisterOperand(RSP);
+		addRSP.secondOperand = OperandAsm::CreateIntLiteralOperand(functionStackSpace); //this will be modified later
+
+		state.statements.push_back(std::move(addRSP));
+
+		//set the RSP subtract value to equal the value added at the end
+		state.statements.at(state.registerAllocator.startFunctionStackPointerSubtractIndex).secondOperand.literalIntValue = functionStackSpace;
+	}
+	state.registerAllocator.startFunctionStackPointerSubtractIndex = -1;
+
 
 	StatementAsm popRBP(x64_POP);
 	popRBP.firstOperand = OperandAsm::CreateRegisterOperand(RBP);
 
 	state.statements.push_back(std::move(popRBP));
 	state.statements.push_back(StatementAsm(x64_RET));
+
 }
 
 string IR_FunctionStart::ToString()
@@ -601,16 +672,25 @@ void IR_FunctionStart::ConvertToX64(x64_State& state)
 {
 	//TODO: Add subtraction of RSP based on variables
 
+	OperandAsm operandRBP = OperandAsm::CreateRegisterOperand(RBP);
+	OperandAsm operandRSP = OperandAsm::CreateRegisterOperand(RSP);
 	StatementAsm pushRBP(x64_PUSH);
-	pushRBP.firstOperand = OperandAsm::CreateRegisterOperand(RBP);
+	pushRBP.firstOperand = operandRBP;
 	state.statements.push_back(std::move(pushRBP));
 
 	StatementAsm movRSPtoRBP(x64_MOV);
-	movRSPtoRBP.firstOperand = OperandAsm::CreateRegisterOperand(RBP);
-	movRSPtoRBP.secondOperand = OperandAsm::CreateRegisterOperand(RSP);
+	movRSPtoRBP.firstOperand = operandRBP;
+	movRSPtoRBP.secondOperand = operandRSP;
 
 	state.statements.push_back(std::move(movRSPtoRBP));
 
+	StatementAsm subtractRSP(x64_SUB);
+	subtractRSP.firstOperand = operandRSP;
+	subtractRSP.secondOperand = OperandAsm::CreateIntLiteralOperand(0); //this will be modified later
+
+	state.statements.push_back(std::move(subtractRSP));
+
+	state.registerAllocator.startFunctionStackPointerSubtractIndex = state.statements.size() - 1;
 }
 
 string IR_FunctionEnd::ToString()

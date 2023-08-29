@@ -1,9 +1,7 @@
-int f(int x, int y, float z, float w)
+void f(float x)
 {
-	int q = x;
+	float z = x;
+	float *p = &z;
 
-	int* p = &q;
-
-	*p += (int)w;
-	return *p;
+	*p *= z;
 }

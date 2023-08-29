@@ -108,7 +108,7 @@ void x64_State::SetUpFunctionVariableMappings(const string& functionName)
 		}
 		else if (value.type == IR_FLOAT && floatArgCount < _functionFloatArguments.size())
 		{
-			registerAllocator.registerMapping.SetRegister(_functionFloatArguments.at(intArgCount), value.varIndex);
+			registerAllocator.registerMapping.SetRegister(_functionFloatArguments.at(floatArgCount), value.varIndex);
 			++floatArgCount;
 		}
 		else {
