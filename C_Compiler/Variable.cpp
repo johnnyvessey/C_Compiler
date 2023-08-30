@@ -87,7 +87,7 @@ RegisterVariableGroup::RegisterVariableGroup(int varIndex, bool isModified) : va
 
 RegisterMapping::RegisterMapping()
 {
-	mapping = vector<RegisterVariableGroup>(NUM_REGISTERS, RegisterVariableGroup());
+	regMapping = vector<RegisterVariableGroup>(NUM_REGISTERS, RegisterVariableGroup());
 }
 
 void RegisterMapping::SetRegister(int reg, int variable)
@@ -95,14 +95,14 @@ void RegisterMapping::SetRegister(int reg, int variable)
 	RegisterVariableGroup var;
 	var.variableIndex = variable;
 
-	mapping[reg] = var;
+	regMapping[reg] = var;
 }
 
 bool RegisterMapping::FindRegisterOfVariable(int variable, int& reg)
 {
 	for (int i = 0; i < NUM_REGISTERS; ++i)
 	{
-		if (mapping[i].variableIndex == variable)
+		if (regMapping[i].variableIndex == variable)
 		{
 			reg = i;
 			return true;
@@ -112,3 +112,4 @@ bool RegisterMapping::FindRegisterOfVariable(int variable, int& reg)
 	return false;
 }
 
+JumpRegisterMapping::JumpRegisterMapping(RegisterMapping regMapping, int jumpStatementIndex) : jumpRegMapping(regMapping), jumpStatementIndex(jumpStatementIndex) {}

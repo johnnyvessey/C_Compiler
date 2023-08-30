@@ -3,7 +3,7 @@
 
 void RegisterAllocator::SetRegister(REGISTER reg, int varIdx)
 {
-	registerMapping.mapping.at((int)reg) = RegisterVariableGroup(varIdx, true);
+	registerMapping.regMapping.at((int)reg) = RegisterVariableGroup(varIdx, true);
 }
 
 void RegisterAllocator::Reset()
@@ -11,13 +11,40 @@ void RegisterAllocator::Reset()
 	//clear register mapping
 	for (int i = 0; i < REGISTER_SIZE; ++i)
 	{
-		registerMapping.mapping.at(i).variableIndex = 0;
+		registerMapping.regMapping.at(i).variableIndex = 0;
 	}
 
 	memoryVariableMapping.memoryOffsetMapping.clear();
 	memoryVariableMapping.memoryOffsetMappingSpilledRegisters.clear();
 	currentStackPointerOffset = 0;
 }
+
+void RegisterAllocator::SetInitialLabelMapping(int label, RegisterMapping regMapping)
+{
+	if (labelRegisterMapping.find(label) != labelRegisterMapping.end())
+	{
+		labelRegisterMapping[label].initialMapping = regMapping;
+	}
+	else {
+		LabelRegisterMaps map;
+		map.initialMapping = std::move(regMapping);
+		labelRegisterMapping[label] = map;
+	}
+}
+void RegisterAllocator::AddJumpLabelMapping(int label, RegisterMapping regMapping, int jumpStatementIndex)
+{
+	if (labelRegisterMapping.find(label) != labelRegisterMapping.end())
+	{
+		labelRegisterMapping[label].jumpMappings.push_back(JumpRegisterMapping(regMapping, jumpStatementIndex));
+	}
+	else {
+		LabelRegisterMaps map;
+		map.jumpMappings.push_back(JumpRegisterMapping(regMapping, jumpStatementIndex));
+		labelRegisterMapping[label] = map;
+	}
+
+}
+
 
 
 //void RegisterAllocator::AllocateRegisters(vector<IR_Function_Group>& functions)

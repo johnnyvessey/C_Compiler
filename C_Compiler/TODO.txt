@@ -3,16 +3,18 @@ TODO:
 
 x64 todo:
 
+- Stress test register allocation for control flow
+-> reduce registers
+-> make sure loads and stores (b/c of spilling) work properly
+-> think about tentative spilling optimization
+
+- Stress test structs and how they work
+
 - Need Float Compare x64 Statement
 
-- Add vector of pointers to x64 Jump statements in label. After taking intersection of register mappings,
-	go back to each jump statement and add store statements as part of precursor statements
+- Move memory to registers for type casting
 
  - to test out spilling, temporarily reduce the registers in the availableRegisters vector
-
-- figure out register allocation for control flow:
-	-> if statements first
-	-> then do loops
 
 - global variables at some point???
 

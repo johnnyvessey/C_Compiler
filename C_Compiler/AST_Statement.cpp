@@ -537,7 +537,7 @@ void AST_For_Loop::ConvertStatementToIR(IR& irState)
 	this->First->ConvertStatementToIR(irState);
 
 	int loopBeginIdx = irState.state.labelIndex++;
-	irState.add_statement(make_shared<IR_Label>(IR_Label(loopBeginIdx)));
+	irState.add_statement(make_shared<IR_Label>(IR_Label(loopBeginIdx, true)));
 
 	ParseIfThenCondition(this->Condition.get(), irState, postConditionLabelIdx, endLabelIdx);
 
@@ -594,7 +594,7 @@ void AST_While_Loop::ConvertStatementToIR(IR& irState)
 	//start of loop
 	irState.EnterScope();
 
-	irState.add_statement(make_shared<IR_Label>(IR_Label(startLabelIdx)));
+	irState.add_statement(make_shared<IR_Label>(IR_Label(startLabelIdx, true)));
 
 	ParseIfThenCondition(this->Condition.get(), irState, postConditionLabelIdx, endLabelIdx);
 

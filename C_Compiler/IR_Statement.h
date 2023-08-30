@@ -107,12 +107,13 @@ struct IR_ContinuousMemoryInit : IR_Statement
 struct IR_Label : IR_Statement
 {
 	int label;
+	bool isLoopLabel;
 
 	virtual string ToString() override;
 	virtual IR_StatementType GetType() override;
 	virtual void ConvertToX64(x64_State& state) override;
 
-	IR_Label(int label);
+	IR_Label(int label, bool isLoopLabel = false);
 
 };
 

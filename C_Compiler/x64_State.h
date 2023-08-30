@@ -42,7 +42,14 @@ struct x64_State
 
 	void CreateStackSpaceForVariables(const string& funcName);
 
-	void SpillRegister(REGISTER reg);
+	StatementAsm SpillRegister(REGISTER reg);
 
 	void SetUpFunctionVariableMappings(const string& functionName);
+
+	void SetRegisterMappingToIntersectionOfMappings(int labelIdx);
+
+	void MatchRegisterMappingsToIntialMapping(int labelIdx, int labelStatementIdx);
+
+
+	void SpillRegisterIfChanged(RegisterMapping& mapping, int reg, int jumpStatementIdx);
 };

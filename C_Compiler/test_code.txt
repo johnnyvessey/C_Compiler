@@ -1,7 +1,16 @@
-void f(float x)
+int f()
 {
-	float z = x;
-	float *p = &z;
+	int x = 5;
+	int y = 6;
 
-	*p *= z;
+	if (x < y)
+	{
+		x += 1;
+	}
+	else {
+		x -= y;
+	}
+
+	int z = x * 2;
+
 }

@@ -273,16 +273,24 @@ namespace VariableNamespace {
 
 	struct RegisterMapping
 	{
-		vector<RegisterVariableGroup> mapping;
+		vector<RegisterVariableGroup> regMapping;
 		RegisterMapping();
 		void SetRegister(int reg, int variable);
 		bool FindRegisterOfVariable(int variable, int& reg);
 	};
 
+	struct JumpRegisterMapping
+	{
+		RegisterMapping jumpRegMapping;
+		int jumpStatementIndex;
+
+		JumpRegisterMapping(RegisterMapping regMapping, int jumpStatementIndex);
+	};
+
 	struct LabelRegisterMaps
 	{
 		RegisterMapping initialMapping;
-		vector<RegisterMapping> jumpMappings;
+		vector<JumpRegisterMapping> jumpMappings;
 	};
 
 	struct memoryOffset

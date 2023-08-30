@@ -50,7 +50,7 @@ void x64_CodeGen::PrintCurrentRegisterMapping()
 	std::cout << "Reg: {";
 	for (int i = 0; i < NUM_REGISTERS; ++i)
 	{
-		const int varIndex = this->state.registerAllocator.registerMapping.mapping.at(i).variableIndex;
+		const int varIndex = this->state.registerAllocator.registerMapping.regMapping.at(i).variableIndex;
 		if (varIndex != 0)
 		{
 			std::cout << RegisterString::registerStringMapping.at(i) << ": %" << varIndex << ", ";

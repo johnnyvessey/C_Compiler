@@ -83,6 +83,11 @@ string StatementAsm::ToString() const
 	//TODO: finish this
 	stringstream ss;
 	
+	for (const StatementAsm& preStatement : this->preStatements)
+	{
+		ss << preStatement.ToString() << "\n";
+	}
+
 	string doubleOpEnd = this->firstOperand.ToString() + ", " + this->secondOperand.ToString();
 
 	switch (this->type)
@@ -233,6 +238,12 @@ string StatementAsm::ToString() const
 		break;
 	}
 	case x64_NOP: break; //do nothing
+	}
+
+	
+	for (const StatementAsm& postStatement : this->postStatements)
+	{
+		ss << postStatement.ToString() << "\n";
 	}
 
 	return ss.str();

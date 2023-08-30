@@ -244,7 +244,7 @@ void IR_Assign::ConvertToX64(x64_State& state)
 	//set the destination register as modified for assign statement
 	if (!assignStatement.firstOperand.dereference)
 	{
-		state.registerAllocator.registerMapping.mapping.at((int)(assignStatement.firstOperand.reg.reg)).isModified = true;
+		state.registerAllocator.registerMapping.regMapping.at((int)(assignStatement.firstOperand.reg.reg)).isModified = true;
 	}
 	assignStatement.secondOperand = IR_Statement::ConvertIrOperandToOperandAsm(this->source, state);
 
@@ -315,7 +315,7 @@ void IR_Assign::ConvertToX64(x64_State& state)
 		assignStatement.secondOperand = OperandAsm::CreateRegisterOperand(tempReg);
 
 		//clear register
-		state.registerAllocator.registerMapping.mapping.at((int)tempReg).variableIndex = 0;
+		state.registerAllocator.registerMapping.regMapping.at((int)tempReg).variableIndex = 0;
 	}
 
 	REGISTER replaceDestRegister;
@@ -345,7 +345,7 @@ void IR_Assign::ConvertToX64(x64_State& state)
 		state.statements.push_back(std::move(writeBackMov));
 
 		//clear register
-		state.registerAllocator.registerMapping.mapping.at((int)replaceDestRegister).variableIndex = 0;
+		state.registerAllocator.registerMapping.regMapping.at((int)replaceDestRegister).variableIndex = 0;
 	}
 	
 }
@@ -382,9 +382,33 @@ void IR_Label::ConvertToX64(x64_State& state)
 
 	labelStatement.name = "label_" + std::to_string(this->label);
 
+	//if previous instruction is jump, don't add the current register mapping to the label b/c it won't be accurate to control flow
+	if (state.statements.back().type != x64_JMP)
+	{
+		if (isLoopLabel)
+		{
+			state.registerAllocator.SetInitialLabelMapping(this->label, state.registerAllocator.registerMapping);
+		}
+		else {
+			//set this label x64 statement as the "jump label", so that storing statements will be done right before it
+			state.registerAllocator.AddJumpLabelMapping(this->label, state.registerAllocator.registerMapping, state.statements.size());
+		}
+	}
+
 	state.statements.push_back(std::move(labelStatement));
+
+	if (isLoopLabel)
+	{
+		state.registerAllocator.startLoopLabelIndexes.push_back(state.statements.size() - 1);
+	}
+	else {
+		//find intersection of register mappings for non-loop labels (no back jumps to these labels so all control flow is known at this point)
+		state.SetRegisterMappingToIntersectionOfMappings(label);
+	}
+
+
 }
-IR_Label::IR_Label(int label) : label(label) {}
+IR_Label::IR_Label(int label, bool isLoopLabel) : label(label), isLoopLabel(isLoopLabel) {}
 
 
 string IR_ScopeStart::ToString()
@@ -440,8 +464,7 @@ IR_StatementType IR_Jump::GetType()
 void IR_Jump::ConvertToX64(x64_State& state)
 {
 	//add current register mapping to the vector of mappings at the label it's jumping to
-	state.registerAllocator.labelRegisterMapping[this->labelIdx].jumpMappings.push_back(state.registerAllocator.registerMapping);
-	
+	state.registerAllocator.AddJumpLabelMapping(labelIdx, state.registerAllocator.registerMapping, state.statements.size());
 
 	StatementAsm jumpStatement(x64_JMP);
 	jumpStatement.flags = this->condition;
@@ -590,7 +613,11 @@ IR_StatementType IR_LoopEnd::GetType()
 }
 void IR_LoopEnd::ConvertToX64(x64_State& state)
 {
-	//TODO: Finish
+	int startLoopLabelIdx = state.registerAllocator.startLoopLabelIndexes.back();
+	state.registerAllocator.startLoopLabelIndexes.pop_back();
+
+
+
 }
 
 string IR_FunctionLabel::ToString()
