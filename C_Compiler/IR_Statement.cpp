@@ -296,17 +296,19 @@ void IR_Assign::ConvertToX64(x64_State& state)
 
 	bool isArithmeticOperation = (this->assignType == IR_ADD || this->assignType == IR_SUBTRACT ||
 		this->assignType == IR_MULTIPLY || this->assignType == IR_DIVIDE);
-	bool replaceSourceOperand = isFloat && isArithmeticOperation && 
+	bool replaceSourceOperand = (isFloat && isArithmeticOperation && 
 		state.registerAllocator.memoryVariableMapping.memoryOffsetMapping.find(this->source.value.varIndex) !=
-		state.registerAllocator.memoryVariableMapping.memoryOffsetMapping.end();
+		state.registerAllocator.memoryVariableMapping.memoryOffsetMapping.end()) ||
+		(assignStatement.firstOperand.dereference && assignStatement.secondOperand.dereference);
 
-	bool replaceDestOperand = ((isFloat && isArithmeticOperation) || assignStatement.type == x64_IMUL) && state.registerAllocator.memoryVariableMapping.memoryOffsetMapping.find(this->dest.value.varIndex) !=
-		state.registerAllocator.memoryVariableMapping.memoryOffsetMapping.end();
+	bool replaceDestOperand = ((isFloat && isArithmeticOperation) || ((assignStatement.type == x64_IMUL) && state.registerAllocator.memoryVariableMapping.memoryOffsetMapping.find(this->dest.value.varIndex) !=
+		state.registerAllocator.memoryVariableMapping.memoryOffsetMapping.end()));
 
 	if (replaceSourceOperand)
 	{
+		//TODO: Have different logic if source operand is just dereferencing pointer
 		REGISTER tempReg = state.AllocateRegister(this->source.value);
-		StatementAsm tempAssignStatement(x64_MOVS);
+		StatementAsm tempAssignStatement(isFloat ? x64_MOVS : x64_MOV);
 		tempAssignStatement.firstOperand = OperandAsm::CreateRegisterOperand(tempReg);
 		tempAssignStatement.secondOperand = OperandAsm::CreateRSPOffsetOperand(state.registerAllocator.memoryVariableMapping
 			.memoryOffsetMapping.at(this->source.value.varIndex));
@@ -322,7 +324,7 @@ void IR_Assign::ConvertToX64(x64_State& state)
 	if (replaceDestOperand)
 	{
 		replaceDestRegister = state.AllocateRegister(this->dest.value);
-		StatementAsm tempAssignStatement(x64_MOVS);
+		StatementAsm tempAssignStatement(isFloat ? x64_MOVS : x64_MOV);
 		tempAssignStatement.firstOperand = OperandAsm::CreateRegisterOperand(replaceDestRegister);
 		tempAssignStatement.secondOperand = OperandAsm::CreateRSPOffsetOperand(state.registerAllocator.memoryVariableMapping
 			.memoryOffsetMapping.at(this->dest.value.varIndex));
@@ -399,7 +401,7 @@ void IR_Label::ConvertToX64(x64_State& state)
 
 	if (isLoopLabel)
 	{
-		state.registerAllocator.startLoopLabelIndexes.push_back(state.statements.size() - 1);
+		state.registerAllocator.startLoopLabelIndexes.push_back(LoopLabel(this->label, state.statements.size() - 1));
 	}
 	else {
 		//find intersection of register mappings for non-loop labels (no back jumps to these labels so all control flow is known at this point)
@@ -573,7 +575,31 @@ IR_StatementType IR_Compare::GetType()
 }
 void IR_Compare::ConvertToX64(x64_State& state)
 {
-	//TODO: Finish
+	bool isFloat = op1.GetVarType() == IR_FLOAT;
+
+	StatementAsm compareStatement(isFloat ? x64_COMIS : x64_CMP);
+	OperandAsm firstOperand = IR_Statement::ConvertIrOperandToOperandAsm(op1, state);
+	OperandAsm secondOperand = IR_Statement::ConvertIrOperandToOperandAsm(op2, state);
+
+	//TODO: BE CAREFUL ABOUT DEREFERENCING POINTER VS ADDRESS VARIABLE
+	if (isFloat)
+	{
+		if (firstOperand.dereference)
+		{
+
+		}
+
+		if (secondOperand.dereference)
+		{
+
+		}
+	}
+	else {
+		if (firstOperand.dereference && secondOperand.dereference)
+		{
+			StatementAsm loadSecondStatement(isFloat ? x64_MOVS : x64_MOV);
+		}
+	}
 }
 
 string IR_NOP::ToString()
@@ -613,9 +639,9 @@ IR_StatementType IR_LoopEnd::GetType()
 }
 void IR_LoopEnd::ConvertToX64(x64_State& state)
 {
-	int startLoopLabelIdx = state.registerAllocator.startLoopLabelIndexes.back();
+	LoopLabel startLoopLabel = state.registerAllocator.startLoopLabelIndexes.back();
 	state.registerAllocator.startLoopLabelIndexes.pop_back();
-
+	state.MatchRegisterMappingsToIntialMapping(startLoopLabel.labelIdx, startLoopLabel.labelStatementIdx);
 
 
 }

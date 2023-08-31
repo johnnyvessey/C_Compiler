@@ -147,6 +147,13 @@ namespace VariableNamespace {
 		XMM15
 	};
 
+	struct LoopLabel
+	{
+		int labelIdx;
+		int labelStatementIdx;
+		LoopLabel(int labelIdx, int labelStatementIdx);
+	};
+
 	struct RegisterString
 	{
 		const static vector<string> registerStringMapping;

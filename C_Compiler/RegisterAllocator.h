@@ -15,7 +15,7 @@ struct RegisterAllocator
 	int currentStackPointerOffset;
 
 	int startFunctionStackPointerSubtractIndex = -1;
-	vector<int> startLoopLabelIndexes;
+	vector<LoopLabel> startLoopLabelIndexes;
 
 	void SetRegister(REGISTER reg, int varIdx);
 	void Reset();

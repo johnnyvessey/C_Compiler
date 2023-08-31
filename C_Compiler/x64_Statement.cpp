@@ -16,7 +16,7 @@ string OperandAsm::ToString() const
 	{
 		if (this->dereference)
 		{
-			ss << "QWORD PTR [";
+			ss << "qword ptr [";
 		}
 
 		ss << RegisterString::registerStringMapping.at((int)this->reg.reg);
@@ -55,17 +55,17 @@ string FlagsToString(FlagResults flags)
 {
 	switch (flags)
 	{
-	case IR_ALWAYS: return ""; break;
-	case IR_EQUALS: return "E"; break;
-	case IR_FLOAT_GREATER: return "A"; break;
-	case IR_FLOAT_GREATER_EQUALS: return "AE"; break;
-	case IR_FLOAT_LESS: return "B"; break;
-	case IR_FLOAT_LESS_EQUALS: return "BE"; break;
-	case IR_GREATER: return "G"; break;
-	case IR_GREATER_EQUALS: return "GE"; break;
-	case IR_LESS: return "L"; break;
-	case IR_LESS_EQUALS: return "LE"; break;
-	case IR_NOT_EQUALS: return "NE"; break;
+	case IR_ALWAYS: return "mp"; break;
+	case IR_EQUALS: return "e"; break;
+	case IR_FLOAT_GREATER: return "a"; break;
+	case IR_FLOAT_GREATER_EQUALS: return "ae"; break;
+	case IR_FLOAT_LESS: return "b"; break;
+	case IR_FLOAT_LESS_EQUALS: return "be"; break;
+	case IR_GREATER: return "g"; break;
+	case IR_GREATER_EQUALS: return "ge"; break;
+	case IR_LESS: return "l"; break;
+	case IR_LESS_EQUALS: return "le"; break;
+	case IR_NOT_EQUALS: return "ne"; break;
 	case IR_NO_FLAGS: return ""; break;
 	}
 
@@ -83,6 +83,9 @@ string StatementAsm::ToString() const
 	//TODO: finish this
 	stringstream ss;
 	
+	if (!this->preStatements.empty()) {
+		ss << "\n";
+	}
 	for (const StatementAsm& preStatement : this->preStatements)
 	{
 		ss << preStatement.ToString() << "\n";
@@ -127,42 +130,42 @@ string StatementAsm::ToString() const
 	//instruction cases
 	case x64_MOV:
 	{
-		ss << "MOV " << doubleOpEnd;
+		ss << "mov " << doubleOpEnd;
 		break;
 	}
 	case x64_MOVS:
 	{
-		ss << "MOVSD " << doubleOpEnd;
+		ss << "movsd " << doubleOpEnd;
 		break;
 	}
 	case x64_ADD:
 	{
-		ss << "ADD " << doubleOpEnd;
+		ss << "add " << doubleOpEnd;
 		break;
 	}
 	case x64_ADDS:
 	{
-		ss << "ADDSD " << doubleOpEnd;
+		ss << "addsd " << doubleOpEnd;
 		break;
 	}
 	case x64_SUB:
 	{
-		ss << "SUB " << doubleOpEnd;
+		ss << "sub " << doubleOpEnd;
 		break;
 	}
 	case x64_SUBS:
 	{
-		ss << "SUBSD " << doubleOpEnd;
+		ss << "subsd " << doubleOpEnd;
 		break;
 	}
 	case x64_IMUL:
 	{
-		ss << "IMUL " << doubleOpEnd;
+		ss << "imul " << doubleOpEnd;
 		break;
 	}
 	case x64_MULS:
 	{
-		ss << "MULSD " << doubleOpEnd;
+		ss << "mulsd " << doubleOpEnd;
 		break;
 	}
 	case x64_IDIV:
@@ -172,22 +175,26 @@ string StatementAsm::ToString() const
 	}
 	case x64_DIVS:
 	{
-		ss << "DIVSD " << doubleOpEnd;
+		ss << "divsd " << doubleOpEnd;
 		break;
 	}
 	case x64_CMP:
 	{
-		ss << "CMP " << doubleOpEnd;
+		ss << "cmp " << doubleOpEnd;
+		break;
+	}
+	case x64_COMIS: {
+		ss << "comisd " << doubleOpEnd;
 		break;
 	}
 	case x64_CALL:
 	{
-		ss << "CALL " << this->name;
+		ss << "call " << this->name;
 		break;
 	}
 	case x64_JMP:
 	{
-		ss << "J";
+		ss << "j";
 		ss << FlagsToString(this->flags);
 		ss << " " << name;
 		break;
@@ -199,37 +206,37 @@ string StatementAsm::ToString() const
 	}
 	case x64_CQO:
 	{
-		ss << "CQO";
+		ss << "cqo";
 		break;
 	}
 	case x64_LEA:
 	{
-		ss << "LEA " << doubleOpEnd;
+		ss << "lea " << doubleOpEnd;
 		break;
 	}
 	case x64_CVTSI2SD:
 	{
-		ss << "CVTSI2SD " << doubleOpEnd;
+		ss << "cvtsi2sd " << doubleOpEnd;
 		break;
 	}
 	case x64_CVTTSD2SI:
 	{
-		ss << "CVTTSD2SI " << doubleOpEnd;
+		ss << "cvttsd2si " << doubleOpEnd;
 		break;
 	}
 	case x64_PUSH:
 	{
-		ss << "PUSH " << this->firstOperand.ToString();
+		ss << "push " << this->firstOperand.ToString();
 		break;
 	}
 	case x64_POP:
 	{
-		ss << "POP " << this->firstOperand.ToString();
+		ss << "pop " << this->firstOperand.ToString();
 		break;
 	}
 	case x64_RET:
 	{
-		ss << "RET";
+		ss << "ret";
 		break;
 	}
 	case x64_SET:
@@ -240,7 +247,9 @@ string StatementAsm::ToString() const
 	case x64_NOP: break; //do nothing
 	}
 
-	
+	if (!this->postStatements.empty()) {
+		ss << "\n";
+	}
 	for (const StatementAsm& postStatement : this->postStatements)
 	{
 		ss << postStatement.ToString() << "\n";

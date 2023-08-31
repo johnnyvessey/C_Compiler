@@ -1,16 +1,12 @@
-int f()
+void f()
 {
-	int x = 5;
-	int y = 6;
+	int x = 1;
+	int y = 2;
+	float q = 5.5;
 
-	if (x < y)
-	{
-		x += 1;
-	}
-	else {
-		x -= y;
-	}
+	int* z = &x;
+	z = &y;
 
-	int z = x * 2;
+	x += y;
 
 }

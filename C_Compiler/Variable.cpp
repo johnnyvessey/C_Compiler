@@ -53,6 +53,9 @@ const vector<string> RegisterString::registerStringMapping = {
 		"XMM15"
 };
 
+LoopLabel::LoopLabel(int labelIdx, int labelStatementIdx) : labelIdx(labelIdx), labelStatementIdx(labelStatementIdx) {}
+
+
 IR_Value::IR_Value() {}
 IR_Value::IR_Value(IR_VarType type, IR_ValueType valueType, int byteSize, int varIndex, bool isTempValue, string literalValue, IR_SpecialVars specialVars) :
 	type(type), valueType(valueType), byteSize(byteSize), varIndex(varIndex), isTempValue(isTempValue), literalValue(literalValue), specialVars(specialVars),

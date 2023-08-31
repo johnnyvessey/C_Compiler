@@ -82,6 +82,7 @@ enum StatementAsmType
 	x64_LABEL,
 	x64_LEA,
 	x64_CMP,
+	x64_COMIS,
 	x64_RET,
 	x64_CALL,
 	x64_SET,
