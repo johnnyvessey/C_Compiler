@@ -109,7 +109,7 @@ void AST_Initialization::ConvertStatementToIR(IR& irState)
 		value.valueType = IR_VARIABLE;
 		value.type = (lvalue->type.pointerLevel > 0 || lvalue->type.lValueType == LValueType::INT) ? IR_INT : IR_FLOAT;
 		//value.varIndex = irState.state.varIndex++; //decide how to do this when assigning to expression to prevent lots of duplicate copying
-		value.byteSize = (lvalue->type.pointerLevel > 0) ? POINTER_SIZE : 4;
+		value.byteSize = (lvalue->type.pointerLevel > 0) ? POINTER_SIZE : REGISTER_SIZE;
 		value.pointerLevel = lvalue->type.pointerLevel;
 		value.baseType = lvalue->type.lValueType ==  LValueType::INT ? IR_INT : IR_FLOAT; //TODO: Figure out other types
 		value.isTempValue = false;
@@ -124,7 +124,7 @@ void AST_Initialization::ConvertStatementToIR(IR& irState)
 			IR_Operand irRValue = rvalue->ConvertExpressionToIR(irState);
 			if (irRValue.value.specialVars == IR_FLAGS)
 			{
-				irState.add_statement(make_shared<IR_Assign>(IR_Assign(irRValue.value.type, IR_FLAG_CONVERT, 4, IR_Operand(value), IR_Operand(irRValue))));
+				irState.add_statement(make_shared<IR_Assign>(IR_Assign(irRValue.value.type, IR_FLAG_CONVERT, REGISTER_SIZE, IR_Operand(value), IR_Operand(irRValue))));
 			}
 			else {
 				IR_Assign assign = IR_Assign(irRValue.value.type, IR_COPY, value.byteSize, IR_Operand(value), IR_Operand(irRValue));
@@ -336,8 +336,8 @@ void AST_Function_Definition::ConvertStatementToIR(IR& irState)
 	else if (retType.type != IR_STRUCT)
 	{
 		retValue = retType.type == IR_INT ? irState.state.functionReturnValueInt : irState.state.functionReturnValueFloat;
-		retValue.byteSize = 4; //TODO: change this to be based on memory size of variable (not IR variable, because IR_INT can have multiple byte sizes)
-		funcLabel->returnValueByteSize = 4;
+		retValue.byteSize = REGISTER_SIZE; //TODO: change this to be based on memory size of variable (not IR variable, because IR_INT can have multiple byte sizes)
+		funcLabel->returnValueByteSize = REGISTER_SIZE;
 	}
 	else
 	{

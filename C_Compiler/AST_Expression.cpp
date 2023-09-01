@@ -22,7 +22,7 @@ unordered_map<BinOpType, IR_AssignType> IR_Expression_Utils::irBinOpMapping = {
  IR_Value Expression::VariableToIR_Value(const Variable& v, IR& irState)
  {
 	 IR_Value value;
-	 value.byteSize = v.type.pointerLevel > 0 ? POINTER_SIZE : 4;
+	 value.byteSize = v.type.pointerLevel > 0 ? POINTER_SIZE : REGISTER_SIZE;
 	 value.pointerLevel = v.type.pointerLevel;
 	 switch (v.type.lValueType)
 	 {
@@ -48,7 +48,7 @@ unordered_map<BinOpType, IR_AssignType> IR_Expression_Utils::irBinOpMapping = {
 	 //if (deref.value.pointerLevel == 0)
 	 //{
 		// deref.value.type = deref.value.baseType;
-		// deref.value.byteSize = 4; //INT or FLOAT
+		// deref.value.byteSize = REGISTER_SIZE; //INT or FLOAT
 	 //}
 	 irState.add_statement(make_shared<IR_Assign>(IR_Assign(baseValue.value.type, useLEA ? IR_LEA : IR_COPY, deref.value.byteSize, deref, baseValue)));
 
@@ -182,22 +182,22 @@ IR_Value ParseAndOrReturnVar(AST_BinOp* binOpExpr, IR& irState, int& trueLabel, 
 {
 
 	int endLabelIdx = irState.state.labelIndex++;
-	IR_Value result(IR_INT, IR_VARIABLE, 4, irState.state.varIndex++, true, "", IR_NONE);
+	IR_Value result(IR_INT, IR_VARIABLE, REGISTER_SIZE, irState.state.varIndex++, true, "", IR_NONE);
 
 	ParseAndOrNoReturnVar(binOpExpr, irState, trueLabel, falseLabel, false); //don't invert the result because it will be done afterwards when setting value
 
-	const IR_Value falseIntLiteral(IR_INT, IR_LITERAL, 4, 0, true, "0", IR_NONE);
-	const IR_Value trueIntLiteral(IR_INT, IR_LITERAL, 4, 0, true, "1", IR_NONE);
+	const IR_Value falseIntLiteral(IR_INT, IR_LITERAL, REGISTER_SIZE, 0, true, "0", IR_NONE);
+	const IR_Value trueIntLiteral(IR_INT, IR_LITERAL, REGISTER_SIZE, 0, true, "1", IR_NONE);
 
 	//FALSE Label:
 	irState.add_statement(make_shared<IR_Label>(IR_Label(falseLabel)));
-	irState.add_statement(make_shared<IR_Assign>(IR_Assign(IR_INT, IR_COPY, 4, IR_Operand(result), IR_Operand(invertResult ? trueIntLiteral : falseIntLiteral))));
+	irState.add_statement(make_shared<IR_Assign>(IR_Assign(IR_INT, IR_COPY, REGISTER_SIZE, IR_Operand(result), IR_Operand(invertResult ? trueIntLiteral : falseIntLiteral))));
 	irState.add_statement(make_shared<IR_Jump>(IR_Jump(endLabelIdx, IR_ALWAYS))); //maybe remove this, or let it be optimized out?
 
 
 	//TRUE Label:
 	irState.add_statement(make_shared<IR_Label>(IR_Label(trueLabel)));
-	irState.add_statement(make_shared<IR_Assign>(IR_Assign(IR_INT, IR_COPY, 4, IR_Operand(result), IR_Operand(invertResult ? falseIntLiteral : trueIntLiteral))));
+	irState.add_statement(make_shared<IR_Assign>(IR_Assign(IR_INT, IR_COPY, REGISTER_SIZE, IR_Operand(result), IR_Operand(invertResult ? falseIntLiteral : trueIntLiteral))));
 	irState.add_statement(make_unique<IR_Jump>(IR_Jump(endLabelIdx, IR_ALWAYS))); //will be optimized out
 
 
@@ -227,8 +227,8 @@ IR_Operand ConvertFlagsToTempVarConditionally(IR_Value flagValue, IR& irState, b
 {
 	if (returnVar)
 	{
-		IR_Value var(IR_INT, IR_VARIABLE, 4, irState.state.varIndex++, true, "", IR_NONE);
-		IR_Assign asssignFromFlags(IR_INT, IR_FLAG_CONVERT, 4, var, flagValue);
+		IR_Value var(IR_INT, IR_VARIABLE, REGISTER_SIZE, irState.state.varIndex++, true, "", IR_NONE);
+		IR_Assign asssignFromFlags(IR_INT, IR_FLAG_CONVERT, REGISTER_SIZE, var, flagValue);
 		irState.add_statement(make_shared<IR_Assign>(asssignFromFlags));
 		return IR_Operand(var);
 	}
@@ -420,7 +420,7 @@ IR_Operand AST_BinOp::ConvertExpressionToIR(IR& irState)
 		//if it's result of boolean operation, convert it to int first
 		if (leftValue.value.specialVars == IR_FLAGS)
 		{
-			IR_Assign assignFromFlags(IR_INT, IR_FLAG_CONVERT, 4, dest, leftValue);
+			IR_Assign assignFromFlags(IR_INT, IR_FLAG_CONVERT, REGISTER_SIZE, dest, leftValue);
 			irState.add_statement(make_shared<IR_Assign>(std::move(assignFromFlags)));
 		}
 		else {
@@ -433,16 +433,16 @@ IR_Operand AST_BinOp::ConvertExpressionToIR(IR& irState)
 		//if right value is boolean, convert it to int first
 		if (rightValue.value.specialVars == IR_FLAGS)
 		{
-			IR_Operand newRight(IR_Value(IR_INT, IR_VARIABLE, 4, irState.state.varIndex++, true, "", IR_NONE));
-			IR_Assign assignFromFlags(IR_INT, IR_FLAG_CONVERT, 4, newRight, rightValue);
+			IR_Operand newRight(IR_Value(IR_INT, IR_VARIABLE, REGISTER_SIZE, irState.state.varIndex++, true, "", IR_NONE));
+			IR_Assign assignFromFlags(IR_INT, IR_FLAG_CONVERT, REGISTER_SIZE, newRight, rightValue);
 			irState.add_statement(make_shared<IR_Assign>(std::move(assignFromFlags)));
 
-			IR_Assign binOpStatement(dest.value.type, binOpAssignType, 4, dest, newRight);
+			IR_Assign binOpStatement(dest.value.type, binOpAssignType, REGISTER_SIZE, dest, newRight);
 			irState.add_statement(make_shared<IR_Assign>(std::move(binOpStatement)));
 		}
 		else
 		{
-			IR_Assign binOpStatement(dest.value.type, binOpAssignType, 4, dest, rightValue);
+			IR_Assign binOpStatement(dest.value.type, binOpAssignType, REGISTER_SIZE, dest, rightValue);
 			irState.add_statement(make_shared<IR_Assign>(std::move(binOpStatement)));
 		}
 
@@ -503,15 +503,15 @@ IR_Operand AST_Type_Cast_Expression::ConvertExpressionToIR(IR& irState)
 	
 	if (this->from.lValueType == INT && this->to.lValueType == FLOAT)
 	{
-		dest.byteSize = 4;
-		typeCast.byteSize = 4;
+		dest.byteSize = REGISTER_SIZE;
+		typeCast.byteSize = REGISTER_SIZE;
 		dest.valueType = IR_VARIABLE;
 		dest.type = IR_FLOAT;
 	}
 	else if (this->from.lValueType == FLOAT && this->to.lValueType == INT)
 	{
-		dest.byteSize = 4;
-		typeCast.byteSize = 4;
+		dest.byteSize = REGISTER_SIZE;
+		typeCast.byteSize = REGISTER_SIZE;
 		dest.valueType = IR_VARIABLE;
 		dest.type = IR_INT;
 	}
@@ -691,10 +691,10 @@ IR_Operand AST_Literal_Expression::ConvertExpressionToIR(IR& irState)
 	//TODO: don't hard code in 4, figure out determining if INT vs LONG or FLOAT vs DOUBLE?
 	if (this->type.lValueType == LValueType::INT)
 	{
-		return IR_Operand(IR_Value(IR_INT, IR_LITERAL, 4, 0, true, this->value));
+		return IR_Operand(IR_Value(IR_INT, IR_LITERAL, REGISTER_SIZE, 0, true, this->value));
 	}
 	else {
-		IR_Value floatLiteralValue(IR_FLOAT, IR_VARIABLE, 4, irState.state.varIndex++, true, "", IR_NONE);
+		IR_Value floatLiteralValue(IR_FLOAT, IR_VARIABLE, REGISTER_SIZE, irState.state.varIndex++, true, "", IR_NONE);
 		irState.add_floatLiteralGlobal(this->value);
 
 		IR_Operand floatOp(floatLiteralValue);
@@ -747,7 +747,7 @@ IR_Operand AST_Struct_Variable_Access::ConvertExpressionToIR(IR& irState)
 	}
 
 	subOp.value.type = subOp.value.pointerLevel > 0 ? IR_INT : subOp.value.baseType;
-	subOp.value.byteSize = subOp.value.pointerLevel > 0 ? POINTER_SIZE : 4;
+	subOp.value.byteSize = subOp.value.pointerLevel > 0 ? POINTER_SIZE : REGISTER_SIZE;
 	return subOp;
 
 }
@@ -876,10 +876,10 @@ IR_Operand AST_Pointer_Offset::ConvertExpressionToIR(IR& irState)
 		}
 		//Note: this only happens when taking offset of struct pointer of level 1
 		else {
-			IR_Operand offsetFinal(IR_Value(IR_INT, IR_VARIABLE, 4, irState.state.varIndex++, true, "", IR_NONE));
-			irState.add_statement(make_shared<IR_Assign>(IR_Assign(IR_INT, IR_COPY, 4, offsetFinal, offsetOperandFinal)));
-			irState.add_statement(make_shared<IR_Assign>(IR_Assign(IR_INT, IR_MULTIPLY, 4, offsetFinal,
-				IR_Operand(IR_Value(IR_INT, IR_LITERAL, 4, 0, true, std::to_string(memoryMultiplier), IR_NONE)))));
+			IR_Operand offsetFinal(IR_Value(IR_INT, IR_VARIABLE, REGISTER_SIZE, irState.state.varIndex++, true, "", IR_NONE));
+			irState.add_statement(make_shared<IR_Assign>(IR_Assign(IR_INT, IR_COPY, REGISTER_SIZE, offsetFinal, offsetOperandFinal)));
+			irState.add_statement(make_shared<IR_Assign>(IR_Assign(IR_INT, IR_MULTIPLY, REGISTER_SIZE, offsetFinal,
+				IR_Operand(IR_Value(IR_INT, IR_LITERAL, REGISTER_SIZE, 0, true, std::to_string(memoryMultiplier), IR_NONE)))));
 
 			baseExprOperand.memoryOffsetMultiplier = 1;
 
@@ -1041,14 +1041,14 @@ IR_Operand AST_Assignment_Expression::ConvertExpressionToIR(IR& irState)
 
 	if (rValue.value.specialVars == IR_FLAGS)
 	{
-		assign.byteSize = 4;
+		assign.byteSize = REGISTER_SIZE;
 		//be careful when copying flag (1 byte) to memory; set it to register first and then copy 4 bytes over
 		//TODO: see if I need to change logic of IR_FLAG_CONVERT, maybe I don't need this check 
 		//and the rest of the managing of registers will be done in x64 translation phase
 		if (lValue.dereference)
 		{
 			IR_Operand tempValue(IR_Value(lValue.GetVarType(), IR_VARIABLE, 4, irState.state.varIndex++, true, "", IR_NONE));
-			irState.add_statement(make_shared<IR_Assign>(IR_Assign(tempValue.value.type, IR_FLAG_CONVERT, 4, tempValue, rValue)));
+			irState.add_statement(make_shared<IR_Assign>(IR_Assign(tempValue.value.type, IR_FLAG_CONVERT, REGISTER_SIZE, tempValue, rValue)));
 			assign.assignType = IR_COPY;
 			assign.source = tempValue;
 		}
@@ -1097,7 +1097,7 @@ IR_Operand AST_Assignment_Expression::ConvertExpressionToIR(IR& irState)
 
 	/*if (rValue.value.valueType == IR_LITERAL && rValue.value.type == IR_FLOAT)
 	{
-		IR_Value floatLiteralValue(IR_FLOAT, IR_VARIABLE, 4, irState.state.varIndex++, true, "", IR_NONE);
+		IR_Value floatLiteralValue(IR_FLOAT, IR_VARIABLE, REGISTER_SIZE, irState.state.varIndex++, true, "", IR_NONE);
 		irState.add_floatLiteralGlobal(rValue.value.literalValue);
 
 		IR_Operand floatOp(floatLiteralValue);

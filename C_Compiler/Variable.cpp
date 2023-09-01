@@ -82,7 +82,7 @@ IR_VarType IR_Operand::GetVarType()
 }
 int IR_Operand::GetByteSize()
 {
-	return GetPointerLevel() > 0 ? POINTER_SIZE : 4;
+	return GetPointerLevel() > 0 ? POINTER_SIZE : REGISTER_SIZE;
 }
 
 RegisterVariableGroup::RegisterVariableGroup() : variableIndex(0), isModified(true) {}
