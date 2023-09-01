@@ -20,7 +20,7 @@ void IR_CodeGen::PrintIR()
 	std::cout << ".data\n";
 	for (int i = 0; i < irState.floatLiteralGlobals.size(); ++i)
 	{
-		std::cout << "\tvar" << (i + 1) << " qw " << irState.floatLiteralGlobals.at(i) << "\n";
+		std::cout << "\tvar" << (i + 1) << " dq " << irState.floatLiteralGlobals.at(i) << "\n";
 	}
 
 	std::cout << "\n\n.code\n\n";

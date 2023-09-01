@@ -62,7 +62,7 @@ struct IR
 {
 	IR_State state;
 	vector<IR_Function_Group> functions;
-	vector<unsigned int> floatLiteralGlobals; //start at 1 rather than 0 for indexing names
+	vector<uint64_t> floatLiteralGlobals; //start at 1 rather than 0 for indexing names
 
 	inline void add_statement(shared_ptr<IR_Statement> statement)
 	{
@@ -77,8 +77,8 @@ struct IR
 
 	inline void add_floatLiteralGlobal(string s)
 	{
-		float f = std::stof(s);
-		unsigned int intVal = *((unsigned int*)&f);
+		double d = std::stod(s);
+		uint64_t intVal = *((uint64_t*)&d);
 		floatLiteralGlobals.push_back(intVal);
 	}
 

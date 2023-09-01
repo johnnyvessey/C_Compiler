@@ -3,10 +3,10 @@
 const vector<REGISTER> x64_State::_calleeSavedRegisters({ R12, R13, R14, R15, RBX, RSP, RBP });
 
 //reserve R15 and XMM15 for bringing spilled registers back to register temporarily
-const vector<REGISTER> x64_State::_usableIntCalleeSavedRegisters({RDI, RSI, RCX, R8, R9, R10, R11, R12, R13, R14, RBX, RDX, RAX});
+const vector<REGISTER> x64_State::_usableIntRegisters({RDI, RSI, RCX, R8, R9, R10, R11, R12, R13, R14, RBX, RDX, RAX});
 //const vector<REGISTER> x64_State::_usableIntCalleeSavedRegisters({RDI, RSI, RCX});
 
-const vector<REGISTER> x64_State::_usableFloatCalleeSavedRegisters({XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7, XMM8, XMM9, XMM10, XMM11, XMM12, XMM13, XMM14, XMM0});
+const vector<REGISTER> x64_State::_usableFloatRegisters({XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7, XMM8, XMM9, XMM10, XMM11, XMM12, XMM13, XMM14, XMM0});
 const vector<REGISTER> x64_State::_functionIntArguments({RDI, RSI, RDX, RCX, R8, R9});
 const vector<REGISTER> x64_State::_functionFloatArguments({XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7});
 
@@ -130,7 +130,13 @@ void x64_State::EvictExpiredVariables()
 	{
 		//if register is assigned to variable
 		int varIdx = this->registerAllocator.registerMapping.regMapping.at(reg).variableIndex;
-		if (varIdx != 0)
+
+		//clear out temp variables (which are set to -1)
+		if (varIdx < 0)
+		{
+			this->registerAllocator.registerMapping.regMapping.at(reg).variableIndex = 0;
+		}
+		else if (varIdx != 0)
 		{
 			//continue if there are no variables used on this line
 			if (this->irVariableData.currentNormalIndexToDoubledIndexMapping->find(this->lineNum) ==
@@ -166,7 +172,7 @@ REGISTER x64_State::FindFurthestAwayRegisterInMappingUsed()
 	{
 		//if register is assigned to variable
 		int varIdx = this->registerAllocator.registerMapping.regMapping.at(reg).variableIndex;
-		if (varIdx != 0)
+		if (varIdx > 0)
 		{
 			int nextVarOccurrence = this->irVariableData.currentLineMapping->at(varIdx).back();
 
@@ -196,7 +202,7 @@ REGISTER x64_State::AllocateRegister(IR_Value value, REGISTER specificRegister)
 			return (REGISTER)endReg;
 		}
 
-		const vector<REGISTER>& availableRegisters = value.type == IR_INT ? _usableIntCalleeSavedRegisters : _usableFloatCalleeSavedRegisters;
+		const vector<REGISTER>& availableRegisters = value.type == IR_INT ? _usableIntRegisters : _usableFloatRegisters;
 		for (const REGISTER& reg : availableRegisters)
 		{
 			if (this->registerAllocator.registerMapping.regMapping.at((int)reg).variableIndex == 0)
@@ -227,11 +233,6 @@ REGISTER x64_State::AllocateRegister(IR_Value value, REGISTER specificRegister)
 			//spill register: one that will be used the farthest away
 		REGISTER spilledRegister = FindFurthestAwayRegisterInMappingUsed();
 
-			//if (this->registerAllocator.registerMapping.mapping.at((int)spilledRegister).isModified)
-			//{
-			//	//write back to its memory location
-			//}
-
 		statements.push_back(SpillRegister(spilledRegister, registerAllocator.registerMapping));
 
 		if (!notYetSpilled)
@@ -251,19 +252,53 @@ REGISTER x64_State::AllocateRegister(IR_Value value, REGISTER specificRegister)
 		
 	}
 	else { 
-
-		//OperandAsm registerOperand = OperandAsm::CreateRegisterOperand(specificRegister);
 		
 		if (this->registerAllocator.registerMapping.regMapping.at((int)specificRegister).variableIndex != 0)
 		{
 			statements.push_back(SpillRegister(specificRegister, registerAllocator.registerMapping));
-			this->registerAllocator.registerMapping.regMapping.at((int)specificRegister) = RegisterVariableGroup(value.varIndex, true);
 		}
 	
+		this->registerAllocator.registerMapping.regMapping.at((int)specificRegister) = RegisterVariableGroup(value.varIndex, true);
+
 		return specificRegister;;
 		
 	}
 
+}
+
+REGISTER x64_State::AllocateTempRegister(OperandAsm operand, bool isFloat)
+{
+	const vector<REGISTER>& availableRegisters = isFloat ? _usableFloatRegisters : _usableIntRegisters;
+	for (const REGISTER& reg : availableRegisters)
+	{
+		if (this->registerAllocator.registerMapping.regMapping.at((int)reg).variableIndex == 0)
+		{
+
+			StatementAsm loadRegister(isFloat == IR_INT ? x64_MOV : x64_MOVS);
+			loadRegister.firstOperand = OperandAsm::CreateRegisterOperand(reg);
+			loadRegister.secondOperand = operand;
+			statements.push_back(std::move(loadRegister));
+
+			this->registerAllocator.registerMapping.regMapping.at((int)reg) = RegisterVariableGroup(-1, true);
+
+			return reg;
+		}
+	}
+
+	REGISTER spilledRegister = FindFurthestAwayRegisterInMappingUsed();
+	statements.push_back(SpillRegister(spilledRegister, registerAllocator.registerMapping));
+
+
+	StatementAsm loadRegister(isFloat == IR_INT ? x64_MOV : x64_MOVS);
+	loadRegister.firstOperand = OperandAsm::CreateRegisterOperand(spilledRegister);
+	loadRegister.secondOperand = operand;
+
+	statements.push_back(std::move(loadRegister));
+	
+
+	this->registerAllocator.registerMapping.regMapping.at((int)spilledRegister) = RegisterVariableGroup(-1, true);
+
+	return spilledRegister;
 }
 
 void x64_State::SpillRegisterIfChanged(RegisterMapping& mapping, int reg, int jumpStatementIdx)

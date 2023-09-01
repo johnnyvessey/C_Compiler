@@ -43,6 +43,7 @@ struct OperandAsm
 	int regOffsetMultiplier = 0;
 
 	int literalIntValue = 0;
+	string name = "";
 
 	static OperandAsm CreateRSPOffsetOperand(int offset);
 	static OperandAsm CreateRBPOffsetOperand(int offset);

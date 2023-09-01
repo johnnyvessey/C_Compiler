@@ -13,7 +13,12 @@ OperandAsm IR_Statement::ConvertIrOperandToOperandAsm(IR_Operand& op, x64_State&
 	{
 		opAsm.type = ASM_INT_LITERAL;
 		opAsm.literalIntValue = std::stoi(op.value.literalValue);
-
+	}
+	else if (op.globalFloatValue != 0)
+	{
+		opAsm.type = ASM_GLOBAL_MEMORY;
+		opAsm.dereference = true;
+		opAsm.name = std::to_string(op.globalFloatValue);
 	}
 	else if (op.value.specialVars == IR_RETURN_INT)
 	{
@@ -239,8 +244,8 @@ void IR_Assign::ConvertToX64(x64_State& state)
 	}
 	StatementAsm assignStatement;
 
-	assignStatement.firstOperand = IR_Statement::ConvertIrOperandToOperandAsm(this->dest, state);
-
+	OperandAsm firstOperandInitial = IR_Statement::ConvertIrOperandToOperandAsm(this->dest, state);
+	assignStatement.firstOperand = firstOperandInitial;
 	//set the destination register as modified for assign statement
 	if (!assignStatement.firstOperand.dereference)
 	{
@@ -296,52 +301,32 @@ void IR_Assign::ConvertToX64(x64_State& state)
 
 	bool isArithmeticOperation = (this->assignType == IR_ADD || this->assignType == IR_SUBTRACT ||
 		this->assignType == IR_MULTIPLY || this->assignType == IR_DIVIDE);
-	bool replaceSourceOperand = (isFloat && isArithmeticOperation && 
-		state.registerAllocator.memoryVariableMapping.memoryOffsetMapping.find(this->source.value.varIndex) !=
-		state.registerAllocator.memoryVariableMapping.memoryOffsetMapping.end()) ||
-		(assignStatement.firstOperand.dereference && assignStatement.secondOperand.dereference);
+	bool replaceSourceOperand = (isFloat && isArithmeticOperation) ||
+		(assignStatement.firstOperand.dereference && assignStatement.secondOperand.dereference)
+		|| (this->assignType == IR_TYPE_CAST && assignStatement.secondOperand.dereference);
 
-	bool replaceDestOperand = ((isFloat && isArithmeticOperation) || ((assignStatement.type == x64_IMUL) && state.registerAllocator.memoryVariableMapping.memoryOffsetMapping.find(this->dest.value.varIndex) !=
-		state.registerAllocator.memoryVariableMapping.memoryOffsetMapping.end()));
+	bool replaceDestOperand = ((isFloat && isArithmeticOperation) ||
+		((assignStatement.type == x64_IMUL || this->assignType == IR_TYPE_CAST) && assignStatement.firstOperand.dereference));
 
 	if (replaceSourceOperand)
 	{
-		//TODO: Have different logic if source operand is just dereferencing pointer
-		REGISTER tempReg = state.AllocateRegister(this->source.value);
-		StatementAsm tempAssignStatement(isFloat ? x64_MOVS : x64_MOV);
-		tempAssignStatement.firstOperand = OperandAsm::CreateRegisterOperand(tempReg);
-		tempAssignStatement.secondOperand = OperandAsm::CreateRSPOffsetOperand(state.registerAllocator.memoryVariableMapping
-			.memoryOffsetMapping.at(this->source.value.varIndex));
-		state.statements.push_back(std::move(tempAssignStatement));
-
+		REGISTER tempReg = state.AllocateTempRegister(assignStatement.secondOperand, isFloat);
 		assignStatement.secondOperand = OperandAsm::CreateRegisterOperand(tempReg);
-
-		//clear register
-		state.registerAllocator.registerMapping.regMapping.at((int)tempReg).variableIndex = 0;
 	}
 
 	REGISTER replaceDestRegister;
 	if (replaceDestOperand)
 	{
-		replaceDestRegister = state.AllocateRegister(this->dest.value);
-		StatementAsm tempAssignStatement(isFloat ? x64_MOVS : x64_MOV);
-		tempAssignStatement.firstOperand = OperandAsm::CreateRegisterOperand(replaceDestRegister);
-		tempAssignStatement.secondOperand = OperandAsm::CreateRSPOffsetOperand(state.registerAllocator.memoryVariableMapping
-			.memoryOffsetMapping.at(this->dest.value.varIndex));
-		state.statements.push_back(std::move(tempAssignStatement));
-
-		assignStatement.secondOperand = OperandAsm::CreateRegisterOperand(replaceDestRegister);
+		replaceDestRegister = state.AllocateTempRegister(assignStatement.firstOperand, isFloat);
+		assignStatement.firstOperand = OperandAsm::CreateRegisterOperand(replaceDestRegister);
 	}
-	
 
 	state.statements.push_back(std::move(assignStatement));
 
 	if (replaceDestOperand)
 	{
 		StatementAsm writeBackMov(isFloat ? x64_MOVS : x64_MOV);
-		writeBackMov.firstOperand = OperandAsm::CreateRSPOffsetOperand(state.registerAllocator.memoryVariableMapping
-			.memoryOffsetMapping.at(this->dest.value.varIndex));
-
+		writeBackMov.firstOperand = firstOperandInitial;
 		writeBackMov.secondOperand = OperandAsm::CreateRegisterOperand(replaceDestRegister);
 
 		state.statements.push_back(std::move(writeBackMov));
@@ -581,25 +566,34 @@ void IR_Compare::ConvertToX64(x64_State& state)
 	OperandAsm firstOperand = IR_Statement::ConvertIrOperandToOperandAsm(op1, state);
 	OperandAsm secondOperand = IR_Statement::ConvertIrOperandToOperandAsm(op2, state);
 
-	//TODO: BE CAREFUL ABOUT DEREFERENCING POINTER VS ADDRESS VARIABLE
+	REGISTER firstReg = _NONE;
+	REGISTER secondReg = _NONE;
 	if (isFloat)
 	{
 		if (firstOperand.dereference)
 		{
-
+			firstReg = state.AllocateTempRegister(firstOperand, isFloat);
+			firstOperand = OperandAsm::CreateRegisterOperand(firstReg);
 		}
 
 		if (secondOperand.dereference)
 		{
-
+			secondReg = state.AllocateTempRegister(secondOperand, isFloat);
+			secondOperand = OperandAsm::CreateRegisterOperand(secondReg);
 		}
 	}
 	else {
 		if (firstOperand.dereference && secondOperand.dereference)
 		{
-			StatementAsm loadSecondStatement(isFloat ? x64_MOVS : x64_MOV);
+			secondReg = state.AllocateTempRegister(secondOperand, isFloat);
+			secondOperand = OperandAsm::CreateRegisterOperand(secondReg);
 		}
 	}
+
+	compareStatement.firstOperand = std::move(firstOperand);
+	compareStatement.secondOperand = std::move(secondOperand);
+
+	state.statements.push_back(std::move(compareStatement));
 }
 
 string IR_NOP::ToString()

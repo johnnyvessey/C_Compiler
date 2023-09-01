@@ -84,8 +84,13 @@ void x64_CodeGen::GenerateCode()
 	this->state.statements.push_back(StatementAsm(x64_DATA_SECTION));
 	for (int i = 0; i < this->irState.floatLiteralGlobals.size(); ++i)
 	{
-		//TODO: generate this
 		//add GLOBAL_VARIABLE statements
+		StatementAsm globalFloatVar(x64_GLOBAL_VARIABLE);
+
+		stringstream ss;
+		ss << "_var" << (i + 1) << " dq " << this->irState.floatLiteralGlobals.at(i);
+		globalFloatVar.name = ss.str();
+		this->state.statements.push_back(std::move(globalFloatVar));
 	}
 
 	//functions

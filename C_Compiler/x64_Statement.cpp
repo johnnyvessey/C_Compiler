@@ -10,7 +10,7 @@ string OperandAsm::ToString() const
 	}
 	else if (this->type == ASM_GLOBAL_MEMORY)
 	{
-		//TODO: figure this out
+		ss << "qword ptr [_var" << this->name << "]";
 	}
 	else if (this->reg.reg != _NONE)
 	{
@@ -124,7 +124,7 @@ string StatementAsm::ToString() const
 	}
 	case x64_GLOBAL_VARIABLE:
 	{
-		//TODO: figure this out!
+		ss << this->name;
 		break;
 	}
 	//instruction cases

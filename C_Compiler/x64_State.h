@@ -19,8 +19,8 @@ struct x64_State
 	vector<StatementAsm> statements;
 
 	const static vector<REGISTER> _calleeSavedRegisters;
-	const static vector<REGISTER> _usableIntCalleeSavedRegisters;
-	const static vector<REGISTER> _usableFloatCalleeSavedRegisters;
+	const static vector<REGISTER> _usableIntRegisters;
+	const static vector<REGISTER> _usableFloatRegisters;
 
 	const static vector<REGISTER> _functionIntArguments;
 	const static vector<REGISTER> _functionFloatArguments;
@@ -52,4 +52,6 @@ struct x64_State
 
 
 	void SpillRegisterIfChanged(RegisterMapping& mapping, int reg, int jumpStatementIdx);
+
+	REGISTER AllocateTempRegister(OperandAsm operand, bool isFloat);
 };
