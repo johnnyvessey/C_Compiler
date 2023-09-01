@@ -53,5 +53,5 @@ struct x64_State
 
 	void SpillRegisterIfChanged(RegisterMapping& mapping, int reg, int jumpStatementIdx);
 
-	REGISTER AllocateTempRegister(OperandAsm operand, bool isFloat);
+	REGISTER AllocateTempRegister(OperandAsm operand, bool isFloat, bool shouldLoadRegister = true);
 };

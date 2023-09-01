@@ -5,6 +5,7 @@
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
+#include <map>
 
 using std::unique_ptr;
 using std::string;
@@ -12,6 +13,7 @@ using std::vector;
 using std::unordered_map;
 using std::unordered_set;
 using std::pair;
+using std::map;
 
 #define POINTER_SIZE 8
 #define REGISTER_SIZE 8
@@ -157,7 +159,7 @@ namespace VariableNamespace {
 	struct RegisterString
 	{
 		const static vector<string> registerStringMapping;
-
+		const static vector<string> registerStringMapping1byte;
 	};
 
 
@@ -255,10 +257,10 @@ namespace VariableNamespace {
 	{
 		unordered_map<string, unordered_map<int, int>> nonRegisterVariables;
 		unordered_map<string, unordered_map<int, vector<int>>> variableLineMapping;
-		unordered_map<string, unordered_map<int, int>> normalIndexToDoubledIndexMapping;
+		unordered_map<string, map<int, int>> normalIndexToDoubledIndexMapping;
 
 		unordered_map<int, vector<int>>* currentLineMapping;
-		unordered_map<int, int>* currentNormalIndexToDoubledIndexMapping;
+		map<int, int>* currentNormalIndexToDoubledIndexMapping;
 
 		unordered_map<string, IR_FunctionDef> functionDefinitions;
 

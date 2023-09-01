@@ -2,16 +2,8 @@ TODO:
 
 
 x64 todo:
-- Change variable size to 8
-- Get float literals to work properly
 
-- Imporant: Create easy function for moving memory operand to register temporarily
--> use this for IR_Assign, IR_Compare, and IR_Type_Cast
--> useful for float arguments b/c they don't take memory
-
-- Bug fixing: find way to easily allocate register if 2 arguments are memory based
--> for assign and compare, make sure to differentiate between address variable and pointer dereference
-	-> maybe this isn't an issue b/c AllocateRegister takes care of that
+- do bisecting for map to get lineNumInDoubled when spilling registers (SpillRegisterIfChanged method)
 
 - See where excess function arguments are stored; store them in RBP??? -> be careful about structs b/c they can't go into registers
 

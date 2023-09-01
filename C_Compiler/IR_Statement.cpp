@@ -234,10 +234,6 @@ void IR_Assign::ConvertToX64(x64_State& state)
 	{
 		//TODO: figure out int division
 	}
-	else if (this->assignType == IR_FLAG_CONVERT)
-	{
-
-	}
 	else if (this->assignType == IR_STRUCT_COPY)
 	{
 
@@ -297,6 +293,12 @@ void IR_Assign::ConvertToX64(x64_State& state)
 		//figure out negative of floats...
 		break;
 	}
+	case IR_FLAG_CONVERT:
+	{
+		assignStatement.type = x64_SET;
+		assignStatement.flags = this->source.value.flag;
+		break;
+	}
 	}
 
 	bool isArithmeticOperation = (this->assignType == IR_ADD || this->assignType == IR_SUBTRACT ||
@@ -306,7 +308,7 @@ void IR_Assign::ConvertToX64(x64_State& state)
 		|| (this->assignType == IR_TYPE_CAST && assignStatement.secondOperand.dereference);
 
 	bool replaceDestOperand = ((isFloat && isArithmeticOperation) ||
-		((assignStatement.type == x64_IMUL || this->assignType == IR_TYPE_CAST) && assignStatement.firstOperand.dereference));
+		((assignStatement.type == x64_IMUL || this->assignType == IR_TYPE_CAST || this->assignType == IR_FLAG_CONVERT) && assignStatement.firstOperand.dereference));
 
 	if (replaceSourceOperand)
 	{
@@ -317,8 +319,19 @@ void IR_Assign::ConvertToX64(x64_State& state)
 	REGISTER replaceDestRegister;
 	if (replaceDestOperand)
 	{
-		replaceDestRegister = state.AllocateTempRegister(assignStatement.firstOperand, isFloat);
+		replaceDestRegister = state.AllocateTempRegister(assignStatement.firstOperand, isFloat, this->assignType != IR_FLAG_CONVERT);
 		assignStatement.firstOperand = OperandAsm::CreateRegisterOperand(replaceDestRegister);
+	}
+
+	if (this->assignType == IR_FLAG_CONVERT)
+	{
+		StatementAsm setToZero(x64_MOV);
+		setToZero.firstOperand = OperandAsm::CreateRegisterOperand(assignStatement.firstOperand.reg.reg);
+		setToZero.secondOperand = OperandAsm::CreateIntLiteralOperand(0);
+
+		state.statements.push_back(std::move(setToZero));
+
+		assignStatement.firstOperand.reg.size = 1; //use 1 byte version of register for set statement
 	}
 
 	state.statements.push_back(std::move(assignStatement));

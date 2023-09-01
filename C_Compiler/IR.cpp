@@ -209,7 +209,7 @@ IR_VariableData IR::ComputeIRVariableData()
 		}
 
 		unordered_map<int, vector<int>> variableLineMapping;
-		unordered_map<int, int> normalIndexToDoubledIndexMapping;
+		map<int, int> normalIndexToDoubledIndexMapping;
 
 		for (int i = 0; i < out.size(); ++i)
 		{

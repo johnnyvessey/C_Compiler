@@ -266,19 +266,20 @@ REGISTER x64_State::AllocateRegister(IR_Value value, REGISTER specificRegister)
 
 }
 
-REGISTER x64_State::AllocateTempRegister(OperandAsm operand, bool isFloat)
+REGISTER x64_State::AllocateTempRegister(OperandAsm operand, bool isFloat, bool shouldLoadRegister)
 {
 	const vector<REGISTER>& availableRegisters = isFloat ? _usableFloatRegisters : _usableIntRegisters;
 	for (const REGISTER& reg : availableRegisters)
 	{
 		if (this->registerAllocator.registerMapping.regMapping.at((int)reg).variableIndex == 0)
 		{
-
-			StatementAsm loadRegister(isFloat == IR_INT ? x64_MOV : x64_MOVS);
-			loadRegister.firstOperand = OperandAsm::CreateRegisterOperand(reg);
-			loadRegister.secondOperand = operand;
-			statements.push_back(std::move(loadRegister));
-
+			if (shouldLoadRegister)
+			{
+				StatementAsm loadRegister(isFloat == IR_INT ? x64_MOV : x64_MOVS);
+				loadRegister.firstOperand = OperandAsm::CreateRegisterOperand(reg);
+				loadRegister.secondOperand = operand;
+				statements.push_back(std::move(loadRegister));
+			}
 			this->registerAllocator.registerMapping.regMapping.at((int)reg) = RegisterVariableGroup(-1, true);
 
 			return reg;
@@ -288,12 +289,14 @@ REGISTER x64_State::AllocateTempRegister(OperandAsm operand, bool isFloat)
 	REGISTER spilledRegister = FindFurthestAwayRegisterInMappingUsed();
 	statements.push_back(SpillRegister(spilledRegister, registerAllocator.registerMapping));
 
+	if (shouldLoadRegister)
+	{
+		StatementAsm loadRegister(isFloat == IR_INT ? x64_MOV : x64_MOVS);
+		loadRegister.firstOperand = OperandAsm::CreateRegisterOperand(spilledRegister);
+		loadRegister.secondOperand = operand;
 
-	StatementAsm loadRegister(isFloat == IR_INT ? x64_MOV : x64_MOVS);
-	loadRegister.firstOperand = OperandAsm::CreateRegisterOperand(spilledRegister);
-	loadRegister.secondOperand = operand;
-
-	statements.push_back(std::move(loadRegister));
+		statements.push_back(std::move(loadRegister));
+	}
 	
 
 	this->registerAllocator.registerMapping.regMapping.at((int)spilledRegister) = RegisterVariableGroup(-1, true);
@@ -303,9 +306,16 @@ REGISTER x64_State::AllocateTempRegister(OperandAsm operand, bool isFloat)
 
 void x64_State::SpillRegisterIfChanged(RegisterMapping& mapping, int reg, int jumpStatementIdx)
 {
-	if (mapping.regMapping.at(reg).variableIndex != 0)
+	RegisterVariableGroup& regGroup = mapping.regMapping.at(reg);
+
+	//TODO: look up lower_bound / bisecting to get the next lineNumInDoubledIndices value
+	int lineNumInDoubledIndices = this->irVariableData.currentNormalIndexToDoubledIndexMapping->at(this->lineNum);
+	if (regGroup.variableIndex != 0 && 
+		//only spill if the variable will be used again after the label
+		!this->irVariableData.currentLineMapping->at(regGroup.variableIndex).empty() && 
+		lineNumInDoubledIndices <= this->irVariableData.currentLineMapping->at(regGroup.variableIndex).at(0))
 	{
-		if (mapping.regMapping.at(reg).isModified)
+		if (regGroup.isModified)
 		{
 			statements.at(jumpStatementIdx).preStatements.push_back(SpillRegister((REGISTER)reg, mapping));
 		}
@@ -349,7 +359,8 @@ void x64_State::MatchRegisterMappingsToIntialMapping(int labelIdx, int labelStat
 		JumpRegisterMapping& currentMapping = mappings.at(i);
 		for (int reg = 0; reg < NUM_REGISTERS; ++reg)
 		{
-			if (initialMapping.regMapping.at(reg).variableIndex != currentMapping.jumpRegMapping.regMapping.at(reg).variableIndex)
+			if (initialMapping.regMapping.at(reg).variableIndex != 0 && 
+				initialMapping.regMapping.at(reg).variableIndex != currentMapping.jumpRegMapping.regMapping.at(reg).variableIndex)
 			{
 				SpillRegisterIfChanged(currentMapping.jumpRegMapping, reg, currentMapping.jumpStatementIndex);
 				variablesToReloadAtStartOfLoop.insert(initialMapping.regMapping.at(reg).variableIndex);

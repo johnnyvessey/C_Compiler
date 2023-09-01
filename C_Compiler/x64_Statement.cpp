@@ -10,16 +10,22 @@ string OperandAsm::ToString() const
 	}
 	else if (this->type == ASM_GLOBAL_MEMORY)
 	{
-		ss << "qword ptr [_var" << this->name << "]";
+		ss << "QWORD PTR [_var" << this->name << "]";
 	}
 	else if (this->reg.reg != _NONE)
 	{
 		if (this->dereference)
 		{
-			ss << "qword ptr [";
+			ss << "QWORD PTR [";
 		}
 
-		ss << RegisterString::registerStringMapping.at((int)this->reg.reg);
+		if (this->reg.size == 1)
+		{
+			ss << RegisterString::registerStringMapping1byte.at((int)this->reg.reg);
+		}
+		else {
+			ss << RegisterString::registerStringMapping.at((int)this->reg.reg);
+		}
 
 		if (this->baseOffset != 0)
 		{
@@ -241,7 +247,7 @@ string StatementAsm::ToString() const
 	}
 	case x64_SET:
 	{
-		//TODO: figure this out!!
+		ss << "set" << FlagsToString(this->flags) << " " << this->firstOperand.ToString();
 		break;
 	}
 	case x64_NOP: break; //do nothing

@@ -9,17 +9,9 @@ using std::string;
 using std::vector;
 using namespace VariableNamespace;
 
-//enum RegisterSize
-//{
-//	BYTE,
-//	WORD,
-//	DWORD,
-//	QWORD
-//};
-
 struct RegisterAsm
 {
-	REGISTER reg; //figure out how to treat special registers differently (i.e. rsp, rbp, rax, etc...)
+	REGISTER reg;
 	int size = REGISTER_SIZE;
 
 	RegisterAsm();
