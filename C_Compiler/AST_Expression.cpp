@@ -564,6 +564,8 @@ IR_Operand AST_Function_Expression::ConvertExpressionToIR(IR& irState)
 	IR_FunctionLabel funcDefIR = irState.state.scope.functionMapping.at(this->functionName);
 	IR_Value retValue = funcDefIR.returnValue;
 
+	vector<IR_FunctionArgAssign> argAssignments;
+
 	int offset = 0;
 
 	int intArgCount = 0;
@@ -590,7 +592,7 @@ IR_Operand AST_Function_Expression::ConvertExpressionToIR(IR& irState)
 
 		++intArgCount;
 
-		irState.add_statement(make_shared<IR_FunctionArgAssign>(IR_FunctionArgAssign(0, structLocation, IR_INT_ARG, POINTER_SIZE, 0)));
+		argAssignments.push_back(IR_FunctionArgAssign(0, structLocation, IR_INT_ARG, POINTER_SIZE, 0));
 
 		offset = 1;
 	}
@@ -626,7 +628,7 @@ IR_Operand AST_Function_Expression::ConvertExpressionToIR(IR& irState)
 		}
 
 		int stackOffset = argType == IR_STACK_ARG ? stackArgOffset : 0;
-		irState.add_statement(make_shared<IR_FunctionArgAssign>(IR_FunctionArgAssign(index, operand, argType, byteSize, stackArgOffset)));
+		argAssignments.push_back(IR_FunctionArgAssign(index, operand, argType, byteSize, stackArgOffset));
 
 		if (argType == IR_STACK_ARG)
 		{
@@ -637,8 +639,8 @@ IR_Operand AST_Function_Expression::ConvertExpressionToIR(IR& irState)
 	//reload variables after function call b/c values could have changed inside the function
 	//irState.add_statement(make_shared<IR_VariableReload>());
 
-
-	irState.add_statement(make_shared<IR_FunctionCall>(IR_FunctionCall(this->functionName)));
+	IR_FunctionCall funcCall(functionName, std::move(argAssignments));
+	irState.add_statement(make_shared<IR_FunctionCall>(std::move(funcCall)));
 
 	/*
 		Create copy of return value before using it.

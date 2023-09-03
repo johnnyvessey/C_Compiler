@@ -25,9 +25,9 @@ void x64_CodeGen::PrintVariableRanges()
 	for (const auto& funcNameLineMappingPair : state.irVariableData.variableLineMapping)
 	{
 		std::cout << funcNameLineMappingPair.first << ":\n{";
-		for (const auto& pair : state.irVariableData.normalIndexToDoubledIndexMapping.at(funcNameLineMappingPair.first))
+		for (int i = 0; i <  state.irVariableData.normalIndexToDoubledIndexMapping.at(funcNameLineMappingPair.first).size(); ++i)
 		{
-			std::cout << pair.first << ": " << pair.second << ", ";
+			std::cout << i << ": " << state.irVariableData.normalIndexToDoubledIndexMapping.at(funcNameLineMappingPair.first).at(i) << ", ";
 		}
 
 		std::cout << "}\n\n";

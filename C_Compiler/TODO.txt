@@ -3,7 +3,10 @@ TODO:
 
 x64 todo:
 
-- do bisecting for map to get lineNumInDoubled when spilling registers (SpillRegisterIfChanged method)
+- IMPORTANT: Change RSP relative stack addressing; make it be based on RBP (negative for local vars, positive for function args)
+-> you might subtract from RSP in middle of function which would mess up all of the indexing
+
+- make sure function calls work properly; test recursion
 
 - See where excess function arguments are stored; store them in RBP??? -> be careful about structs b/c they can't go into registers
 

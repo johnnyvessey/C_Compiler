@@ -162,17 +162,7 @@ struct IR_Return : IR_Statement
 //	virtual string ToString() override;
 //};
 
-struct IR_FunctionCall : IR_Statement
-{
-	string funcName;
-	//vector<IR_Value> args;
 
-	virtual string ToString() override;
-	virtual IR_StatementType GetType() override;
-	virtual void ConvertToX64(x64_State& state) override;
-
-	IR_FunctionCall(string funcName);
-};
 
 enum IR_FunctionArgType
 {
@@ -195,6 +185,19 @@ struct IR_FunctionArgAssign : IR_Statement
 	virtual string ToString() override;
 	virtual IR_StatementType GetType() override;
 
+};
+
+struct IR_FunctionCall : IR_Statement
+{
+	string funcName;
+	//vector<IR_Value> args;
+	vector<IR_FunctionArgAssign> argAssignments;
+
+	virtual string ToString() override;
+	virtual IR_StatementType GetType() override;
+	virtual void ConvertToX64(x64_State& state) override;
+
+	IR_FunctionCall(string funcName, vector<IR_FunctionArgAssign>&& argAssignments);
 };
 
 /*

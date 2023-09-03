@@ -1,6 +1,7 @@
 #include "x64_State.h"
 
-const vector<REGISTER> x64_State::_calleeSavedRegisters({ R12, R13, R14, R15, RBX, RSP, RBP });
+//const vector<REGISTER> x64_State::_calleeSavedRegisters({ R12, R13, R14, R15, RBX, RSP, RBP });
+const vector<REGISTER> x64_State::_calleeSavedRegisters({ R12, R13, R14, R15, RBX });
 
 //reserve R15 and XMM15 for bringing spilled registers back to register temporarily
 const vector<REGISTER> x64_State::_usableIntRegisters({RDI, RSI, RCX, R8, R9, R10, R11, R12, R13, R14, RBX, RDX, RAX});
@@ -62,8 +63,8 @@ void x64_State::CreateStackSpaceForVariables(const string& funcName)
 {
 	for (const auto& pair : irVariableData.nonRegisterVariables.at(funcName))
 	{
-		registerAllocator.currentStackPointerOffset += pair.second;
 		registerAllocator.memoryVariableMapping.memoryOffsetMapping[pair.first] = registerAllocator.currentStackPointerOffset;
+		registerAllocator.currentStackPointerOffset += pair.second;
 	}
 }
 
@@ -80,8 +81,8 @@ StatementAsm x64_State::SpillRegister(REGISTER reg, RegisterMapping& mapping)
 	if (registerAllocator.memoryVariableMapping.memoryOffsetMappingSpilledRegisters.find(var.variableIndex) == 
 		registerAllocator.memoryVariableMapping.memoryOffsetMappingSpilledRegisters.end())
 	{
-		registerAllocator.currentStackPointerOffset += REGISTER_SIZE;
 		registerAllocator.memoryVariableMapping.memoryOffsetMappingSpilledRegisters[var.variableIndex] = memoryOffset(registerAllocator.currentStackPointerOffset, true);
+		registerAllocator.currentStackPointerOffset += REGISTER_SIZE;
 	}
 	bool isFloat = (int)reg >= (int)XMM0;
 	StatementAsm storeStatement(isFloat ? x64_MOVS: x64_MOV);
@@ -114,8 +115,9 @@ void x64_State::SetUpFunctionVariableMappings(const string& functionName)
 			++floatArgCount;
 		}
 		else {
-			offset += value.byteSize;
 			registerAllocator.memoryVariableMapping.memoryOffsetMappingSpilledRegisters[value.varIndex] = memoryOffset(offset, false); //offset from RBP
+			offset += value.byteSize;
+
 		}
 	}
 
@@ -139,11 +141,11 @@ void x64_State::EvictExpiredVariables()
 		else if (varIdx != 0)
 		{
 			//continue if there are no variables used on this line
-			if (this->irVariableData.currentNormalIndexToDoubledIndexMapping->find(this->lineNum) ==
+			/*if (this->irVariableData.currentNormalIndexToDoubledIndexMapping->find(this->lineNum) ==
 				this->irVariableData.currentNormalIndexToDoubledIndexMapping->end())
 			{
 				continue;
-			}
+			}*/
 			int lineNumInDoubledIndices = this->irVariableData.currentNormalIndexToDoubledIndexMapping->at(this->lineNum);
 			while (this->irVariableData.currentLineMapping->at(varIdx).size() > 0 &&
 				lineNumInDoubledIndices >= this->irVariableData.currentLineMapping->at(varIdx).back())
@@ -253,7 +255,7 @@ REGISTER x64_State::AllocateRegister(IR_Value value, REGISTER specificRegister)
 	}
 	else { 
 		
-		if (this->registerAllocator.registerMapping.regMapping.at((int)specificRegister).variableIndex != 0)
+		if (this->registerAllocator.registerMapping.regMapping.at((int)specificRegister).variableIndex != value.varIndex)
 		{
 			statements.push_back(SpillRegister(specificRegister, registerAllocator.registerMapping));
 		}
@@ -266,7 +268,7 @@ REGISTER x64_State::AllocateRegister(IR_Value value, REGISTER specificRegister)
 
 }
 
-REGISTER x64_State::AllocateTempRegister(OperandAsm operand, bool isFloat, bool shouldLoadRegister)
+REGISTER x64_State::AllocateTempRegister(OperandAsm operand, bool isFloat, bool shouldLoadRegister, bool xmmwordSize)
 {
 	const vector<REGISTER>& availableRegisters = isFloat ? _usableFloatRegisters : _usableIntRegisters;
 	for (const REGISTER& reg : availableRegisters)
@@ -275,9 +277,12 @@ REGISTER x64_State::AllocateTempRegister(OperandAsm operand, bool isFloat, bool 
 		{
 			if (shouldLoadRegister)
 			{
-				StatementAsm loadRegister(isFloat == IR_INT ? x64_MOV : x64_MOVS);
+				StatementAsmType type = xmmwordSize ? x64_MOVUPS : (isFloat ? x64_MOVS : x64_MOV);
+				StatementAsm loadRegister(type);
 				loadRegister.firstOperand = OperandAsm::CreateRegisterOperand(reg);
 				loadRegister.secondOperand = operand;
+				loadRegister.secondOperand.xmmwordSize = xmmwordSize;
+
 				statements.push_back(std::move(loadRegister));
 			}
 			this->registerAllocator.registerMapping.regMapping.at((int)reg) = RegisterVariableGroup(-1, true);
@@ -308,7 +313,6 @@ void x64_State::SpillRegisterIfChanged(RegisterMapping& mapping, int reg, int ju
 {
 	RegisterVariableGroup& regGroup = mapping.regMapping.at(reg);
 
-	//TODO: look up lower_bound / bisecting to get the next lineNumInDoubledIndices value
 	int lineNumInDoubledIndices = this->irVariableData.currentNormalIndexToDoubledIndexMapping->at(this->lineNum);
 	if (regGroup.variableIndex != 0 && 
 		//only spill if the variable will be used again after the label
@@ -317,7 +321,13 @@ void x64_State::SpillRegisterIfChanged(RegisterMapping& mapping, int reg, int ju
 	{
 		if (regGroup.isModified)
 		{
-			statements.at(jumpStatementIdx).preStatements.push_back(SpillRegister((REGISTER)reg, mapping));
+			if (jumpStatementIdx == -1)
+			{
+				statements.push_back(SpillRegister((REGISTER)reg, mapping));
+			}
+			else {
+				statements.at(jumpStatementIdx).preStatements.push_back(SpillRegister((REGISTER)reg, mapping));
+			}
 		}
 
 		mapping.regMapping.at(reg).variableIndex = 0;
@@ -394,4 +404,30 @@ void x64_State::MatchRegisterMappingsToIntialMapping(int labelIdx, int labelStat
 		}
 	}
 
+}
+
+void x64_State::StructCopy(OperandAsm dest, OperandAsm source, int numBytes)
+{
+	int num16ByteCopies = numBytes / 16;
+	bool extra8ByteCopy = numBytes % 16 != 0;
+
+	for (int i = 0; i < num16ByteCopies; ++i)
+	{
+		REGISTER reg = AllocateTempRegister(source, true, true, true);
+		dest.xmmwordSize = true;
+		StatementAsm movStatement(x64_MOVUPS, dest, OperandAsm::CreateRegisterOperand(reg));
+		statements.push_back(std::move(movStatement));
+
+		dest.baseOffset += 16;
+		source.baseOffset += 16;
+	}
+
+	if (extra8ByteCopy)
+	{
+		REGISTER reg = AllocateTempRegister(source, true, true, false);
+		dest.xmmwordSize = false;
+		StatementAsm movStatement(x64_MOVS, dest, OperandAsm::CreateRegisterOperand(reg));
+		statements.push_back(std::move(movStatement));
+	}
+	
 }

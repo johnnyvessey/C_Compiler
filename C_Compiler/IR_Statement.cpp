@@ -32,20 +32,33 @@ OperandAsm IR_Statement::ConvertIrOperandToOperandAsm(IR_Operand& op, x64_State&
 	{
 		return OperandAsm::CreateRegisterOperand(state.AllocateRegister(op.value, RDI));
 	}
-	else if (state.registerAllocator.memoryVariableMapping.memoryOffsetMapping.find(op.value.varIndex) !=
-		state.registerAllocator.memoryVariableMapping.memoryOffsetMapping.end())
-	{
-		opAsm.reg = RegisterAsm(RSP);
-		opAsm.baseOffset = state.registerAllocator.memoryVariableMapping.memoryOffsetMapping.at(op.value.varIndex);
-		opAsm.dereference = true;
+	//else if (state.registerAllocator.memoryVariableMapping.memoryOffsetMapping.find(op.value.varIndex) !=
+	//	state.registerAllocator.memoryVariableMapping.memoryOffsetMapping.end())
+	//{
+	//	opAsm.reg = RegisterAsm(RSP);
+	//	opAsm.baseOffset = state.registerAllocator.memoryVariableMapping.memoryOffsetMapping.at(op.value.varIndex);
+	//	opAsm.baseOffset += op.baseOffset;
+	//	
+	//	opAsm.dereference = true;
 
-		//TODO: figure out what to do if using memory address
+	//	//TODO: figure out what to do if using memory address
 
-	}
+	//}
 	else {
-		opAsm.dereference = op.dereference;
+		bool memoryVariable = state.registerAllocator.memoryVariableMapping.memoryOffsetMapping.find(op.value.varIndex) !=
+			state.registerAllocator.memoryVariableMapping.memoryOffsetMapping.end();
+		opAsm.dereference = op.dereference || memoryVariable;
 		opAsm.baseOffset = op.baseOffset;
-		opAsm.reg = RegisterAsm(state.AllocateRegister(op.value));
+
+		if (memoryVariable)
+		{
+			opAsm.reg = RegisterAsm(RSP);
+			opAsm.baseOffset += state.registerAllocator.memoryVariableMapping.memoryOffsetMapping.at(op.value.varIndex);
+		}
+		else {
+			opAsm.reg = RegisterAsm(state.AllocateRegister(op.value));
+		}
+
 		if (op.memoryOffsetMultiplier != 0)
 		{
 			opAsm.useRegOffset = true;
@@ -236,7 +249,14 @@ void IR_Assign::ConvertToX64(x64_State& state)
 	}
 	else if (this->assignType == IR_STRUCT_COPY)
 	{
+		this->dest.useMemoryAddress = true;
+		this->source.useMemoryAddress = true;
 
+		OperandAsm destOperand = IR_Statement::ConvertIrOperandToOperandAsm(this->dest, state);
+		OperandAsm sourceOperand = IR_Statement::ConvertIrOperandToOperandAsm(this->source, state);
+
+		state.StructCopy(destOperand, sourceOperand, this->byteSize);
+		return;
 	}
 	StatementAsm assignStatement;
 
@@ -303,12 +323,12 @@ void IR_Assign::ConvertToX64(x64_State& state)
 
 	bool isArithmeticOperation = (this->assignType == IR_ADD || this->assignType == IR_SUBTRACT ||
 		this->assignType == IR_MULTIPLY || this->assignType == IR_DIVIDE);
-	bool replaceSourceOperand = (isFloat && isArithmeticOperation) ||
-		(assignStatement.firstOperand.dereference && assignStatement.secondOperand.dereference)
-		|| (this->assignType == IR_TYPE_CAST && assignStatement.secondOperand.dereference);
+	bool replaceSourceOperand = assignStatement.secondOperand.dereference && ((isFloat && isArithmeticOperation) ||
+		(assignStatement.firstOperand.dereference)
+		|| (this->assignType == IR_TYPE_CAST));
 
-	bool replaceDestOperand = ((isFloat && isArithmeticOperation) ||
-		((assignStatement.type == x64_IMUL || this->assignType == IR_TYPE_CAST || this->assignType == IR_FLAG_CONVERT) && assignStatement.firstOperand.dereference));
+	bool replaceDestOperand = (assignStatement.firstOperand.dereference && ((isFloat && isArithmeticOperation) ||
+		((assignStatement.type == x64_IMUL || this->assignType == IR_TYPE_CAST || this->assignType == IR_FLAG_CONVERT))));
 
 	if (replaceSourceOperand)
 	{
@@ -476,10 +496,15 @@ void IR_Jump::ConvertToX64(x64_State& state)
 IR_Jump::IR_Jump(int labelIdx, FlagResults condition): labelIdx(labelIdx), condition(condition) {}
 
 
-IR_FunctionCall::IR_FunctionCall(string funcName) : funcName(funcName) {}
+IR_FunctionCall::IR_FunctionCall(string funcName, vector<IR_FunctionArgAssign>&& argAssignments) : funcName(funcName), 
+	argAssignments(std::move(argAssignments)) {}
 string IR_FunctionCall::ToString()
 {
 	stringstream ss;
+	for (IR_FunctionArgAssign& funcAssign : this->argAssignments)
+	{
+		ss << funcAssign.ToString() << "\n";
+	}
 	ss << "CALL Function: " << this->funcName;
 	return ss.str();
 }
@@ -489,7 +514,89 @@ IR_StatementType IR_FunctionCall::GetType()
 }
 void IR_FunctionCall::ConvertToX64(x64_State& state)
 {
-	//TODO: Finish
+	//assign variables to specfic registers
+	//make sure to save call-clobbered registers as well (if they will be used afterwards)
+	//save stack space for excess variables/ struct variables
+
+	//after function call, add back value to stack pointer
+	//clear out caller saved register mapping
+	for (int i = 0; i < NUM_REGISTERS; ++i)
+	{
+		if (std::find(state._calleeSavedRegisters.begin(), state._calleeSavedRegisters.end(), (REGISTER)i) == state._calleeSavedRegisters.end())
+		{
+			if (state.registerAllocator.registerMapping.regMapping.at(i).variableIndex != 0)
+			{
+				state.SpillRegisterIfChanged(state.registerAllocator.registerMapping, (REGISTER)i);
+				state.registerAllocator.registerMapping.regMapping.at(i).variableIndex = 0;
+			}
+		}
+	}
+
+
+
+	int totalOffset = 0;
+	StatementAsm stackSubtract(x64_SUB, OperandAsm::CreateRegisterOperand(RSP), OperandAsm::CreateIntLiteralOperand(0));
+	state.statements.push_back(std::move(stackSubtract));
+	int stackSubtractStatementIdx = state.statements.size() - 1;
+
+
+	for (IR_FunctionArgAssign& argAssign : this->argAssignments)
+	{
+		totalOffset = std::max(totalOffset, argAssign.stackArgOffset);
+		if (argAssign.argType == IR_INT_ARG || argAssign.argType == IR_FLOAT_ARG)
+		{
+			bool isFloat = argAssign.argType == IR_FLOAT_ARG;
+			const vector<REGISTER>& funcRegisters = isFloat ? state._functionFloatArguments : state._functionIntArguments;
+
+			if (argAssign.argIdx < funcRegisters.size())
+			{
+				REGISTER reg = funcRegisters.at(argAssign.argIdx);
+				//state.SpillRegisterIfChanged(state.registerAllocator.registerMapping, (int)reg);
+				StatementAsm movStatement(isFloat ? x64_MOVS : x64_MOV);
+				movStatement.firstOperand = OperandAsm::CreateRegisterOperand(reg);
+				movStatement.secondOperand = IR_Statement::ConvertIrOperandToOperandAsm(argAssign.value, state);
+
+				state.statements.push_back(std::move(movStatement));
+			}
+			else {
+				StatementAsm movStatement(isFloat ? x64_MOVS : x64_MOV);
+				movStatement.firstOperand = OperandAsm::CreateRSPOffsetOperand(argAssign.stackArgOffset);
+				
+				OperandAsm secondOperand = IR_Statement::ConvertIrOperandToOperandAsm(argAssign.value, state);
+				if (secondOperand.dereference)
+				{
+					REGISTER reg = state.AllocateTempRegister(secondOperand, isFloat, true);
+					secondOperand = OperandAsm::CreateRegisterOperand(reg);
+				}
+				movStatement.secondOperand = secondOperand;
+
+				state.statements.push_back(std::move(movStatement));
+
+			}
+		}
+		else {
+			//state.StructCopy()
+		}
+	}
+
+
+
+	StatementAsm functionCall(x64_CALL);
+	functionCall.name = this->funcName;
+
+	state.statements.push_back(std::move(functionCall));
+
+	if (totalOffset == 0)
+	{
+		state.statements.at(stackSubtractStatementIdx).type = x64_NOP;
+	}
+	else {
+		state.statements.at(stackSubtractStatementIdx).secondOperand.literalIntValue = totalOffset;
+		StatementAsm stackAdd(x64_ADD, OperandAsm::CreateRegisterOperand(RSP),
+			OperandAsm::CreateIntLiteralOperand(totalOffset));
+		state.statements.push_back(std::move(stackAdd));
+	}
+
 }
 
 //string IR_RegisterWriteToMemory::ToString()
@@ -540,7 +647,33 @@ IR_StatementType IR_FunctionArgAssign::GetType()
 }
 void IR_FunctionArgAssign::ConvertToX64(x64_State& state)
 {
-	//TODO: Finish
+	//if (argType == IR_INT_ARG || argType == IR_FLOAT_ARG)
+	//{
+	//	bool isFloat = argType == IR_FLOAT_ARG;
+	//	const vector<REGISTER>& funcRegisters = isFloat ? state._functionFloatArguments : state._functionIntArguments;
+
+	//	if (this->argIdx < funcRegisters.size())
+	//	{
+	//		REGISTER reg = funcRegisters.at(argIdx);
+	//		state.SpillRegisterIfChanged(state.registerAllocator.registerMapping, (int)reg);
+	//		StatementAsm movStatement(isFloat ? x64_MOVS: x64_MOV);
+	//		movStatement.firstOperand = OperandAsm::CreateRegisterOperand(reg);
+	//		movStatement.secondOperand = IR_Statement::ConvertIrOperandToOperandAsm(this->value, state);
+
+	//		state.statements.push_back(std::move(movStatement));
+	//	}
+	//	else {
+	//		StatementAsm movStatement(isFloat ? x64_MOVS : x64_MOV);
+	//		movStatement.firstOperand = OperandAsm::C
+	//		movStatement.secondOperand = IR_Statement::ConvertIrOperandToOperandAsm(this->value, state);
+
+	//		state.statements.push_back(std::move(movStatement));
+
+	//	}
+	//}
+	//else {
+
+	//}
 }
 
 IR_FunctionArgAssign::IR_FunctionArgAssign() {}

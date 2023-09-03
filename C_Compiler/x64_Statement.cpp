@@ -16,7 +16,7 @@ string OperandAsm::ToString() const
 	{
 		if (this->dereference)
 		{
-			ss << "QWORD PTR [";
+			ss << (this->xmmwordSize ? "XMMWORD PTR [" : "QWORD PTR [");
 		}
 
 		if (this->reg.size == 1)
@@ -86,6 +86,10 @@ string LabelToString(int labelIdx)
 
 string StatementAsm::ToString() const
 {
+	if (this->type == x64_NOP)
+	{
+		return "";
+	}
 	//TODO: finish this
 	stringstream ss;
 	
@@ -250,7 +254,8 @@ string StatementAsm::ToString() const
 		ss << "set" << FlagsToString(this->flags) << " " << this->firstOperand.ToString();
 		break;
 	}
-	case x64_NOP: break; //do nothing
+	case x64_MOVUPS:
+		ss << "movups " << doubleOpEnd;
 	}
 
 	if (!this->postStatements.empty()) {
@@ -323,3 +328,9 @@ OperandAsm OperandAsm::CreateIntLiteralOperand(int value)
 StatementAsm::StatementAsm() : type(x64_NONE) {}
 StatementAsm::StatementAsm(StatementAsmType type): type(type) {}
 StatementAsm::StatementAsm(StatementAsmType type, string name) : type(type), name(name) {}
+
+StatementAsm::StatementAsm(StatementAsmType type, OperandAsm firstOperand, OperandAsm secondOperand) : 
+	type(type), firstOperand(firstOperand), secondOperand(secondOperand) {}
+
+StatementAsm::StatementAsm(StatementAsmType type, OperandAsm firstOperand) :
+	type(type), firstOperand(firstOperand) {}

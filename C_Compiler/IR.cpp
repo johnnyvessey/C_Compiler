@@ -134,12 +134,24 @@ IR_VariableData IR::ComputeIRVariableData()
 
 					break;
 				}
-				case _IR_FUNCTION_ARG_ASSIGN:
-				{
-					IR_FunctionArgAssign* funcArgAssign = dynamic_cast<IR_FunctionArgAssign*>(statement.get());
-					DetermineRegisterStatusOfOperand(funcArgAssign->value, varData.nonRegisterVariables.at(func.functionName));
+				//case _IR_FUNCTION_ARG_ASSIGN:
+				//{
+				//	IR_FunctionArgAssign* funcArgAssign = dynamic_cast<IR_FunctionArgAssign*>(statement.get());
+				//	DetermineRegisterStatusOfOperand(funcArgAssign->value, varData.nonRegisterVariables.at(func.functionName));
 
-					variableUses.push_back(StatementVariableUse(lineNum, funcArgAssign->value.value.varIndex));
+				//	variableUses.push_back(StatementVariableUse(lineNum, funcArgAssign->value.value.varIndex));
+
+				//	break;
+				//}
+				case _IR_FUNCTION_CALL:
+				{
+					IR_FunctionCall* funcCall = dynamic_cast<IR_FunctionCall*>(statement.get());
+
+					for (IR_FunctionArgAssign& argAssign : funcCall->argAssignments)
+					{
+						DetermineRegisterStatusOfOperand(argAssign.value, varData.nonRegisterVariables.at(func.functionName));
+						variableUses.push_back(StatementVariableUse(lineNum, argAssign.value.value.varIndex));
+					}
 
 					break;
 				}
@@ -223,13 +235,45 @@ IR_VariableData IR::ComputeIRVariableData()
 			}
 		}
 
+		vector<int> normalIndexToDoubledIndexVector;
+		normalIndexToDoubledIndexVector.reserve(func.IR_statements.size());
+
+
+		int maxVal = 0;
+		//fill in gaps of normalIndextoDoubledIndexMapping
+		for (int i = 0; i < func.IR_statements.size(); ++i)
+		{
+			if (normalIndexToDoubledIndexMapping.find(i) != normalIndexToDoubledIndexMapping.end())
+			{
+				int val = normalIndexToDoubledIndexMapping.at(i);
+				normalIndexToDoubledIndexVector.push_back(val);
+
+				maxVal = std::max(maxVal, val + 1);
+			}
+			else {
+				normalIndexToDoubledIndexVector.push_back(-1);
+			}
+			
+		}
+
+		for (int i = normalIndexToDoubledIndexVector.size() - 1; i >= 0; --i)
+		{
+			if (normalIndexToDoubledIndexVector.at(i) == -1)
+			{
+				normalIndexToDoubledIndexVector.at(i) = maxVal;
+			}
+			else {
+				maxVal = normalIndexToDoubledIndexVector.at(i);
+			}
+		}
+
 		//reverse line mapping so you can just pop from end when the current index is greater than the back index
 		for (auto& pair : variableLineMapping)
 		{
 			std::reverse(pair.second.begin(), pair.second.end());
 		}
 
-		varData.normalIndexToDoubledIndexMapping[func.functionName] = std::move(normalIndexToDoubledIndexMapping);
+		varData.normalIndexToDoubledIndexMapping[func.functionName] = std::move(normalIndexToDoubledIndexVector);
 		varData.variableLineMapping[func.functionName] = std::move(variableLineMapping);
 	}
 

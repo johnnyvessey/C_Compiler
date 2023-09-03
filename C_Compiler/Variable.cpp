@@ -39,7 +39,7 @@ const vector<string> RegisterString::registerStringMapping = {
 		"xmm1",
 		"xmm2",
 		"xmm3",
-		"XMM4",
+		"xmm4",
 		"xmm5",
 		"xmm6",
 		"xmm7",

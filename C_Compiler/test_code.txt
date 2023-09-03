@@ -1,16 +1,17 @@
 int main()
 {
-	int sum = 0;
+	struct v {
+		int a;
+		int b;
+	};
 
-	for(int i = 0; i < 100; ++i)
-	{
-		sum += (i * i);
+	struct v v1;
+	struct v v2;
 
-		if (i == 6)
-		{
-			break;
-		}
-	}
+	v1.a = 1;
+	v1.b = 5;
 
-	return sum + 1;
+	v2 = v1;
+
+	return v2.b;
 }

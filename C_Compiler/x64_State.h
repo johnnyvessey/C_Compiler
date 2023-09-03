@@ -51,7 +51,9 @@ struct x64_State
 	void MatchRegisterMappingsToIntialMapping(int labelIdx, int labelStatementIdx);
 
 
-	void SpillRegisterIfChanged(RegisterMapping& mapping, int reg, int jumpStatementIdx);
+	void SpillRegisterIfChanged(RegisterMapping& mapping, int reg, int jumpStatementIdx = -1);
 
-	REGISTER AllocateTempRegister(OperandAsm operand, bool isFloat, bool shouldLoadRegister = true);
+	REGISTER AllocateTempRegister(OperandAsm operand, bool isFloat, bool shouldLoadRegister = true, bool xmmwordSize = false);
+
+	void StructCopy(OperandAsm dest, OperandAsm source, int numBytes);
 };

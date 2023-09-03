@@ -116,11 +116,11 @@ int AST::GetMemorySize(Variable v, bool isArray)
 	VariableType type = v.type;
 	if (type.pointerLevel > 0)
 	{
-		return 8;
+		return POINTER_SIZE;
 	}
 	else if (type.lValueType == LValueType::INT || type.lValueType == LValueType::FLOAT || type.lValueType == LValueType::BOOL)
 	{
-		return 4;
+		return REGISTER_SIZE;
 	}
 	else if (type.lValueType == LValueType::STRUCT)
 	{

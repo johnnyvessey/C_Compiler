@@ -34,6 +34,7 @@ struct OperandAsm
 	bool useRegOffset = false;
 	int regOffsetMultiplier = 0;
 
+	bool xmmwordSize = false;
 	int literalIntValue = 0;
 	string name = "";
 
@@ -62,6 +63,7 @@ enum StatementAsmType
 	//actual x64 instructions
 	x64_MOV,
 	x64_MOVS,
+	x64_MOVUPS,
 	x64_ADD,
 	x64_SUB,
 	x64_IMUL,
@@ -106,7 +108,8 @@ struct StatementAsm
 	StatementAsm();
 	StatementAsm(StatementAsmType type);
 	StatementAsm(StatementAsmType type, string name);
-
+	StatementAsm(StatementAsmType type, OperandAsm firstOp, OperandAsm secondOp);
+	StatementAsm(StatementAsmType type, OperandAsm firstOp);
 };
 
 

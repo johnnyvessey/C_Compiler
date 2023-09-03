@@ -257,10 +257,10 @@ namespace VariableNamespace {
 	{
 		unordered_map<string, unordered_map<int, int>> nonRegisterVariables;
 		unordered_map<string, unordered_map<int, vector<int>>> variableLineMapping;
-		unordered_map<string, map<int, int>> normalIndexToDoubledIndexMapping;
+		unordered_map<string, vector<int>> normalIndexToDoubledIndexMapping;
 
 		unordered_map<int, vector<int>>* currentLineMapping;
-		map<int, int>* currentNormalIndexToDoubledIndexMapping;
+		vector<int>* currentNormalIndexToDoubledIndexMapping;
 
 		unordered_map<string, IR_FunctionDef> functionDefinitions;
 
