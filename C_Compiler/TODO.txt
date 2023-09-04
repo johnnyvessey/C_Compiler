@@ -3,12 +3,10 @@ TODO:
 
 x64 todo:
 
-- IMPORTANT: Change RSP relative stack addressing; make it be based on RBP (negative for local vars, positive for function args)
--> you might subtract from RSP in middle of function which would mess up all of the indexing
-
 - make sure function calls work properly; test recursion
 
 - See where excess function arguments are stored; store them in RBP??? -> be careful about structs b/c they can't go into registers
+ -> make sure RBP offset is positive for function arguments
 
 - work on functions:
 	-> callee vs caller saved registers -> keep track of used registers in function, add pushes and pops if they are used
@@ -21,30 +19,17 @@ x64 todo:
 
 - Stress test structs and how they work
 
-- Need Float Compare x64 Statement
-
-- Move memory to registers for type casting
 
  - to test out spilling, temporarily reduce the registers in the availableRegisters vector
 
-- global variables at some point???
-
 - figure out how RAX and XMM0 are used for returns -> is it correct? especially if there is control flow
 
-- struct copying???
-	-> maybe do this on IR side???
-	-> or just loop from 0 to memorysize / 8 (maybe from 0 to memorysize / 16 and then one extra 8 byte iteration if size isn't divisible by 16)
-	-> inside loop, allocate a register; do a mov statement; then clear the register from the mapping.
-	-> only allocate float registers; copy 16 bytes at a time (may need new MOVAPS ?? instruction)
 
 - idea: to reduce dependencies and to improve pipelining, cycle registers:
 	-> every time you allocate a register, move that register to the back of the list of potential registers
 	-> keep RAX (maybe RDX too), XMM0 in separate list (or just hardcode them)
 	-> this will be especially useful in increasing performance of struct copying
 	-> does this only need to be done for float registers???
-
-- change all memory size to 8 instead of 4 for ints and floats
-
 
 
 

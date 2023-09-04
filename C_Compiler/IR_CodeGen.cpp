@@ -18,6 +18,10 @@ void IR_CodeGen::PrintIR()
 	//print regular statements
 
 	std::cout << ".data\n";
+	for (IR_Value& value : irState.state.scope.globalVariables)
+	{
+		std::cout << "\t%v" << value.varIndex << " dq " << value.literalValue << "\n";
+	}
 	for (int i = 0; i < irState.floatLiteralGlobals.size(); ++i)
 	{
 		std::cout << "\tvar" << (i + 1) << " dq " << irState.floatLiteralGlobals.at(i) << "\n";

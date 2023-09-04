@@ -1,5 +1,15 @@
+int counter = -7;
+
+void increment()
+{
+	++counter;
+}
+
 int main()
 {
-	int x = 5;
-	return -x;
+	increment();
+	increment();
+	increment();
+
+	return counter;
 }

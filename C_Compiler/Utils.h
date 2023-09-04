@@ -54,4 +54,12 @@ namespace Utils {
 		throw 0;
 	}
 
+	inline void assert(bool condition, string message)
+	{
+		if (!condition)
+		{
+			throwError(message);
+		}
+	}
+
 }

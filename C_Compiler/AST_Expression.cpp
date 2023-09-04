@@ -29,6 +29,7 @@ unordered_map<BinOpType, IR_AssignType> IR_Expression_Utils::irBinOpMapping = {
 	 case LValueType::INT: value.baseType = IR_INT; break;
 	 case LValueType::FLOAT: value.baseType = IR_FLOAT; break;
 	 case LValueType::STRUCT: value.baseType = IR_STRUCT; break;
+	 case LValueType::VOID: value.baseType = IR_VOID; value.specialVars = IR_RETURN_VOID; break;
 	 }
 
 	 value.type = value.pointerLevel > 0 ? IR_INT : value.baseType;
@@ -646,15 +647,20 @@ IR_Operand AST_Function_Expression::ConvertExpressionToIR(IR& irState)
 		Create copy of return value before using it.
 		This is to prevent bugs where the return register could be overwritten if there are consecutive function calls
 	*/
-	IR_Value returnValueCopy = retValue;
-	returnValueCopy.varIndex = irState.state.varIndex++;
-	returnValueCopy.specialVars = IR_NONE;
+	if (retValue.type != IR_VOID)
+	{
+		IR_Value returnValueCopy = retValue;
+		returnValueCopy.varIndex = irState.state.varIndex++;
+		returnValueCopy.specialVars = IR_NONE;
 
-	irState.add_statement(make_shared<IR_Assign>(IR_Assign(returnValueCopy.type, IR_COPY,
-		retValue.byteSize, IR_Operand(returnValueCopy), IR_Operand(retValue))));
+		irState.add_statement(make_shared<IR_Assign>(IR_Assign(returnValueCopy.type, IR_COPY,
+			retValue.byteSize, IR_Operand(returnValueCopy), IR_Operand(retValue))));
+		return IR_Operand(returnValueCopy);
+	}
+	else {
+		return IR_Operand(irState.state.functionVoidReturn);
+	}
 
-	
-	return IR_Operand(returnValueCopy);
 }
 
 
@@ -696,7 +702,8 @@ IR_Operand AST_Literal_Expression::ConvertExpressionToIR(IR& irState)
 		return IR_Operand(IR_Value(IR_INT, IR_LITERAL, REGISTER_SIZE, 0, true, this->value));
 	}
 	else {
-		IR_Value floatLiteralValue(IR_FLOAT, IR_VARIABLE, REGISTER_SIZE, irState.state.varIndex++, true, "", IR_NONE);
+		//float literals must be stored in global memory (.data section)
+		IR_Value floatLiteralValue(IR_FLOAT, IR_VARIABLE, REGISTER_SIZE, irState.state.varIndex++, true, "", IR_GLOBAL);
 		irState.add_floatLiteralGlobal(this->value);
 
 		IR_Operand floatOp(floatLiteralValue);

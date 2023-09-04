@@ -185,7 +185,8 @@ namespace VariableNamespace {
 	{
 		IR_INT,
 		IR_FLOAT,
-		IR_STRUCT
+		IR_STRUCT,
+		IR_VOID
 	};
 
 
@@ -202,7 +203,9 @@ namespace VariableNamespace {
 		IR_FLAGS,
 		IR_RETURN_INT,
 		IR_RETURN_FLOAT,
-		IR_RETURN_STACK
+		IR_RETURN_STACK,
+		IR_GLOBAL,
+		IR_RETURN_VOID
 	};
 	struct IR_Value
 	{

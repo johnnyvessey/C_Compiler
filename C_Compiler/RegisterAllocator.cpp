@@ -16,7 +16,7 @@ void RegisterAllocator::Reset()
 
 	memoryVariableMapping.memoryOffsetMapping.clear();
 	memoryVariableMapping.memoryOffsetMappingSpilledRegisters.clear();
-	currentStackPointerOffset = 0;
+	currentFramePointerOffset = 0;
 }
 
 void RegisterAllocator::SetInitialLabelMapping(int label, RegisterMapping regMapping)

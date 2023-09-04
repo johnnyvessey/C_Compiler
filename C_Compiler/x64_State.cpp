@@ -63,8 +63,8 @@ void x64_State::CreateStackSpaceForVariables(const string& funcName)
 {
 	for (const auto& pair : irVariableData.nonRegisterVariables.at(funcName))
 	{
-		registerAllocator.memoryVariableMapping.memoryOffsetMapping[pair.first] = registerAllocator.currentStackPointerOffset;
-		registerAllocator.currentStackPointerOffset += pair.second;
+		registerAllocator.currentFramePointerOffset -= pair.second;
+		registerAllocator.memoryVariableMapping.memoryOffsetMapping[pair.first] = registerAllocator.currentFramePointerOffset;
 	}
 }
 
@@ -81,8 +81,8 @@ StatementAsm x64_State::SpillRegister(REGISTER reg, RegisterMapping& mapping)
 	if (registerAllocator.memoryVariableMapping.memoryOffsetMappingSpilledRegisters.find(var.variableIndex) == 
 		registerAllocator.memoryVariableMapping.memoryOffsetMappingSpilledRegisters.end())
 	{
-		registerAllocator.memoryVariableMapping.memoryOffsetMappingSpilledRegisters[var.variableIndex] = memoryOffset(registerAllocator.currentStackPointerOffset, true);
-		registerAllocator.currentStackPointerOffset += REGISTER_SIZE;
+		registerAllocator.currentFramePointerOffset -= REGISTER_SIZE;
+		registerAllocator.memoryVariableMapping.memoryOffsetMappingSpilledRegisters[var.variableIndex] = memoryOffset(registerAllocator.currentFramePointerOffset, true);
 	}
 	bool isFloat = (int)reg >= (int)XMM0;
 	StatementAsm storeStatement(isFloat ? x64_MOVS: x64_MOV);

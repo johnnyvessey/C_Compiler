@@ -16,7 +16,7 @@ string OperandAsm::ToString() const
 			ss << "XMMWORD PTR [_negative]";
 		}
 		else {
-			ss << "QWORD PTR [_var" << this->name << "]";
+			ss << "QWORD PTR [" << this->name << "]";
 		}
 	}
 	else if (this->reg.reg != _NONE)
@@ -116,12 +116,12 @@ string StatementAsm::ToString() const
 		//script format cases
 	case x64_DATA_SECTION:
 	{
-		ss << ".data";
+		ss << ".data\n";
 		break;
 	}
 	case x64_CODE_SECTION:
 	{
-		ss << ".code";
+		ss << "\n\n.code";
 		break;
 	}
 	case x64_CODE_END:
@@ -131,7 +131,7 @@ string StatementAsm::ToString() const
 	}
 	case x64_FUNCTION_PROC:
 	{
-		ss << this->name << " proc ";
+		ss << "\n" << this->name << " proc ";
 		break;
 	}
 	case x64_FUNCTION_END:

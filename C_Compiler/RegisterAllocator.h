@@ -12,7 +12,7 @@ struct RegisterAllocator
 	RegisterMapping registerMapping;
 	MemoryVariableMapping memoryVariableMapping;
 	unordered_map<int, LabelRegisterMaps> labelRegisterMapping;
-	int currentStackPointerOffset;
+	int currentFramePointerOffset;
 
 	int startFunctionStackPointerSubtractIndex = -1;
 	vector<LoopLabel> startLoopLabelIndexes;

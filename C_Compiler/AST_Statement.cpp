@@ -49,6 +49,41 @@ StatementType AST_Initialization::GetStatementType()
 
 void AST_Initialization::ConvertStatementToIR(IR& irState)
 {
+	//global variable
+	if (irState.state.scope.currentFunction == "")
+	{
+		//must be int or float
+		//must have rvalue in expression
+
+		Utils::assert(this->lvalue->type.pointerLevel == 0, "Cannot have global pointer variable");
+		Utils::assert(this->lvalue->type.lValueType != LValueType::STRUCT, "Cannot have struct global variable");
+		Utils::assert(this->rvalue != nullptr, "Global variable must be initialized");
+		Utils::assert(this->rvalue->GetExpressionType() == ExpressionType::_Literal_Expression, "rvalue must be literal expression");
+
+		AST_Literal_Expression* literalExpressionRValue = dynamic_cast<AST_Literal_Expression*>(this->rvalue.get());
+		bool isFloat = this->lvalue->type.lValueType == LValueType::INT ? IR_INT : IR_FLOAT;
+
+		string literalExpressionValue;
+		if (isFloat)
+		{
+			double floatValue = std::stod(literalExpressionRValue->value);
+			uint64_t intVal = *((uint64_t*)&floatValue);
+			literalExpressionValue = std::to_string(intVal);
+		}
+		else {
+			long val = std::stol(literalExpressionRValue->value);
+			uint64_t uint64Val = val;
+			literalExpressionValue = std::to_string(uint64Val);
+		}
+
+
+		IR_Value globalValue(isFloat ? IR_FLOAT : IR_INT, IR_VARIABLE, REGISTER_SIZE, irState.state.varIndex++, false, literalExpressionValue, IR_GLOBAL);
+		irState.state.scope.variableMapping.back()[lvalue->name] = globalValue; //add to variable dictionary
+
+		irState.state.scope.globalVariables.push_back(std::move(globalValue));
+		return;
+	}
+
 	if (lvalue->type.lValueType == LValueType::STRUCT && lvalue->type.pointerLevel == 0)
 	{
 		//do struct init here
@@ -335,9 +370,15 @@ void AST_Function_Definition::ConvertStatementToIR(IR& irState)
 	}
 	else if (retType.type != IR_STRUCT)
 	{
-		retValue = retType.type == IR_INT ? irState.state.functionReturnValueInt : irState.state.functionReturnValueFloat;
-		retValue.byteSize = REGISTER_SIZE; //TODO: change this to be based on memory size of variable (not IR variable, because IR_INT can have multiple byte sizes)
-		funcLabel->returnValueByteSize = REGISTER_SIZE;
+		if (retType.type != IR_VOID) {
+			retValue = retType.type == IR_INT ? irState.state.functionReturnValueInt : irState.state.functionReturnValueFloat;
+			retValue.byteSize = REGISTER_SIZE; //TODO: change this to be based on memory size of variable (not IR variable, because IR_INT can have multiple byte sizes)
+			funcLabel->returnValueByteSize = REGISTER_SIZE;
+		}
+		else {
+			retValue = irState.state.functionVoidReturn;
+			funcLabel->returnValueByteSize = 0;
+		}
 	}
 	else
 	{

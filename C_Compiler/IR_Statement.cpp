@@ -14,11 +14,21 @@ OperandAsm IR_Statement::ConvertIrOperandToOperandAsm(IR_Operand& op, x64_State&
 		opAsm.type = ASM_INT_LITERAL;
 		opAsm.literalIntValue = std::stoi(op.value.literalValue);
 	}
-	else if (op.globalFloatValue != 0)
+	else if (op.value.specialVars == IR_GLOBAL)
 	{
 		opAsm.type = ASM_GLOBAL_MEMORY;
 		opAsm.dereference = true;
-		opAsm.name = std::to_string(op.globalFloatValue);
+
+		stringstream ss;
+		if (op.globalFloatValue != 0)
+		{
+			ss << "_floatConstant" << op.globalFloatValue;
+		}
+		else {
+			ss << "_globalVar" << op.value.varIndex;
+		}
+		opAsm.name = ss.str();
+
 	}
 	else if (op.value.specialVars == IR_RETURN_INT)
 	{
@@ -35,7 +45,7 @@ OperandAsm IR_Statement::ConvertIrOperandToOperandAsm(IR_Operand& op, x64_State&
 	//else if (state.registerAllocator.memoryVariableMapping.memoryOffsetMapping.find(op.value.varIndex) !=
 	//	state.registerAllocator.memoryVariableMapping.memoryOffsetMapping.end())
 	//{
-	//	opAsm.reg = RegisterAsm(RSP);
+	//	opAsm.reg = RegisterAsm(RBP);
 	//	opAsm.baseOffset = state.registerAllocator.memoryVariableMapping.memoryOffsetMapping.at(op.value.varIndex);
 	//	opAsm.baseOffset += op.baseOffset;
 	//	
@@ -52,7 +62,7 @@ OperandAsm IR_Statement::ConvertIrOperandToOperandAsm(IR_Operand& op, x64_State&
 
 		if (memoryVariable)
 		{
-			opAsm.reg = RegisterAsm(RSP);
+			opAsm.reg = RegisterAsm(RBP);
 			opAsm.baseOffset += state.registerAllocator.memoryVariableMapping.memoryOffsetMapping.at(op.value.varIndex);
 		}
 		else {
@@ -116,7 +126,7 @@ string varToString(IR_Value v)
 	{
 		ss << "%flags: " << conditionToString(v.flag);
 	}
-	else if (v.specialVars == IR_RETURN_INT || v.specialVars == IR_RETURN_FLOAT || v.specialVars == IR_RETURN_STACK)
+	else if (v.specialVars == IR_RETURN_INT || v.specialVars == IR_RETURN_FLOAT || v.specialVars == IR_RETURN_STACK || v.specialVars == IR_RETURN_VOID)
 	{
 		ss << "%return - " << v.specialVars << " (" << varType << string(v.pointerLevel, '*') << ", " << v.byteSize << ")";
 	}
@@ -542,6 +552,9 @@ void IR_FunctionCall::ConvertToX64(x64_State& state)
 
 	//after function call, add back value to stack pointer
 	//clear out caller saved register mapping
+
+
+	//figure out if this should be done later???
 	for (int i = 0; i < NUM_REGISTERS; ++i)
 	{
 		if (std::find(state._calleeSavedRegisters.begin(), state._calleeSavedRegisters.end(), (REGISTER)i) == state._calleeSavedRegisters.end())
@@ -553,9 +566,6 @@ void IR_FunctionCall::ConvertToX64(x64_State& state)
 			}
 		}
 	}
-
-
-
 	int totalOffset = 0;
 	StatementAsm stackSubtract(x64_SUB, OperandAsm::CreateRegisterOperand(RSP), OperandAsm::CreateIntLiteralOperand(0));
 	state.statements.push_back(std::move(stackSubtract));
@@ -582,7 +592,7 @@ void IR_FunctionCall::ConvertToX64(x64_State& state)
 			}
 			else {
 				StatementAsm movStatement(isFloat ? x64_MOVS : x64_MOV);
-				movStatement.firstOperand = OperandAsm::CreateRSPOffsetOperand(argAssign.stackArgOffset);
+				movStatement.firstOperand = OperandAsm::CreateRBPOffsetOperand(argAssign.stackArgOffset);
 				
 				OperandAsm secondOperand = IR_Statement::ConvertIrOperandToOperandAsm(argAssign.value, state);
 				if (secondOperand.dereference)
@@ -848,7 +858,7 @@ IR_StatementType IR_Return::GetType()
 void IR_Return::ConvertToX64(x64_State& state)
 {
 
-	int functionStackSpace = 16 * ((state.registerAllocator.currentStackPointerOffset + 15) / 16); //round up to multiple of 16
+	int functionStackSpace = 16 * ((-state.registerAllocator.currentFramePointerOffset + 15) / 16); //round up to multiple of 16
 
 	if (functionStackSpace == 0)
 	{

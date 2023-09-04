@@ -31,7 +31,7 @@ struct IR_Scope
 	StructDefinition FindStruct(string name);
 	IR_FunctionLabel FindFunction(string name);
 
-
+	vector<IR_Value> globalVariables;
 	IR_Scope();
 };
 
@@ -40,11 +40,12 @@ struct IR_State
 	int varIndex = 1;
 	IR_Scope scope;
 	int labelIndex = 1;
-	int currentStackPointerOffset = 0; //offset from stack pointer in current scope (for instance, if you have already stored 2 ints in the stack, the offset would be 8)
+	int currentFramePointerOffset = 0; //offset from stack pointer in current scope (for instance, if you have already stored 2 ints in the stack, the offset would be 8)
 	//Scope scopeStack;
 	const IR_Value functionReturnValueInt; //RAX register in x64
 	const IR_Value functionReturnValueFloat; //XMM0 register
 	const IR_Value functionReturnValueStructPointer; //pointer to struct return (first register passed into function) 
+	const IR_Value functionVoidReturn;
 	IR_Value flags; //flags set based on operations (especially used for boolean values)
 
 	IR_State();

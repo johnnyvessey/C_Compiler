@@ -62,7 +62,7 @@ void x64_CodeGen::PrintCurrentRegisterMapping()
 	std::cout << "Mem: {";
 	for (const auto& pair : this->state.registerAllocator.memoryVariableMapping.memoryOffsetMapping)
 	{
-		std::cout << "RSP + " << pair.second << ": %" << pair.first << ", ";
+		std::cout << "RBP + " << pair.second << ": %" << pair.first << ", ";
 	}
 	std::cout << "}\n------\n";
 }
@@ -79,14 +79,23 @@ void x64_CodeGen::GenerateDataSection(IR& irState)
 	globalNegativeZero1.name = "_negative dq 9223372036854775808, 9223372036854775808";
 	this->state.statements.push_back(std::move(globalNegativeZero1));
 
+	//add global variables to data section
+	for (IR_Value& value : irState.state.scope.globalVariables)
+	{
+		StatementAsm globalVar(x64_GLOBAL_VARIABLE);
+		stringstream ss;
+		ss << "_globalVar" << value.varIndex << " dq " << value.literalValue;
+		globalVar.name = ss.str();
+		this->state.statements.push_back(std::move(globalVar));
+	}
 
+	//add float literals to data section
 	for (int i = 0; i < this->irState.floatLiteralGlobals.size(); ++i)
 	{
-		//add GLOBAL_VARIABLE statements
 		StatementAsm globalFloatVar(x64_GLOBAL_VARIABLE);
 
 		stringstream ss;
-		ss << "_var" << (i + 1) << " dq " << this->irState.floatLiteralGlobals.at(i);
+		ss << "_floatConstant" << (i + 1) << " dq " << this->irState.floatLiteralGlobals.at(i);
 		globalFloatVar.name = ss.str();
 		this->state.statements.push_back(std::move(globalFloatVar));
 	}
@@ -152,7 +161,11 @@ string x64_CodeGen::CodeToString()
 	stringstream ss;
 	for (const StatementAsm& statement : this->state.statements)
 	{	
-		ss << statement.ToString() << "\n";
+		string statementString = statement.ToString();
+		if (statementString.size() > 0)
+		{
+			ss << statementString << "\n";
+		}
 	}
 
 	std::cout << ss.str();
