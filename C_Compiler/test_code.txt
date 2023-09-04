@@ -1,17 +1,5 @@
 int main()
 {
-	struct v {
-		int a;
-		int b;
-	};
-
-	struct v v1;
-	struct v v2;
-
-	v1.a = 1;
-	v1.b = 5;
-
-	v2 = v1;
-
-	return v2.b;
+	int x = 5;
+	return -x;
 }

@@ -10,7 +10,14 @@ string OperandAsm::ToString() const
 	}
 	else if (this->type == ASM_GLOBAL_MEMORY)
 	{
-		ss << "QWORD PTR [_var" << this->name << "]";
+		//if xmmword size is used for global memory, only use it for taking negative of float
+		if (xmmwordSize)
+		{
+			ss << "XMMWORD PTR [_negative]";
+		}
+		else {
+			ss << "QWORD PTR [_var" << this->name << "]";
+		}
 	}
 	else if (this->reg.reg != _NONE)
 	{
@@ -106,7 +113,7 @@ string StatementAsm::ToString() const
 	switch (this->type)
 	{
 
-	//script format cases
+		//script format cases
 	case x64_DATA_SECTION:
 	{
 		ss << ".data";
@@ -255,8 +262,22 @@ string StatementAsm::ToString() const
 		break;
 	}
 	case x64_MOVUPS:
+	{
 		ss << "movups " << doubleOpEnd;
+		break;
 	}
+	case x64_NEG:
+	{
+		ss << "neg " << this->firstOperand.ToString();
+		break;
+	}
+	case x64_XORPS:
+	{
+		ss << "xorps " << doubleOpEnd;
+		break;
+	}
+	}
+
 
 	if (!this->postStatements.empty()) {
 		ss << "\n";

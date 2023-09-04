@@ -88,8 +88,8 @@ enum StatementAsmType
 	x64_CQO, //used before IDIV instruction (converts RAX to RDX:RAX)
 	x64_CVTSI2SD, //long to double
 	x64_CVTTSD2SI, //double to long
-	x64_NOP
-	//TODO: FLOAT COMPARE STATEMENT
+	x64_NOP,
+	x64_XORPS
 };
 struct StatementAsm
 {

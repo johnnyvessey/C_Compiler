@@ -270,6 +270,8 @@ void IR_Assign::ConvertToX64(x64_State& state)
 	assignStatement.secondOperand = IR_Statement::ConvertIrOperandToOperandAsm(this->source, state);
 
 	bool isFloat = this->dest.GetVarType() == IR_FLOAT;
+	bool negative = false;
+
 	switch (this->assignType)
 	{
 	case IR_COPY:
@@ -311,6 +313,8 @@ void IR_Assign::ConvertToX64(x64_State& state)
 	case IR_NEGATIVE:
 	{
 		//figure out negative of floats...
+		assignStatement.type = isFloat ? x64_MOVS : x64_MOV;
+		negative = true;
 		break;
 	}
 	case IR_FLAG_CONVERT:
@@ -322,7 +326,7 @@ void IR_Assign::ConvertToX64(x64_State& state)
 	}
 
 	bool isArithmeticOperation = (this->assignType == IR_ADD || this->assignType == IR_SUBTRACT ||
-		this->assignType == IR_MULTIPLY || this->assignType == IR_DIVIDE);
+		this->assignType == IR_MULTIPLY || this->assignType == IR_DIVIDE || this->assignType == IR_NEGATIVE);
 	bool replaceSourceOperand = assignStatement.secondOperand.dereference && ((isFloat && isArithmeticOperation) ||
 		(assignStatement.firstOperand.dereference)
 		|| (this->assignType == IR_TYPE_CAST));
@@ -354,7 +358,25 @@ void IR_Assign::ConvertToX64(x64_State& state)
 		assignStatement.firstOperand.reg.size = 1; //use 1 byte version of register for set statement
 	}
 
-	state.statements.push_back(std::move(assignStatement));
+	state.statements.push_back(assignStatement);
+
+	if (negative)
+	{
+		if (isFloat)
+		{
+			//reference negative zero from global memory
+			OperandAsm negativeZero;
+			negativeZero.name = "_negative";
+			negativeZero.dereference = true;
+			negativeZero.xmmwordSize = true;
+			negativeZero.type = ASM_GLOBAL_MEMORY;
+
+			state.statements.push_back(StatementAsm(x64_XORPS, assignStatement.firstOperand, negativeZero));
+		}
+		else {
+			state.statements.push_back(StatementAsm(x64_NEG, assignStatement.firstOperand));
+		}
+	}
 
 	if (replaceDestOperand)
 	{

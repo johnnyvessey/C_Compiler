@@ -233,7 +233,7 @@ unique_ptr<Expression> AST::ParseNonBinaryExpression(unique_ptr<Expression> prev
 
 		}
 	}
-	else if (token.type == TokenType::NOT || token.type == TokenType::ADDRESS_OF)//(Lexer::IsUnaryOp(token.type)) // !, -, &
+	else if (token.type == TokenType::NOT || token.type == TokenType::ADDRESS_OF || (token.type == TokenType::MINUS && !prev))//(Lexer::IsUnaryOp(token.type)) // !, -, &
 	{
 		assert(!prev, "Invalid unary op syntax", token.lineNumber);
 		return ParseUnaryExpression();

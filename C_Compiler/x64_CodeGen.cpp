@@ -67,6 +67,32 @@ void x64_CodeGen::PrintCurrentRegisterMapping()
 	std::cout << "}\n------\n";
 }
 
+void x64_CodeGen::GenerateDataSection(IR& irState)
+{
+
+	//global data
+	this->state.statements.push_back(StatementAsm(x64_DATA_SECTION));
+
+	//set up constant to take negative of float value (-0.0 is the value)
+	//do this first to make sure it is 16 byte aligned
+	StatementAsm globalNegativeZero1(x64_GLOBAL_VARIABLE);
+	globalNegativeZero1.name = "_negative dq 9223372036854775808, 9223372036854775808";
+	this->state.statements.push_back(std::move(globalNegativeZero1));
+
+
+	for (int i = 0; i < this->irState.floatLiteralGlobals.size(); ++i)
+	{
+		//add GLOBAL_VARIABLE statements
+		StatementAsm globalFloatVar(x64_GLOBAL_VARIABLE);
+
+		stringstream ss;
+		ss << "_var" << (i + 1) << " dq " << this->irState.floatLiteralGlobals.at(i);
+		globalFloatVar.name = ss.str();
+		this->state.statements.push_back(std::move(globalFloatVar));
+	}
+
+}
+
 void x64_CodeGen::GenerateCode()
 {
 	//get info about IR variables to use in register allocation algorithm
@@ -80,18 +106,8 @@ void x64_CodeGen::GenerateCode()
 
 	std::cout << "------\n\n\n\n";
 
-	//global data
-	this->state.statements.push_back(StatementAsm(x64_DATA_SECTION));
-	for (int i = 0; i < this->irState.floatLiteralGlobals.size(); ++i)
-	{
-		//add GLOBAL_VARIABLE statements
-		StatementAsm globalFloatVar(x64_GLOBAL_VARIABLE);
-
-		stringstream ss;
-		ss << "_var" << (i + 1) << " dq " << this->irState.floatLiteralGlobals.at(i);
-		globalFloatVar.name = ss.str();
-		this->state.statements.push_back(std::move(globalFloatVar));
-	}
+	//generate global data section
+	GenerateDataSection(irState);
 
 	//functions
 	this->state.statements.push_back(StatementAsm(x64_CODE_SECTION));

@@ -18,4 +18,6 @@ struct x64_CodeGen
 	void PrintNonRegisterIRVariables();
 	void PrintVariableRanges();
 	void PrintCurrentRegisterMapping();
+
+	void GenerateDataSection(IR& irState);
 };
