@@ -51,19 +51,25 @@ OperandAsm IR_Statement::ConvertIrOperandToOperandAsm(IR_Operand& op, x64_State&
 	//	
 	//	opAsm.dereference = true;
 
-	//	//TODO: figure out what to do if using memory address
 
 	//}
 	else {
-		bool memoryVariable = state.registerAllocator.memoryVariableMapping.memoryOffsetMapping.find(op.value.varIndex) !=
-			state.registerAllocator.memoryVariableMapping.memoryOffsetMapping.end();
+		//	//TODO: figure out what to do if using memory address and dereferencing
+
+		bool memoryVariable = (state.registerAllocator.memoryVariableMapping.memoryOffsetMapping.find(op.value.varIndex) !=
+			state.registerAllocator.memoryVariableMapping.memoryOffsetMapping.end());
 		opAsm.dereference = op.dereference || memoryVariable;
 		opAsm.baseOffset = op.baseOffset;
 
 		if (memoryVariable)
 		{
 			opAsm.reg = RegisterAsm(RBP);
-			opAsm.baseOffset += state.registerAllocator.memoryVariableMapping.memoryOffsetMapping.at(op.value.varIndex);
+			int memoryOffset = state.registerAllocator.memoryVariableMapping.memoryOffsetMapping.at(op.value.varIndex);
+			if (memoryOffset >= 0)
+			{
+				memoryOffset += 16; //if function parameter is used from stack, add 16 (because push was called twice for RSP and return pointer)
+			}
+			opAsm.baseOffset += memoryOffset;
 		}
 		else {
 			opAsm.reg = RegisterAsm(state.AllocateRegister(op.value));
@@ -255,7 +261,27 @@ void IR_Assign::ConvertToX64(x64_State& state)
 	//deal with special cases first: int division, setting variable based on flag, 
 	if (this->assignType == IR_DIVIDE && this->dest.GetVarType() == IR_INT)
 	{
-		//TODO: figure out int division
+		//clear out RAX and RDX registers for usage in division instruction
+		state.SpillRegisterIfChanged(state.registerAllocator.registerMapping, RAX);
+		state.SpillRegisterIfChanged(state.registerAllocator.registerMapping, RDX);
+
+		OperandAsm destOperand = IR_Statement::ConvertIrOperandToOperandAsm(this->dest, state);
+		
+		state.statements.push_back(StatementAsm(x64_MOV, OperandAsm::CreateRegisterOperand(RAX), destOperand));
+
+		state.statements.push_back(StatementAsm(x64_CQO));
+
+		OperandAsm sourceOperand = IR_Statement::ConvertIrOperandToOperandAsm(this->source, state);
+		if (sourceOperand.type == ASM_INT_LITERAL)
+		{
+			REGISTER tempReg = state.AllocateTempRegister(sourceOperand, false, true, false);
+			sourceOperand = OperandAsm::CreateRegisterOperand(tempReg);
+		}
+		state.statements.push_back(StatementAsm(x64_IDIV, sourceOperand));
+
+		//move value back to original value from RAX
+		state.statements.push_back(StatementAsm(x64_MOV, destOperand, OperandAsm::CreateRegisterOperand(RAX)));
+		return;
 	}
 	else if (this->assignType == IR_STRUCT_COPY)
 	{
@@ -574,26 +600,36 @@ void IR_FunctionCall::ConvertToX64(x64_State& state)
 
 	for (IR_FunctionArgAssign& argAssign : this->argAssignments)
 	{
-		totalOffset = std::max(totalOffset, argAssign.stackArgOffset);
+		totalOffset = std::max(totalOffset, argAssign.stackArgOffset + argAssign.byteSize);
+		IR_VarType argType = argAssign.value.GetVarType();
+		bool isFloat = argType == IR_FLOAT;
+
+		//function parameters passed in registers
 		if (argAssign.argType == IR_INT_ARG || argAssign.argType == IR_FLOAT_ARG)
 		{
-			bool isFloat = argAssign.argType == IR_FLOAT_ARG;
 			const vector<REGISTER>& funcRegisters = isFloat ? state._functionFloatArguments : state._functionIntArguments;
+			REGISTER reg = funcRegisters.at(argAssign.argIdx);
+			//state.SpillRegisterIfChanged(state.registerAllocator.registerMapping, (int)reg);
+			StatementAsm movStatement(isFloat ? x64_MOVS : x64_MOV);
+			movStatement.firstOperand = OperandAsm::CreateRegisterOperand(reg);
+			movStatement.secondOperand = IR_Statement::ConvertIrOperandToOperandAsm(argAssign.value, state);
 
-			if (argAssign.argIdx < funcRegisters.size())
+			state.statements.push_back(std::move(movStatement));
+		}
+		//function parameters passed on the stack
+		//use RSP for offset, even though within function it will use RBP for the offset
+		else {
+			if (argAssign.value.GetVarType() == IR_STRUCT)
 			{
-				REGISTER reg = funcRegisters.at(argAssign.argIdx);
-				//state.SpillRegisterIfChanged(state.registerAllocator.registerMapping, (int)reg);
-				StatementAsm movStatement(isFloat ? x64_MOVS : x64_MOV);
-				movStatement.firstOperand = OperandAsm::CreateRegisterOperand(reg);
-				movStatement.secondOperand = IR_Statement::ConvertIrOperandToOperandAsm(argAssign.value, state);
+				OperandAsm dest = OperandAsm::CreateRSPOffsetOperand(argAssign.stackArgOffset);
+				OperandAsm source = IR_Statement::ConvertIrOperandToOperandAsm(argAssign.value, state);
 
-				state.statements.push_back(std::move(movStatement));
+				state.StructCopy(dest, source, argAssign.byteSize);
 			}
 			else {
 				StatementAsm movStatement(isFloat ? x64_MOVS : x64_MOV);
-				movStatement.firstOperand = OperandAsm::CreateRBPOffsetOperand(argAssign.stackArgOffset);
-				
+				movStatement.firstOperand = OperandAsm::CreateRSPOffsetOperand(argAssign.stackArgOffset);
+
 				OperandAsm secondOperand = IR_Statement::ConvertIrOperandToOperandAsm(argAssign.value, state);
 				if (secondOperand.dereference)
 				{
@@ -605,9 +641,6 @@ void IR_FunctionCall::ConvertToX64(x64_State& state)
 				state.statements.push_back(std::move(movStatement));
 
 			}
-		}
-		else {
-			//state.StructCopy()
 		}
 	}
 
@@ -857,6 +890,16 @@ IR_StatementType IR_Return::GetType()
 }
 void IR_Return::ConvertToX64(x64_State& state)
 {
+	for (const REGISTER& reg : state._calleeSavedRegisters)
+	{
+		if (state.registerAllocator.usedRegisters.at((int)reg) == 1)
+		{
+			StatementAsm pushRegister(x64_PUSH, OperandAsm::CreateRegisterOperand(reg));
+			StatementAsm popRegister(x64_POP, OperandAsm::CreateRegisterOperand(reg));
+			state.statements.at(state.registerAllocator.startFunctionStackPointerSubtractIndex).postStatements.push_back(std::move(pushRegister));
+			state.statements.push_back(std::move(popRegister));
+		}
+	}
 
 	int functionStackSpace = 16 * ((-state.registerAllocator.currentFramePointerOffset + 15) / 16); //round up to multiple of 16
 

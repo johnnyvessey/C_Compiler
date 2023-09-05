@@ -8,6 +8,7 @@ void RegisterAllocator::SetRegister(REGISTER reg, int varIdx)
 
 void RegisterAllocator::Reset()
 {
+	usedRegisters = vector<int>(NUM_REGISTERS, 0);
 	//clear register mapping
 	for (int i = 0; i < REGISTER_SIZE; ++i)
 	{

@@ -49,7 +49,7 @@ string OperandAsm::ToString() const
 		{
 			if (this->regOffsetMultiplier != 1)
 			{
-				ss << this->regOffsetMultiplier << " * ";
+				ss << " + " << this->regOffsetMultiplier << " * ";
 			}
 			ss << RegisterString::registerStringMapping.at((int)this->regOffset.reg);
 		}
@@ -93,11 +93,27 @@ string LabelToString(int labelIdx)
 
 string StatementAsm::ToString() const
 {
+	//only print pre and post statements if NOP
 	if (this->type == x64_NOP)
 	{
-		return "";
+		stringstream ss;
+		for (const StatementAsm& preStatement : this->preStatements)
+		{
+			ss << preStatement.ToString() << "\n";
+		}
+		for (const StatementAsm& postStatement : this->postStatements)
+		{
+			ss << postStatement.ToString() << "\n";
+		}
+
+		string finalString = ss.str();
+		if (!finalString.empty())
+		{
+			finalString.pop_back();
+		}
+		return finalString;
 	}
-	//TODO: finish this
+
 	stringstream ss;
 	
 	if (!this->preStatements.empty()) {
@@ -187,7 +203,7 @@ string StatementAsm::ToString() const
 	}
 	case x64_IDIV:
 	{
-		//TODO: figure this out
+		ss << "idiv " << this->firstOperand.ToString();
 		break;
 	}
 	case x64_DIVS:

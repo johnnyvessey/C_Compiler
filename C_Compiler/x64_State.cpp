@@ -4,10 +4,12 @@
 const vector<REGISTER> x64_State::_calleeSavedRegisters({ R12, R13, R14, R15, RBX });
 
 //reserve R15 and XMM15 for bringing spilled registers back to register temporarily
-const vector<REGISTER> x64_State::_usableIntRegisters({RDI, RSI, RCX, R8, R9, R10, R11, R12, R13, R14, RBX, RDX, RAX});
+const vector<REGISTER> x64_State::_usableIntRegisters({RDI, RSI, RCX, R8, R9, R10, R11, R12, R13, R14, R15, RBX, RDX, RAX});
+//const vector<REGISTER> x64_State::_usableIntRegisters({R12, R13, R14, R15, RBX, RDX, RAX });
+
 //const vector<REGISTER> x64_State::_usableIntCalleeSavedRegisters({RDI, RSI, RCX});
 
-const vector<REGISTER> x64_State::_usableFloatRegisters({XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7, XMM8, XMM9, XMM10, XMM11, XMM12, XMM13, XMM14, XMM0});
+const vector<REGISTER> x64_State::_usableFloatRegisters({XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7, XMM8, XMM9, XMM10, XMM11, XMM12, XMM13, XMM14, XMM15, XMM0});
 const vector<REGISTER> x64_State::_functionIntArguments({RDI, RSI, RDX, RCX, R8, R9});
 const vector<REGISTER> x64_State::_functionFloatArguments({XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7});
 
@@ -115,7 +117,7 @@ void x64_State::SetUpFunctionVariableMappings(const string& functionName)
 			++floatArgCount;
 		}
 		else {
-			registerAllocator.memoryVariableMapping.memoryOffsetMappingSpilledRegisters[value.varIndex] = memoryOffset(offset, false); //offset from RBP
+			registerAllocator.memoryVariableMapping.memoryOffsetMapping[value.varIndex] = offset; //offset from RBP
 			offset += value.byteSize;
 
 		}
@@ -201,6 +203,7 @@ REGISTER x64_State::AllocateRegister(IR_Value value, REGISTER specificRegister)
 		int endReg;
 		if (this->registerAllocator.registerMapping.FindRegisterOfVariable(value.varIndex, endReg))
 		{
+			this->registerAllocator.usedRegisters.at(endReg) = 1;
 			return (REGISTER)endReg;
 		}
 
@@ -224,15 +227,12 @@ REGISTER x64_State::AllocateRegister(IR_Value value, REGISTER specificRegister)
 				this->registerAllocator.registerMapping.regMapping.at((int)reg) = RegisterVariableGroup(value.varIndex, notYetSpilled);
 
 				
-				//return OperandAsm::CreateRegisterOperand(reg);
+				this->registerAllocator.usedRegisters.at(reg) = 1;
 				return reg;
 			}
 		}
 
-			//TODO: make sure to set register mapping as not-modified after setting value in memory
-
-
-			//spill register: one that will be used the farthest away
+		//spill register: one that will be used the farthest away
 		REGISTER spilledRegister = FindFurthestAwayRegisterInMappingUsed();
 
 		statements.push_back(SpillRegister(spilledRegister, registerAllocator.registerMapping));
@@ -249,6 +249,7 @@ REGISTER x64_State::AllocateRegister(IR_Value value, REGISTER specificRegister)
 
 		this->registerAllocator.registerMapping.regMapping.at((int)spilledRegister) = RegisterVariableGroup(value.varIndex, notYetSpilled);
 
+		this->registerAllocator.usedRegisters.at(spilledRegister) = 1;
 		//return OperandAsm::CreateRegisterOperand(spilledRegister);
 		return spilledRegister;
 		
@@ -262,13 +263,15 @@ REGISTER x64_State::AllocateRegister(IR_Value value, REGISTER specificRegister)
 	
 		this->registerAllocator.registerMapping.regMapping.at((int)specificRegister) = RegisterVariableGroup(value.varIndex, true);
 
-		return specificRegister;;
+		this->registerAllocator.usedRegisters.at(specificRegister) = 1;
+
+		return specificRegister;
 		
 	}
 
 }
 
-REGISTER x64_State::AllocateTempRegister(OperandAsm operand, bool isFloat, bool shouldLoadRegister, bool xmmwordSize)
+REGISTER x64_State::FindOpenRegister(OperandAsm operand, bool isFloat, bool shouldLoadRegister, bool xmmwordSize)
 {
 	const vector<REGISTER>& availableRegisters = isFloat ? _usableFloatRegisters : _usableIntRegisters;
 	for (const REGISTER& reg : availableRegisters)
@@ -291,6 +294,29 @@ REGISTER x64_State::AllocateTempRegister(OperandAsm operand, bool isFloat, bool 
 		}
 	}
 
+	return _NONE;
+}
+
+REGISTER x64_State::AllocateTempRegister(OperandAsm operand, bool isFloat, bool shouldLoadRegister, bool xmmwordSize)
+{
+	REGISTER foundReg = FindOpenRegister(operand, isFloat, shouldLoadRegister, xmmwordSize);
+	if (foundReg != _NONE)
+	{
+		this->registerAllocator.usedRegisters.at(foundReg) = 1;
+		return foundReg;
+	}
+
+	//if there are no registers on the first try, evict the expired variables then try again
+	//this will affect struct copying and allow more registers to be used without there being a risk of unnecessary spilling
+	EvictExpiredVariables();
+
+	REGISTER foundRegTry2 = FindOpenRegister(operand, isFloat, shouldLoadRegister, xmmwordSize);
+	if (foundRegTry2 != _NONE)
+	{
+		this->registerAllocator.usedRegisters.at(foundRegTry2) = 1;
+		return foundRegTry2;
+	}
+
 	REGISTER spilledRegister = FindFurthestAwayRegisterInMappingUsed();
 	statements.push_back(SpillRegister(spilledRegister, registerAllocator.registerMapping));
 
@@ -305,6 +331,7 @@ REGISTER x64_State::AllocateTempRegister(OperandAsm operand, bool isFloat, bool 
 	
 
 	this->registerAllocator.registerMapping.regMapping.at((int)spilledRegister) = RegisterVariableGroup(-1, true);
+	this->registerAllocator.usedRegisters.at(spilledRegister) = 1;
 
 	return spilledRegister;
 }
@@ -413,6 +440,7 @@ void x64_State::StructCopy(OperandAsm dest, OperandAsm source, int numBytes)
 
 	for (int i = 0; i < num16ByteCopies; ++i)
 	{
+		
 		REGISTER reg = AllocateTempRegister(source, true, true, true);
 		dest.xmmwordSize = true;
 		StatementAsm movStatement(x64_MOVUPS, dest, OperandAsm::CreateRegisterOperand(reg));

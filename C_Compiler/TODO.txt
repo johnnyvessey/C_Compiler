@@ -3,13 +3,21 @@ TODO:
 
 x64 todo:
 
+IMPORTANT:
+- bug with dereferencing variables stored in memory
+	-> need to bring into register first??
+	-> need to save back??
+	-> should this only be done in IR_Assign??
+- bug with LEA -> can be called where dest operand is memory location and source operand is non-dereferenced register
+	-> LEA only works with dest = register, source = memory
+
+
+
+- add modulo?? -> pretty easy
+	-> only works on ints
+	-> use same code gen as IDIV but just use RDX as result instead of RAX
+
 - make sure function calls work properly; test recursion
-
-- See where excess function arguments are stored; store them in RBP??? -> be careful about structs b/c they can't go into registers
- -> make sure RBP offset is positive for function arguments
-
-- work on functions:
-	-> callee vs caller saved registers -> keep track of used registers in function, add pushes and pops if they are used
 
 
 - Stress test register allocation for control flow

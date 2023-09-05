@@ -10,6 +10,7 @@ using namespace VariableNamespace;
 struct RegisterAllocator
 {
 	RegisterMapping registerMapping;
+	vector<int> usedRegisters; //registers that have been used in the function (used for callee saved register tracking)
 	MemoryVariableMapping memoryVariableMapping;
 	unordered_map<int, LabelRegisterMaps> labelRegisterMapping;
 	int currentFramePointerOffset;

@@ -1,15 +1,9 @@
-int counter = -7;
-
-void increment()
-{
-	++counter;
-}
-
 int main()
 {
-	increment();
-	increment();
-	increment();
+	int x = 5;
+	int* y = &x;
 
-	return counter;
+	int** z = &y;
+
+	return *y;
 }

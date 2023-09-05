@@ -132,6 +132,9 @@ IR_VariableData IR::ComputeIRVariableData()
 					variableUses.push_back(StatementVariableUse(lineNum, assign->dest.value.varIndex));
 					variableUses.push_back(StatementVariableUse(lineNum, assign->source.value.varIndex));
 
+					variableUses.push_back(StatementVariableUse(lineNum, assign->dest.memoryOffset.varIndex));
+					variableUses.push_back(StatementVariableUse(lineNum, assign->source.memoryOffset.varIndex));
+
 					break;
 				}
 				//case _IR_FUNCTION_ARG_ASSIGN:
@@ -151,6 +154,8 @@ IR_VariableData IR::ComputeIRVariableData()
 					{
 						DetermineRegisterStatusOfOperand(argAssign.value, varData.nonRegisterVariables.at(func.functionName));
 						variableUses.push_back(StatementVariableUse(lineNum, argAssign.value.value.varIndex));
+						
+						variableUses.push_back(StatementVariableUse(lineNum, argAssign.value.memoryOffset.varIndex));
 					}
 
 					break;
@@ -163,6 +168,9 @@ IR_VariableData IR::ComputeIRVariableData()
 
 					variableUses.push_back(StatementVariableUse(lineNum, compare->op1.value.varIndex));
 					variableUses.push_back(StatementVariableUse(lineNum, compare->op2.value.varIndex));
+
+					variableUses.push_back(StatementVariableUse(lineNum, compare->op1.memoryOffset.varIndex));
+					variableUses.push_back(StatementVariableUse(lineNum, compare->op2.memoryOffset.varIndex));
 
 					break;
 				}
@@ -221,7 +229,7 @@ IR_VariableData IR::ComputeIRVariableData()
 		}
 
 		unordered_map<int, vector<int>> variableLineMapping;
-		map<int, int> normalIndexToDoubledIndexMapping;
+		unordered_map<int, int> normalIndexToDoubledIndexMapping;
 
 		for (int i = 0; i < out.size(); ++i)
 		{

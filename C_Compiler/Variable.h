@@ -212,8 +212,8 @@ namespace VariableNamespace {
 		IR_VarType type;
 		IR_ValueType valueType;
 
-		int byteSize;
-		int varIndex;
+		int byteSize = 0;
+		int varIndex = 0;
 		bool isTempValue; //temp value in middle of expression (only needs to be in registers, won't be stored on the stack)
 
 		string literalValue;
