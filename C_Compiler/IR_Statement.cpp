@@ -60,7 +60,7 @@ OperandAsm IR_Statement::ConvertIrOperandToOperandAsm(IR_Operand& op, x64_State&
 			state.registerAllocator.memoryVariableMapping.memoryOffsetMapping.end());
 		opAsm.dereference = op.dereference || memoryVariable;
 		opAsm.baseOffset = op.baseOffset;
-
+		
 		if (memoryVariable)
 		{
 			opAsm.reg = RegisterAsm(RBP);
@@ -70,6 +70,7 @@ OperandAsm IR_Statement::ConvertIrOperandToOperandAsm(IR_Operand& op, x64_State&
 				memoryOffset += 16; //if function parameter is used from stack, add 16 (because push was called twice for RSP and return pointer)
 			}
 			opAsm.baseOffset += memoryOffset;
+
 		}
 		else {
 			opAsm.reg = RegisterAsm(state.AllocateRegister(op.value));
@@ -80,6 +81,17 @@ OperandAsm IR_Statement::ConvertIrOperandToOperandAsm(IR_Operand& op, x64_State&
 			opAsm.useRegOffset = true;
 			opAsm.regOffsetMultiplier = op.memoryOffsetMultiplier;
 			opAsm.regOffset = RegisterAsm(state.AllocateRegister(op.memoryOffset));
+		}
+
+		//if dereferencing variable that is in memory, move it to temp register and then dereference
+		//don't do this for LEA instruction though (dereference + useMemoryAddress)
+		//don't do this for struct variables either
+		bool isStructVar = state.irVariableData.structVariables.find(op.value.varIndex) != state.irVariableData.structVariables.end();
+		if (memoryVariable && op.dereference && !op.useMemoryAddress && !isStructVar)
+		{
+			REGISTER tempReg = state.AllocateTempRegister(opAsm, false, true, false);
+			opAsm = OperandAsm::CreateRegisterOperand(tempReg);
+			opAsm.dereference = true;
 		}
 
 	}
@@ -303,7 +315,26 @@ void IR_Assign::ConvertToX64(x64_State& state)
 	{
 		state.registerAllocator.registerMapping.regMapping.at((int)(assignStatement.firstOperand.reg.reg)).isModified = true;
 	}
+
 	assignStatement.secondOperand = IR_Statement::ConvertIrOperandToOperandAsm(this->source, state);
+
+	//Note: LEA is weird case so handle it separately
+	/*if (this->assignType == IR_LEA)
+	{
+		REGISTER destReg = assignStatement.firstOperand.reg.reg;
+		if (assignStatement.firstOperand.dereference)
+		{
+			destReg = state.AllocateTempRegister(assignStatement.firstOperand, false, false, false);
+		}
+		state.statements.push_back(StatementAsm(x64_LEA, OperandAsm::CreateRegisterOperand(destReg), assignStatement.secondOperand));
+		
+		if (assignStatement.firstOperand.dereference)
+		{
+			state.statements.push_back(StatementAsm(x64_MOV, assignStatement.firstOperand, OperandAsm::CreateRegisterOperand(destReg)));
+		}
+
+		return;
+	}*/
 
 	bool isFloat = this->dest.GetVarType() == IR_FLOAT;
 	bool negative = false;
@@ -364,11 +395,11 @@ void IR_Assign::ConvertToX64(x64_State& state)
 	bool isArithmeticOperation = (this->assignType == IR_ADD || this->assignType == IR_SUBTRACT ||
 		this->assignType == IR_MULTIPLY || this->assignType == IR_DIVIDE || this->assignType == IR_NEGATIVE);
 	bool replaceSourceOperand = assignStatement.secondOperand.dereference && ((isFloat && isArithmeticOperation) ||
-		(assignStatement.firstOperand.dereference)
+		(assignStatement.firstOperand.dereference && this->assignType != IR_LEA) //for LEA, make sure first op is register and second is memory
 		|| (this->assignType == IR_TYPE_CAST));
 
 	bool replaceDestOperand = (assignStatement.firstOperand.dereference && ((isFloat && isArithmeticOperation) ||
-		((assignStatement.type == x64_IMUL || this->assignType == IR_TYPE_CAST || this->assignType == IR_FLAG_CONVERT))));
+		((assignStatement.type == x64_IMUL || this->assignType == IR_TYPE_CAST || this->assignType == IR_FLAG_CONVERT || this->assignType == IR_LEA))));
 
 	if (replaceSourceOperand)
 	{
@@ -379,7 +410,10 @@ void IR_Assign::ConvertToX64(x64_State& state)
 	REGISTER replaceDestRegister;
 	if (replaceDestOperand)
 	{
-		replaceDestRegister = state.AllocateTempRegister(assignStatement.firstOperand, isFloat, this->assignType != IR_FLAG_CONVERT);
+		//Note: for LEA and SET instructions, they will set the register value without needing to know what the original value was,
+		//so don't load the value into the register when allocating it
+		replaceDestRegister = state.AllocateTempRegister(assignStatement.firstOperand, isFloat,
+			this->assignType != IR_FLAG_CONVERT && this->assignType != IR_LEA);
 		assignStatement.firstOperand = OperandAsm::CreateRegisterOperand(replaceDestRegister);
 	}
 

@@ -1,9 +1,17 @@
+struct var
+{
+	int a;
+	int b;
+	int c[10];
+	int* d;
+};
+
 int main()
 {
-	int x = 5;
-	int* y = &x;
+	struct var v;
 
-	int** z = &y;
+	vPtr->d = &(v.b);
+	v.b = 7;
 
-	return *y;
+	return *(vPtr->d);
 }

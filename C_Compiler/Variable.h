@@ -256,6 +256,7 @@ namespace VariableNamespace {
 		IR_Value returnVar;
 	};
 
+
 	struct IR_VariableData
 	{
 		unordered_map<string, unordered_map<int, int>> nonRegisterVariables;
@@ -269,6 +270,7 @@ namespace VariableNamespace {
 
 		vector<vector<int>> irScopeStack;
 
+		unordered_set<int> structVariables;
 	};
 
 

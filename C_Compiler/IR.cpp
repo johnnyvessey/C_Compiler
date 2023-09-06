@@ -178,6 +178,11 @@ IR_VariableData IR::ComputeIRVariableData()
 				{
 					IR_ContinuousMemoryInit* memoryInit = dynamic_cast<IR_ContinuousMemoryInit*>(statement.get());
 					varData.nonRegisterVariables.at(func.functionName)[memoryInit->varIdx] = memoryInit->byteNum;
+
+					if (memoryInit->isStruct)
+					{
+						varData.structVariables.insert(memoryInit->varIdx);
+					}
 					break;
 				}
 				case _IR_LOOP_START:

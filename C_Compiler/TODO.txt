@@ -4,13 +4,8 @@ TODO:
 x64 todo:
 
 IMPORTANT:
-- bug with dereferencing variables stored in memory
-	-> need to bring into register first??
-	-> need to save back??
-	-> should this only be done in IR_Assign??
-- bug with LEA -> can be called where dest operand is memory location and source operand is non-dereferenced register
-	-> LEA only works with dest = register, source = memory
-
+- bug with assigning pointers within struct (maybe only to other struct memory locations)
+- test out returning struct from function
 
 
 - add modulo?? -> pretty easy
