@@ -52,7 +52,8 @@ IR::IR()
 
 void IR::DetermineRegisterStatusOfOperand(IR_Operand& op, unordered_map<int, int>& nonRegisterVariableMap)
 {
-	if (op.useMemoryAddress)
+	//structs are already handled in ContinuousMemoryInit
+	if (op.useMemoryAddress && nonRegisterVariableMap.find(op.value.varIndex) == nonRegisterVariableMap.end())
 	{
 		nonRegisterVariableMap[op.value.varIndex] = op.value.byteSize;
 	}

@@ -1075,17 +1075,28 @@ IR_Operand AST_Assignment_Expression::ConvertExpressionToIR(IR& irState)
 	else {
 		assign.assignType = GetAssignTypeFromToken(assignmentOperator);
 		assign.byteSize = GetMemorySizeForIR(lvalue->type, nullptr);
-		if (lValue.dereference && (assignmentOperator == STAR_EQUAL || lValue.GetVarType() == IR_FLOAT))
+
+		//assigning memory address to variable already stored in memory (such as assigning pointer inside struct to an address)
+		if (lValue.dereference && rValue.dereference && rValue.useMemoryAddress)
 		{
 			writeBackToMemory = true;
+			assign.dest = IR_Operand(IR_Value(lValue.GetVarType(), IR_VARIABLE, lValue.GetByteSize(), irState.state.varIndex++,
+				true, "", IR_NONE, lValue.GetPointerLevel(), lValue.value.baseType));
+			assign.source = rValue;
+		}
+		else if (lValue.dereference && (assignmentOperator == STAR_EQUAL || lValue.GetVarType() == IR_FLOAT))
+		{
+			writeBackToMemory = true;
+
 			IR_Operand derefLValue = CopyDereferenceOfValue(lValue, irState);
 			assign.dest = derefLValue;
 			assign.source = rValue;
 		}
 		else if ((lValue.dereference && rValue.dereference) || (rValue.dereference && (lValue.GetVarType() == IR_FLOAT || assign.assignType == IR_MULTIPLY)))
 		{
-			IR_Operand derefRValue = CopyDereferenceOfValue(rValue, irState);
+			IR_Operand derefRValue = CopyDereferenceOfValue(rValue, irState, rValue.useMemoryAddress);
 			assign.source = derefRValue;
+			assign.source.useMemoryAddress = rValue.useMemoryAddress;
 		}
 		else {
 			assign.source = rValue;
