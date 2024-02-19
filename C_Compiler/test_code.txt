@@ -1,18 +1,13 @@
-struct var
-{
-	int a;
-	int b;
-	int c[10];
-	int* d;
-};
 
 int main()
 {
-	struct var v;
-	struct var* vPtr = &v;
-
-	vPtr->d = &(v.b);
-	v.b = 7;
-
-	return *(vPtr->d);
+	int x = 5;
+	if (x > 6) {
+		++x;
+	}
+	else {
+		--x;
+	}
+	
+	return x;
 }

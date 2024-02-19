@@ -135,6 +135,7 @@
     <ClCompile Include="FunctionParsing.cpp" />
     <ClCompile Include="IR.cpp" />
     <ClCompile Include="IR_CodeGen.cpp" />
+    <ClCompile Include="IR_Optimizations.cpp" />
     <ClCompile Include="IR_Statement.cpp" />
     <ClCompile Include="Lexer.cpp" />
     <ClCompile Include="main.cpp" />
@@ -155,6 +156,7 @@
     <ClInclude Include="AST_Expression.h" />
     <ClInclude Include="IR.h" />
     <ClInclude Include="IR_CodeGen.h" />
+    <ClInclude Include="IR_Optimizations.h" />
     <ClInclude Include="IR_Statement.h" />
     <ClInclude Include="Lexer.h" />
     <ClInclude Include="Parser.h" />

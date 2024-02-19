@@ -78,6 +78,9 @@
     <ClCompile Include="x64_State.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="IR_Optimizations.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Lexer.h">
@@ -123,6 +126,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="x64_State.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="IR_Optimizations.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

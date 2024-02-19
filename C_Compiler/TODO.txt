@@ -1,10 +1,19 @@
 TODO:
 
+Optimizations:
+
+- Constant propagation:
+-> figure out how to handle control flow, especially loops because back jumps will mess up propagation
+-> need to pass in variable data to determine which variables are non-memory ones
+
+
+
+
+
 
 x64 todo:
 
 IMPORTANT:
-- bug with assigning pointers within struct (maybe only to other struct memory locations)
 - test out returning struct from function
 
 
